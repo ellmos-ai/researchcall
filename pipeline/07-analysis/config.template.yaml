@@ -1,0 +1,16 @@
+# Station 7 — Auswertung
+analysis:
+  keep_raw_alongside_coded: true   # NICHT abschaltbar
+  unlisted_answers: as_other       # discard | as_other | let_model_map
+  free_comments: in_dataset        # in_dataset | separate | discard
+
+  qualitative:
+    methods: [summary, rating, tendency, taa, metaphor]
+    rating_models: 2               # >= 2 fuer Interrater-Reliabilitaet
+
+  report:
+    response_rate: true
+    dropout_by_window: true        # NO_ANSWER / DECLINED / BUSY / VOICEMAIL getrennt
+    answers_by_window: true
+
+  rule_changes: []                 # {date, item, from, to, reason}

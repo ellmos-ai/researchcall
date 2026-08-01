@@ -1,0 +1,18 @@
+# Station 2 — Instrument
+questionnaire:
+  order: randomised        # fixed | randomised
+  parallel_forms: 0
+  jump_rules: []           # [{if: {item: q3, equals: "nein"}, skip: [q4, q5, q6]}]
+
+items:
+  - id: q1
+    hypothesis: H1
+    format: skala          # dichotom | skala | skala_umgepolt | offen | kreativ
+    wording: "<exakter Fragetext — wird zitiert>"
+    wording_binding: true  # true = woertlich, false = darf umformuliert werden
+    scale:
+      steps: 4
+      low_label: "<sehr unzufrieden>"
+      high_label: "<sehr zufrieden>"
+    follow_up_depth: 0     # 0 | <n> | unlimited | until_exhausted
+    analysis_rule: "<wie wird diese Antwort ausgewertet>"

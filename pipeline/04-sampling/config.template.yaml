@@ -1,0 +1,15 @@
+# Station 4 — Stichprobe
+sample:
+  source: "<Datei oder Datenbank>"
+  size: 0
+  method: random             # random | stratified | census
+  time_windows: [morning, afternoon, evening]
+  assign_windows_randomly: true
+
+contact_rules:
+  attempts_per_person: 0     # Vorgabe: kein Nachfassen
+  spread_attempts: true      # wenn > 0: ueber verschiedene Tageszeiten
+  callback_after_refusal_max: 3
+  daily_quota: 50
+  concurrent_calls: 1        # ungeprueft, ob der Dienst mehr zulaesst
+  calling_hours: "09:00-19:00"
