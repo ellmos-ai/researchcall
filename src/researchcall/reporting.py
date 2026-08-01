@@ -134,6 +134,33 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
         if isinstance(value, dict):
             response_rows.append((str(row["time_window"]), value))
 
+    categorized_answers = 0
+    categorized_with_raw = 0
+    for _, response in response_rows:
+        answers = response.get("answers", {})
+        raw_answers = response.get("raw_answers", {})
+        if not isinstance(answers, dict) or not isinstance(raw_answers, dict):
+            continue
+        for question in questionnaire["questions"]:
+            question_id = question["id"]
+            if isinstance(answers.get(question_id), str):
+                categorized_answers += 1
+                raw_answer = raw_answers.get(question_id)
+                if isinstance(raw_answer, str) and raw_answer.strip():
+                    categorized_with_raw += 1
+
+    lines.extend(
+        [
+            "## Raw-answer audit",
+            "",
+            f"- Categorized answers: {categorized_answers}",
+            f"- Categorized answers with retained raw source text: {categorized_with_raw}",
+            "",
+            "Raw response text is retained in the local structured response for auditability but is not printed in this aggregate report. Categories remain interpretations and can be checked against their raw source.",
+            "",
+        ]
+    )
+
     for question in questionnaire["questions"]:
         question_id = question["id"]
         lines.extend([f"### {question_id}: {question['wording']}", ""])
@@ -171,6 +198,8 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
     exact_matches = sum(int(row["wording_matches"] or 0) for row in wording_rows)
     response_count = len(wording_rows)
     live_observed = False
+    transcript_audits = 0
+    transcript_exact = 0
     for row in included:
         try:
             detail = json.loads(row["detail_json"] or "{}")
@@ -178,7 +207,10 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
             detail = {}
         if detail.get("transport") == "live-api":
             live_observed = True
-            break
+        if detail.get("transcript_format") == "timestamped-speaker-lines":
+            transcript_audits += 1
+            if detail.get("transcript_wording_matches") is True:
+                transcript_exact += 1
     lines.extend(
         [
             "## Wording fidelity",
@@ -186,12 +218,14 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
             f"- Consented interview results available: {response_count}",
             f"- `asked_verbatim=true` reported: {reported_true}",
             f"- Actual returned wording exactly matched the questionnaire: {exact_matches}",
+            f"- Nested `result.transcript` records audited in memory: {transcript_audits}",
+            f"- Transcript audits containing every expected quoted sentence: {transcript_exact}",
             "",
         ]
     )
     if live_observed:
         lines.append(
-            "Live API results are present, but the schema is still agent-reported evidence; transcript review remains necessary before claiming strict standardization."
+            "Live API results are present. Schema wording fields are agent-reported; the separate transcript audit uses the measured `[mm:ss] SPEAKER: Text` string from `result.transcript`. Full transcripts are not persisted."
         )
     else:
         lines.append(
