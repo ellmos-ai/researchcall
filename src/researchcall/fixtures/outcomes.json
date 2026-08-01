@@ -1,0 +1,42 @@
+[
+  {
+    "status": "COMPLETED",
+    "consent": "granted",
+    "asked_verbatim": true,
+    "answers": {"q1": "yes", "q2": "satisfied", "q3": "agree"}
+  },
+  {"status": "NO_ANSWER"},
+  {
+    "status": "DECLINED",
+    "structured": true,
+    "consent": "declined",
+    "asked_verbatim": true,
+    "answers": {"q1": null, "q2": null, "q3": null}
+  },
+  {"status": "BUSY"},
+  {"status": "VOICEMAIL"},
+  {
+    "status": "COMPLETED",
+    "consent": "granted",
+    "asked_verbatim": false,
+    "answers": {"q1": "yes", "q2": "dissatisfied", "q3": "neutral"}
+  },
+  {"status": "FAILED"},
+  {"status": "CANCELED"},
+  {"status": "EXPIRED"},
+  {
+    "status": "COMPLETED",
+    "consent": "granted",
+    "asked_verbatim": true,
+    "answers": {"q1": "no", "q2": null, "q3": "disagree"}
+  },
+  {
+    "status": "DECLINED",
+    "structured": true,
+    "consent": "declined",
+    "asked_verbatim": true,
+    "withdrawal_requested": true,
+    "answers": {"q1": null, "q2": null, "q3": null}
+  }
+]
+
