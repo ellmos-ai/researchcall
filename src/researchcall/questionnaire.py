@@ -10,6 +10,10 @@ from .safety import reject_high_stakes_content
 CONSENT_VALUES = {"granted", "declined", "not_obtained"}
 
 
+def _task_label(value: str) -> str:
+    return "`" + value.replace("`", "\\`") + "`"
+
+
 def load_questionnaire_file(path: str | Path) -> dict[str, Any]:
     value = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(value, dict):
@@ -63,6 +67,7 @@ def validate_questionnaire(questionnaire: dict[str, Any]) -> None:
 
 def result_schema(questionnaire: dict[str, Any]) -> dict[str, Any]:
     answer_properties: dict[str, Any] = {}
+    raw_answer_properties: dict[str, Any] = {}
     wording_properties: dict[str, Any] = {}
     question_ids: list[str] = []
     for question in questionnaire["questions"]:
@@ -72,6 +77,7 @@ def result_schema(questionnaire: dict[str, Any]) -> dict[str, Any]:
             "type": ["string", "null"],
             "enum": [*question["categories"], None],
         }
+        raw_answer_properties[question_id] = {"type": ["string", "null"]}
         wording_properties[question_id] = {"type": ["string", "null"]}
     return {
         "type": "object",
@@ -83,6 +89,7 @@ def result_schema(questionnaire: dict[str, Any]) -> dict[str, Any]:
             "spoken_consent_wording",
             "spoken_wording",
             "answers",
+            "raw_answers",
         ],
         "properties": {
             "consent": {"type": "string", "enum": sorted(CONSENT_VALUES)},
@@ -101,6 +108,12 @@ def result_schema(questionnaire: dict[str, Any]) -> dict[str, Any]:
                 "required": question_ids,
                 "properties": answer_properties,
             },
+            "raw_answers": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": question_ids,
+                "properties": raw_answer_properties,
+            },
         },
     }
 
@@ -118,21 +131,24 @@ def build_task(questionnaire: dict[str, Any]) -> str:
         condition = question.get("ask_if")
         if condition:
             lines.append(
-                f'- {prefix} FILTER: Ask only if {condition["question"]} equals {json.dumps(condition["equals"], ensure_ascii=False)}.'
+                f'- {prefix} FILTER: Ask only if {condition["question"]} equals category {_task_label(str(condition["equals"]))}.'
             )
         lines.append(f'- {prefix} (say exactly): "{question["wording"]}"')
         lines.append(
-            f'  Allowed answer categories: {json.dumps(question["categories"], ensure_ascii=False)}.'
+            "  Allowed answer categories (interpretation labels; do not read aloud): "
+            + ", ".join(_task_label(category) for category in question["categories"])
+            + "."
         )
         for follow_up in question.get("follow_ups", []):
             lines.append(
-                f'  If the answer is {json.dumps(follow_up["when"], ensure_ascii=False)}, ask exactly: "{follow_up["wording"]}"'
+                f'  If the interpreted answer is category {_task_label(str(follow_up["when"]))}, say exactly: "{follow_up["wording"]}"'
             )
     lines.extend(
         [
             "Do not request names, addresses, background history, or any data not required by this questionnaire.",
             "If the person withdraws consent, stop immediately and set withdrawal_requested=true.",
             "For every question, return the actual words spoken in spoken_wording; use null when it was not asked.",
+            "For every question, preserve the participant's raw words in raw_answers before interpreting them into answers; do not correct or paraphrase the raw words, and use null only when no answer was given.",
             "Set asked_verbatim=true only if every spoken consent/question sentence exactly matched the required wording.",
         ]
     )
@@ -149,6 +165,7 @@ def validate_structured_result(
         "spoken_consent_wording",
         "spoken_wording",
         "answers",
+        "raw_answers",
     }
     if set(result) != required:
         raise ValueError("Structured result fields do not match the recipient schema")
@@ -162,22 +179,31 @@ def validate_structured_result(
         result["spoken_consent_wording"], str
     ):
         raise ValueError("spoken_consent_wording must be a string or null")
-    if not isinstance(result["spoken_wording"], dict) or not isinstance(
-        result["answers"], dict
+    if not all(
+        isinstance(result[field], dict)
+        for field in ("spoken_wording", "answers", "raw_answers")
     ):
-        raise ValueError("spoken_wording and answers must be objects")
+        raise ValueError("spoken_wording, answers, and raw_answers must be objects")
 
     expected_ids = {question["id"] for question in questionnaire["questions"]}
-    if set(result["spoken_wording"]) != expected_ids or set(result["answers"]) != expected_ids:
+    if any(
+        set(result[field]) != expected_ids
+        for field in ("spoken_wording", "answers", "raw_answers")
+    ):
         raise ValueError("Structured result question ids do not match the questionnaire")
     for question in questionnaire["questions"]:
         question_id = question["id"]
         wording = result["spoken_wording"][question_id]
         answer = result["answers"][question_id]
+        raw_answer = result["raw_answers"][question_id]
         if wording is not None and not isinstance(wording, str):
             raise ValueError(f"Spoken wording for {question_id} must be a string or null")
         if answer is not None and answer not in question["categories"]:
             raise ValueError(f"Answer for {question_id} is outside its fixed categories")
+        if raw_answer is not None and not isinstance(raw_answer, str):
+            raise ValueError(f"Raw answer for {question_id} must be a string or null")
+        if answer is not None and (not isinstance(raw_answer, str) or not raw_answer.strip()):
+            raise ValueError(f"Categorized answer for {question_id} needs a raw answer")
 
 
 def wording_matches(questionnaire: dict[str, Any], result: dict[str, Any]) -> bool:

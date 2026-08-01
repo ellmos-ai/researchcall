@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from researchcall import cli
-from researchcall.calls import FixtureCallClient
+from researchcall.calls import CallOutcome, FixtureCallClient, LiveCallClient
 from researchcall.database import connect, create_study, get_study, initialize
 from researchcall.questionnaire import (
     build_task,
@@ -71,14 +71,197 @@ class ResearchCallTestCase(unittest.TestCase):
 
     def test_fixed_wording_filter_and_audit_schema_are_in_task(self) -> None:
         task = build_task(self.questionnaire)
-        self.assertIn(self.questionnaire["consent_text"], task)
-        self.assertIn(self.questionnaire["questions"][1]["wording"], task)
-        self.assertIn("Ask only if q1 equals \"yes\"", task)
+        self.assertIn(
+            f'CONSENT (say exactly): "{self.questionnaire["consent_text"]}"', task
+        )
+        for question in self.questionnaire["questions"]:
+            self.assertIn(f'(say exactly): "{question["wording"]}"', task)
+        self.assertIn("Ask only if q1 equals category `yes`", task)
+        self.assertIn(
+            "Allowed answer categories (interpretation labels; do not read aloud): "
+            "`yes`, `no`.",
+            task,
+        )
+        self.assertNotIn('equals "yes"', task)
         self.assertIn("Do not paraphrase", task)
+        self.assertIn("raw words", task)
         schema = result_schema(self.questionnaire)
         self.assertIn("asked_verbatim", schema["required"])
         self.assertIn("spoken_wording", schema["required"])
+        self.assertIn("raw_answers", schema["required"])
         self.assertIn("withdrawal_requested", schema["required"])
+
+    def test_fixture_keeps_raw_answer_separate_from_interpreted_category(self) -> None:
+        client = FixtureCallClient.from_file(OUTCOMES)
+        outcome = client.call({"sample_id": 6}, self.questionnaire, "unused")
+        self.assertEqual(outcome.structured_result["answers"]["q2"], "dissatisfied")
+        self.assertEqual(
+            outcome.structured_result["raw_answers"]["q2"],
+            "2. Ja, unzufrieden.",
+        )
+        with self.assertRaisesRegex(ValueError, "raw_answers"):
+            FixtureCallClient(
+                [{"status": "COMPLETED", "answers": {"q1": "yes"}}]
+            ).call({"sample_id": 1}, self.questionnaire, "unused")
+
+    def test_live_rest_path_uses_activity_and_nested_result(self) -> None:
+        fixture = FixtureCallClient.from_file(OUTCOMES).call(
+            {"sample_id": 1}, self.questionnaire, "unused"
+        )
+        progress: list[dict[str, object]] = []
+        requests: list[tuple[str, str, dict[str, object] | None, str | None]] = []
+        client = LiveCallClient(
+            api_key="fixture-token",
+            base_url="https://example.invalid",
+            first_poll_seconds=0,
+            poll_seconds=0,
+            poll_timeout_seconds=1,
+            progress_callback=progress.append,
+        )
+
+        responses = iter(
+            [
+                {"id": "rest-call-1"},
+                {
+                    "status": "PREPARING",
+                    "activity": [
+                        {"timestamp": "17:37:50.769", "message": "Bot is speaking"}
+                    ],
+                },
+                {
+                    "status": "COMPLETED",
+                    "transcript": None,
+                    "activity": [
+                        {"timestamp": "17:37:50.769", "message": "Bot is speaking"},
+                        {"timestamp": "17:38:21.375", "message": "Call ended"},
+                    ],
+                    "result": {
+                        "transcript": "[00:00] BOT: Testfrage\\n[00:02] USER: Testantwort",
+                        "structuredResult": fixture.structured_result,
+                    },
+                },
+            ]
+        )
+
+        def fake_request(
+            method: str,
+            path: str,
+            payload: dict[str, object] | None = None,
+            idempotency_key: str | None = None,
+        ) -> dict[str, object]:
+            requests.append((method, path, payload, idempotency_key))
+            return next(responses)
+
+        with patch.object(client, "_request", side_effect=fake_request):
+            outcome = client.call(
+                {"sample_id": 1, "phone_e164": "+15550123456"},
+                self.questionnaire,
+                "stable-key",
+            )
+
+        self.assertEqual(outcome.status, "COMPLETED")
+        self.assertEqual(outcome.structured_result, fixture.structured_result)
+        self.assertEqual(
+            outcome.transcript,
+            "[00:00] BOT: Testfrage\\n[00:02] USER: Testantwort",
+        )
+        self.assertEqual(progress[0]["activity_events"], 1)
+        self.assertNotIn("status", progress[0])
+        post_payload = requests[0][2]
+        self.assertIn("recipient_result_schema", post_payload)
+        self.assertIn(
+            "raw_answers", post_payload["recipient_result_schema"]["required"]
+        )
+        self.assertEqual(requests[0][3], "stable-key")
+
+    def test_live_client_reads_bearer_only_from_calle_api_key(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "CALLE_API_KEY": "fixture-token",
+                "CALLE_BASE_URL": "https://example.invalid",
+            },
+            clear=True,
+        ):
+            client = LiveCallClient.from_environment()
+
+        captured_requests = []
+
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+            @staticmethod
+            def read() -> bytes:
+                return b"{}"
+
+        def fake_urlopen(request, timeout):
+            del timeout
+            captured_requests.append(request)
+            return FakeResponse()
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            client._request("GET", "/v1/calls/rest-call-1")
+
+        self.assertEqual(
+            captured_requests[0].get_header("Authorization"),
+            "Bearer fixture-token",
+        )
+        with patch.dict("os.environ", {"CALLE_TOKEN": "ignored"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "CALLE_API_KEY"):
+                LiveCallClient.from_environment()
+
+    def test_transcript_is_audited_in_memory_but_not_persisted(self) -> None:
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        sample = self.connection.execute(
+            "SELECT id, time_window FROM sample"
+        ).fetchone()
+        fixture_client = FixtureCallClient.from_file(OUTCOMES)
+        fixture_outcome = fixture_client.call(
+            {"sample_id": sample["id"]}, self.questionnaire, "unused"
+        )
+        transcript_lines = [
+            f'[00:00] BOT: {self.questionnaire["consent_text"]}',
+            '[00:04] USER: Ja.',
+        ]
+        for index, question in enumerate(self.questionnaire["questions"], start=1):
+            transcript_lines.append(f"[00:{index * 5:02d}] BOT: {question['wording']}")
+            raw_answer = fixture_outcome.structured_result["raw_answers"][question["id"]]
+            transcript_lines.append(f"[00:{index * 5 + 2:02d}] USER: {raw_answer}")
+        transcript = "\n".join(transcript_lines)
+        live_outcome = CallOutcome(
+            status="COMPLETED",
+            run_id="rest-call-audit",
+            structured_result=fixture_outcome.structured_result,
+            detail={"transport": "live-api"},
+            transcript=transcript,
+        )
+
+        with patch.object(fixture_client, "call", return_value=live_outcome):
+            totals = run_day(
+                self.connection,
+                get_study(self.connection, "study"),
+                sample["time_window"],
+                1,
+                fixture_client,
+            )
+
+        self.assertEqual(totals["COMPLETED"], 1)
+        detail_json = self.connection.execute(
+            "SELECT detail_json FROM attempt WHERE sample_id = ?", (sample["id"],)
+        ).fetchone()["detail_json"]
+        detail = json.loads(detail_json)
+        self.assertEqual(detail["transcript_format"], "timestamped-speaker-lines")
+        self.assertTrue(detail["transcript_wording_matches"])
+        self.assertFalse(detail["transcript_persisted"])
+        self.assertNotIn(transcript, detail_json)
+        report = build_report(self.connection, get_study(self.connection, "study"))
+        self.assertIn("Categorized answers with retained raw source text: 3", report)
+        self.assertIn("Nested `result.transcript` records audited in memory: 1", report)
 
     def test_random_draw_assigns_windows_and_every_sample_is_attempted_once(self) -> None:
         self.import_rows()

@@ -8,6 +8,7 @@ The default path is fully local: no account, credentials, SDK, network connectio
 
 - Questions use fixed wording and fixed answer categories.
 - Conditional questions are the only preplanned follow-ups. The task explicitly forbids spontaneous probes and paraphrasing.
+- Every interpreted category keeps the participant's raw answer beside it. A category without non-empty raw source text is rejected.
 - Time windows are randomized when the sample is drawn, not chosen after an outcome is known.
 - A database uniqueness constraint permits one attempt per sample record. There is no retry command.
 - `run-day` processes at most the next `N` open records in one assigned time window. Recurrence belongs to the host scheduler; ResearchCall has no daemon or multi-day loop.
@@ -26,7 +27,10 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e .
 python -m unittest discover -s tests -v
+python -m researchcall --help
 ```
+
+The editable install is required when invoking `python -m researchcall` from the repository root. Running directly from an uninstalled `src` layout otherwise requires an explicit `PYTHONPATH=src`, which is not the documented workflow.
 
 ## Offline demonstration
 
@@ -83,17 +87,22 @@ Create the aggregate report:
 researchcall --db survey.db report --study mobility-2026 --output out/report.md
 ```
 
-## Wording fidelity: an explicit limitation
+## Wording fidelity: confirmed quoted-task behavior
 
-CALL-E has no dedicated script, wording, tone, or persona field. ResearchCall therefore places the exact consent text, every exact question, the filter rules, and the prohibition on paraphrasing in CALL-E's free-text `task`. Its `recipient_result_schema` requires:
+An operator-provided real CALL-E test on 2026-08-01 confirmed the critical mechanism: text enclosed in straight double quotes in `task` was spoken character-for-character, including an intentional typo. The same measured run showed that framing instructions outside quotes were paraphrased and that the planner added behavioral instructions of its own.
+
+ResearchCall therefore places the consent sentence, every question, and every preplanned follow-up in double quotes. Filter logic, answer categories, privacy limits, and other framing instructions remain outside the quotes. Its `recipient_result_schema` requires:
 
 - `asked_verbatim`
 - `spoken_consent_wording`
 - the actual `spoken_wording` for every question
+- the participant's uncorrected `raw_answers` for every question
+- separately interpreted `answers` constrained to the fixed categories
 - consent and withdrawal state
-- answers constrained to the questionnaire's fixed categories
 
-ResearchCall independently compares the returned wording with the questionnaire. This is useful audit evidence, but the fields are still produced by the remote agent. Fixture success proves the local enforcement and audit path only. Strict live standardization cannot be claimed until a real, consented test verifies the transcript. If CALL-E paraphrases, ResearchCall reports the mismatch instead of treating that interview as standardized.
+The real test positively answers the specification's open feasibility question for the measured service behavior. It is not treated as a permanent guarantee for every future call. For each live result, ResearchCall still compares schema-reported wording and checks the final nested transcript for every expected quoted sentence. A mismatch remains visible instead of being counted as standardized.
+
+Raw answers are methodologically separate from categories. The measured answer `2. Ja, unzufrieden.` was interpreted as `dissatisfied`; ResearchCall retains both values so that the categorization remains auditable. Aggregate reports count raw-answer coverage but do not print raw response text.
 
 ## Consent, withdrawal, and minimization
 
@@ -122,6 +131,12 @@ No live call is possible without all of the following:
 4. a valid E.164 number already in the selected frame row
 5. `CALLE_API_KEY` supplied only through the environment
 
+### REST is the primary live transport
+
+Schema-validated collection is available only through the Developer REST API: `POST /v1/calls` with `Authorization: Bearer $CALLE_API_KEY`. The MCP/CLI `plan_call` path exposes no `result_schema` or `recipient_result_schema`, so it cannot provide the standardized result contract ResearchCall requires. A measured cross-path lookup returned HTTP 404: MCP run IDs and REST call IDs occupy separate ID spaces. ResearchCall therefore creates and polls the same call through REST; it does not start through MCP and then attempt REST retrieval.
+
+The key is read only from `CALLE_API_KEY`, is never printed or persisted, and is not validated by a guessed prefix. `CALLE_BASE_URL` may override the endpoint without changing credential handling.
+
 Example syntax only; it was not executed during development:
 
 ```powershell
@@ -129,7 +144,15 @@ $env:CALLE_API_KEY = "<secret>"
 researchcall --db survey.db run-day --study mobility-2026 --window morning --limit 1 --live --confirm-live "CALL 1" --consent-attested
 ```
 
-The live adapter is deliberately serial because CALL-E's concurrency ceiling is not confirmed. It creates one-recipient API calls and sends a deterministic, non-personal `Idempotency-Key`. The database claims the sample before the request, so an interruption or transport error does not make that person eligible for a retry.
+The current runner dispatches one-recipient REST calls serially as a conservative default and sends a deterministic, non-personal `Idempotency-Key`. This is not a claim that the service forbids parallel calls: concurrency remains unmeasured, and the code does not encode a provider concurrency ceiling. Each call and attempt remains independently addressable so a later, separately verified dispatcher can preserve the same schema and idempotency rules. The database claims the sample before the request, so an interruption or transport error does not make that person eligible for a retry.
+
+The measured call had about 40 seconds of setup time before ringing, independent of its later conversation length. Plan a serial quota with roughly `40 × N` seconds of setup overhead for `N` calls, plus ringing, conversation, and final synchronization time. The CLI prints this as a planning observation, not a guaranteed duration.
+
+### Live progress and final transcript
+
+`status` is used only to recognize a terminal outcome. In the measured call it remained `PREPARING` while the conversation was already in progress, so ResearchCall never presents it as a progress bar. Live progress is derived from changes to `activity`; the CLI prints only a sanitized event count. It does not print activity text, phone numbers, or answers. Streaming activity can contain an initial recognition followed by a corrected duplicate, so it is progress evidence rather than the final scientific record.
+
+After completion, the transcript is read from `result.transcript`, not the top-level `transcript` field (which was `null` in the measured result). It is a single string with `[mm:ss] BOT: Text` and `[mm:ss] USER: Text` lines. ResearchCall validates that format and checks for the expected quoted sentences in memory. It persists only audit flags, not the full transcript.
 
 The content guard rejects questionnaires that explicitly request medical, legal, financial, or emergency advice. It is a narrow technical backstop, not legal review. The operator remains responsible for consent, lawful contact, research ethics, and jurisdiction-specific requirements. For German private persons, use informed participants; business respondents are the safer demonstration setting described in the project specification.
 
@@ -139,18 +162,19 @@ Offline fixture mode stays inside the local process and SQLite file. It performs
 
 Live mode sends the selected phone number, locale, exact questionnaire task, result schema, and a pseudonymous sample ID to the external CALL-E/AiRudder service. The documented CALL-E agent/MCP infrastructure is hosted in Singapore at `https://seleven-mcp-sg.airudder.com`; the Developer API base used by the adapter defaults to `https://api.heycall-e.com` and can be changed with `CALLE_BASE_URL`. Service-side security, audit, and operational logs may exist. Do not put unnecessary personal data into the questionnaire or task.
 
-ResearchCall stores terminal status, timestamps, a provider run ID until withdrawal, and the schema-constrained result. It intentionally does not store transcripts. Access tokens are read from environment variables and are never written to the database, report, logs, examples, or source code.
+ResearchCall stores terminal status, timestamps, a provider run ID until withdrawal, and the schema-constrained result, including raw answers needed to audit category interpretation. It intentionally does not store full transcripts: the final nested string is inspected in memory and discarded after audit flags are derived. Access tokens are read from environment variables and are never written to the database, report, logs, examples, or source code.
 
 ## Side effects and abort behavior
 
 - `init`, `demo`, imports, sampling, attempts, responses, and withdrawal operations write only to the selected local SQLite database and requested report directory.
 - Dry-run `run-day` consumes a sample's one allowed attempt using a fixture result. Use a disposable database for demonstrations.
 - `Ctrl-C` records `ended_at` and local status `INTERRUPTED`, then exits with code 130. CALL-E exposes no cancellation tool in the verified contract, so interrupting local polling cannot be presented as cancellation of a call already in progress.
-- Polling is bounded per live call: first status read after approximately 60 seconds, then every 10 seconds until a terminal result or timeout. There is no unbounded daemon loop.
+- Polling is bounded per live call: first read after approximately 60 seconds, then every 10 seconds until a terminal result or timeout. `activity`, not nonterminal `status`, supplies progress. There is no unbounded daemon loop.
 
 ## Verified and unverified scope
 
-Verified locally: offline 200-to-50 demonstration, random time-window assignment, single-attempt invariant, timestamps, mixed fixtures, withdrawal exclusion, wording audit, aggregate report, E.164 validation, output masking, SQLite read-only import, and live-gate rejection before client creation.
+Verified locally: offline 200-to-50 demonstration, random time-window assignment, single-attempt invariant, timestamps, mixed fixtures, raw-answer/category separation, withdrawal exclusion, wording and nested-transcript audit paths, aggregate report, E.164 validation, output masking, SQLite read-only import, REST schema payload construction, `activity`-based progress handling while status remains `PREPARING`, and live-gate rejection before client creation.
 
-Not verified: account authentication, real calls, the live Developer API adapter, exact live wording, transcript timing, concurrency limits, remote cancellation, CI, publication, or any jurisdictional approval. See `EVIDENCE.md` for literal executed commands and output.
+Measured externally and recorded in `FINDINGS.md`: one real test call spoke quoted wording exactly (including an intentional typo), exposed progress through `activity` while `status` stayed `PREPARING`, returned the final transcript as a string in `result.transcript`, interpreted a free answer into a category, incurred about 40 seconds of setup time, and demonstrated separate MCP/REST ID spaces with an HTTP 404 cross-lookup.
 
+Still unverified: service concurrency limits, voicemail/busy/no-answer behavior beyond fixtures, whether REST and MCP share one quota, remote cancellation, CI, publication, or any jurisdictional approval. No real call is made by the repository test suite. See `EVIDENCE.md` for literal executed commands and output.
