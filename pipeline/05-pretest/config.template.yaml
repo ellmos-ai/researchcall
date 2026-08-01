@@ -1,0 +1,17 @@
+# Station 5 — Pretest
+pretest:
+  export_questionnaire: true
+  send_to_reviewers: []        # Mailadressen
+  call_reviewers: []           # Nummern von Eingeweihten
+  self_test_calls: 1
+
+  instrument_check:
+    calls: 30
+    syntactic_marker: "<bewusst holpriger Satz, den ein Modell glaetten wuerde>"
+    measure:
+      - asked_verbatim
+      - spoken_wording
+      - unplanned_follow_ups
+      - order_kept
+      - ethics_blocks_complete
+    report_result_honestly: true   # NICHT abschaltbar

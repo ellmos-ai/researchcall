@@ -1,0 +1,11 @@
+# Station 8 — Bericht und Veroeffentlichung
+reporting:
+  findings_file: "BEFUNDE.md"
+  journal_format: psychology_apa   # siehe .RESEARCH/_templates/
+  languages: [de, en]
+  disclosure_level: L3
+
+publication:
+  target: zenodo                   # zenodo | journal | preprint | none
+  source_check_before_upload: true # NICHT abschaltbar
+  dry_run_first: true

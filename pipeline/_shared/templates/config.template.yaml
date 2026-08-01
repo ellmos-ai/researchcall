@@ -1,0 +1,9 @@
+# Vorlage fuer eine Stations-Config
+#
+# Regeln fuer Config-Eintraege:
+#   - Jeder Eintrag, den der Nutzer setzen kann, steht hier — mit Vorgabewert.
+#   - Was "NICHT abschaltbar" ist, wird kommentiert und erscheint in keiner Oberflaeche.
+#   - Jeder Eintrag hat eine Formularvorlage in _shared/forms/ (Label, Typ, Hilfetext).
+
+<bereich>:
+  <schluessel>: <vorgabewert>     # <kurze Erklaerung>
