@@ -2,101 +2,197 @@
 
 Date: 2026-08-01
 
-This file records observed local evidence. It does not claim a live call, remote acceptance, publication, or legal approval.
+This file separates the operator-provided live measurements in `FINDINGS.md` from commands actually executed in this repository during the post-findings run. This run made no real call and no CALL-E network request.
 
-## Executed
+## Measured service evidence incorporated, not repeated here
 
-Environment check:
+`FINDINGS.md` records one real CALL-E test call and associated API checks. The implementation and README now treat these as measured facts:
+
+- double-quoted task text was spoken character-for-character, including an intentional typo;
+- framing outside quotes was paraphrased and augmented by the planner;
+- nonterminal `status` remained `PREPARING` during speech, while `activity` showed progress;
+- the final transcript was a `[mm:ss] SPEAKER: Text` string in `result.transcript`, while top-level `transcript` was `null`;
+- schema-validated results were available through REST, not MCP, and a cross-path ID lookup returned HTTP 404;
+- a free response was interpreted into a category, making retained raw answers necessary;
+- the measured call had about 40 seconds of setup time before ringing.
+
+No claim is made that this local run independently repeated those live observations.
+
+## Executed in this run
+
+Baseline revision:
 
 ```text
-> python --version
+> git log -1 --oneline
+57da691 docs: add FINDINGS.md — measured behaviour from a real call
+```
+
+The clean baseline suite produced:
+
+```text
+> python -m unittest discover -s tests -v
+...
+----------------------------------------------------------------------
+Ran 9 tests in 3.948s
+
+OK
+```
+
+The first regression-first run after adding tests exited 1 as intended: 11 tests ran, with one failure and two errors for the then-missing `raw_answers` task/schema behavior and `progress_callback` support. After the implementation patch, the expanded suite passed.
+
+### Editable installation and module invocation
+
+A fresh venv was created under the ignored repository path `out/verification-findings-20260801/venv`. The combined creation/install harness timed out before returning a result, so its success was not assumed. Readback showed a working venv:
+
+```text
+> out\verification-findings-20260801\venv\Scripts\python.exe --version
 Python 3.12.10
 ```
 
-Static compilation check:
+The first explicitly offline install attempt failed because a default Python 3.12 venv had no local `setuptools.build_meta`:
+
+```text
+> python -m pip install -e . --no-build-isolation --no-deps --no-index
+Obtaining file:///C:/_Local_DEV/repos/researchcall
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+pip._vendor.pyproject_hooks._impl.BackendUnavailable: Cannot import 'setuptools.build_meta'
+exit code 2
+```
+
+The ignored test venv was then configured to see the already installed system packages. Local `setuptools` was `82.0.1`. Repeating the same no-index install succeeded:
+
+```text
+> python -m pip install -e . --no-build-isolation --no-deps --no-index
+Obtaining file:///C:/_Local_DEV/repos/researchcall
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: researchcall
+  Building editable for researchcall (pyproject.toml): started
+  Building editable for researchcall (pyproject.toml): finished with status 'done'
+Successfully built researchcall
+Installing collected packages: researchcall
+Successfully installed researchcall-0.1.0
+exit code 0
+```
+
+The installed module then worked from the repository root without `PYTHONPATH`:
+
+```text
+> python -m researchcall --help
+usage: researchcall [-h] [--db DB]
+                    {init,create-study,import-frame,draw,run-day,report,withdraw,demo}
+                    ...
+
+Dry-run-first standardized scientific telephone survey tooling.
+
+positional arguments:
+  {init,create-study,import-frame,draw,run-day,report,withdraw,demo}
+    init                Initialize the local SQLite state database.
+
+options:
+  -h, --help            show this help message and exit
+  --db DB
+exit code 0
+```
+
+The successful pip output named an ephemeral wheel-cache directory under `C:\Users\User\AppData\Local\Temp`. An immediate readback returned `path not found`; no persistent verification artifact was found there. Persistent test artifacts are under the repository's ignored `out/` tree.
+
+### Final static and automated tests
 
 ```text
 > python -m compileall -q src tests
 exit code 0; no output
 ```
 
-The first full test run did not pass. Seven tests ended in Windows `PermissionError: [WinError 32]` during temporary-directory cleanup because `initialize()` and the demo treated the SQLite context manager as if it closed the connection. The connection lifecycle was corrected. The final repeated command produced:
-
 ```text
 > python -m unittest discover -s tests -v
 test_demo_runs_end_to_end_without_network (test_researchcall.ResearchCallTestCase.test_demo_runs_end_to_end_without_network) ... ok
 test_duplicate_phone_cannot_create_two_person_attempts (test_researchcall.ResearchCallTestCase.test_duplicate_phone_cannot_create_two_person_attempts) ... ok
 test_fixed_wording_filter_and_audit_schema_are_in_task (test_researchcall.ResearchCallTestCase.test_fixed_wording_filter_and_audit_schema_are_in_task) ... ok
+test_fixture_keeps_raw_answer_separate_from_interpreted_category (test_researchcall.ResearchCallTestCase.test_fixture_keeps_raw_answer_separate_from_interpreted_category) ... ok
+test_live_client_reads_bearer_only_from_calle_api_key (test_researchcall.ResearchCallTestCase.test_live_client_reads_bearer_only_from_calle_api_key) ... ok
 test_live_mode_fails_before_client_creation_without_exact_intent (test_researchcall.ResearchCallTestCase.test_live_mode_fails_before_client_creation_without_exact_intent) ... error=Live mode requires --confirm-live "CALL 1" for this bounded quota
 ok
+test_live_rest_path_uses_activity_and_nested_result (test_researchcall.ResearchCallTestCase.test_live_rest_path_uses_activity_and_nested_result) ... ok
 test_phone_validation_and_masking (test_researchcall.ResearchCallTestCase.test_phone_validation_and_masking) ... ok
 test_random_draw_assigns_windows_and_every_sample_is_attempted_once (test_researchcall.ResearchCallTestCase.test_random_draw_assigns_windows_and_every_sample_is_attempted_once) ... ok
 test_report_preserves_loss_structure_and_never_contains_phone_numbers (test_researchcall.ResearchCallTestCase.test_report_preserves_loss_structure_and_never_contains_phone_numbers) ... ok
 test_sqlite_frame_source_is_opened_read_only (test_researchcall.ResearchCallTestCase.test_sqlite_frame_source_is_opened_read_only) ... ok
+test_transcript_is_audited_in_memory_but_not_persisted (test_researchcall.ResearchCallTestCase.test_transcript_is_audited_in_memory_but_not_persisted) ... ok
 test_withdrawal_erases_identifiers_and_excludes_record (test_researchcall.ResearchCallTestCase.test_withdrawal_erases_identifiers_and_excludes_record) ... ok
 
 ----------------------------------------------------------------------
-Ran 9 tests in 0.852s
+Ran 13 tests in 2.944s
 
 OK
 ```
 
-The end-to-end verification ran from `src` so the package could be invoked without installing anything outside this repository:
+### Installed offline demonstration
 
 ```text
-> python -m researchcall demo --workspace ../out/verification-final-20260801 --seed 42
+> python -m researchcall demo --workspace out/verification-findings-20260801/demo --seed 42
 mode=dry-run transport=fixture network=disabled
 frame_imported=200 sample_drawn=50 attempts=50
 terminal_statuses={"BUSY":5,"CANCELED":4,"COMPLETED":14,"DECLINED":9,"EXPIRED":4,"FAILED":4,"NO_ANSWER":5,"VOICEMAIL":5}
-report=..\out\verification-final-20260801\report.md
+report=out\verification-findings-20260801\demo\report.md
+exit code 0
 ```
 
-The generated SQLite state was inspected read-only:
+Read-only inspection of the generated database and report produced:
 
 ```text
 frame=200
 sample=50
 attempt=50
+response=19
 retry_duplicates=0
 missing_timestamps=0
-excluded_withdrawals=4
+quick_check=ok
+unmasked_fixture_phone=false
+raw_answer_audit=true
+nested_transcript_audit=true
+time_window_outcomes=true
 ```
 
-Database integrity check:
+Repository checks before this evidence update produced `git diff --check` exit code 0, no U+FFFD replacement characters in changed files, and no JWT/OpenAI-style secret patterns in changed files. The German questionnaire fixture separately produced:
 
 ```text
-> PRAGMA quick_check
-ok
+contains_native_ä=true
+contains_native_ö=true
+contains_native_ü=true
+replacement_character=false
 ```
 
-The generated report was also checked programmatically:
+## Implementation evidence covered by tests
 
-```text
-unmasked fixture phone pattern present: false
-time-window outcome table present: true
-NO_ANSWER / DECLINED / BUSY / VOICEMAIL distinctions present: true
-fixture-only wording caveat present: true
-```
+- Only consent, questions, and preplanned follow-ups use double quotes in `task`; filter values and category labels use non-spoken backtick labels.
+- `recipient_result_schema` requires both interpreted `answers` and uncorrected `raw_answers`.
+- Structured fixtures without explicit `raw_answers` are rejected; interpreted categories are never fabricated as raw evidence.
+- The REST test observes `activity` while `status=PREPARING`; progress snapshots intentionally contain no status or activity text.
+- A top-level `transcript=null` does not mask the nested `result.transcript` string.
+- Transcript format and quoted wording are audited in memory; full transcript text is absent from persisted attempt details.
+- The live client reads the bearer token from `CALLE_API_KEY`; `CALLE_TOKEN` alone is rejected.
+- The current dispatcher is serial but contains no asserted provider concurrency limit.
 
-## Assumptions recorded
+## Not executed in this run
 
-- The live adapter follows the locally reviewed CALL-E Developer API example: `POST /v1/calls`, then bounded polling of `GET /v1/calls/{id}`. Exact response shapes remain unverified without an account.
-- `de-DE` is used as the recipient locale because Germany and German are documented as supported; this exact live locale value was not tested.
-- A withdrawal keeps an anonymized attempt tombstone (randomized time window, timestamps, terminal operational status) so the one-attempt audit remains provable. Direct identifiers, structured response, and provider run ID are erased, and the tombstone is excluded from analysis.
-- The returned `asked_verbatim` and actual-wording fields are remote-agent evidence, not independent proof. A transcript review would still be required for a live standardization claim.
-- Calls are serial because the concurrency limit is not documented. Transcript growth during an active call is not assumed and is not used.
-
-## Not executed
-
-- No CALL-E account registration or authentication.
-- No real phone call.
-- No `--live` execution and no network request to CALL-E/AiRudder.
-- No live transcript or wording-fidelity review.
-- No concurrency, webhook, remote cancellation, or mid-call transcript test.
+- No CALL-E account registration, authentication, real phone call, `--live` execution, webhook, or network request to CALL-E/AiRudder.
+- No new live test of wording, activity duplication, transcript timing, setup latency, REST/MCP ID separation, voicemail, busy, or no-answer behavior.
+- No parallel-call test; service concurrency remains unverified.
 - No CI run.
 - No push, remote mutation, release, publication, pull request, or video.
-- No local commit could be created in this session. `git add -- EVIDENCE.md README.md pyproject.toml src tests` failed with `fatal: Unable to create 'C:/_Local_DEV/repos/researchcall/.git/index.lock': Permission denied`. The alternative local Git command service was rejected before execution. The working tree therefore remains uncommitted.
 
-The initial PowerShell sandbox runner also failed before process start with `CreateProcessAsUserW failed: 5 (Zugriff verweigert)`. Read-only FileCommander/Node-backed tooling was used instead; repository writes were made with patch operations only.
+## Local commit attempt
 
-Early test runs used Python's default temporary directory and cleaned those temporary files automatically. The test harness was then corrected to place all test databases under the repository's ignored `out/tests/` directory, matching the repository-only write boundary for the final run.
+The requested local commit could not be created because the managed sandbox exposes `.git` read-only. The direct attempt produced:
+
+```text
+> git add -- EVIDENCE.md README.md src/researchcall/calls.py src/researchcall/cli.py src/researchcall/fixtures/outcomes.json src/researchcall/questionnaire.py src/researchcall/reporting.py src/researchcall/runner.py tests/test_researchcall.py
+fatal: Unable to create 'C:/_Local_DEV/repos/researchcall/.git/index.lock': Permission denied
+exit code 128
+```
+
+The alternative FileCommander process call was rejected before execution. A final PowerShell-backed attempt also failed before command execution with `CreateProcessAsUserW failed: 5 (Zugriff verweigert)`. No file was staged, no commit was created, and no push was attempted.

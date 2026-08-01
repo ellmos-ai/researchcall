@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from collections import Counter
 from typing import Any, Protocol
@@ -9,6 +10,11 @@ from .calls import CallOutcome, TERMINAL_STATUSES
 from .database import load_questionnaire, transaction, utc_now
 from .questionnaire import validate_structured_result, wording_matches
 from .safety import idempotency_key, validate_e164
+
+
+TRANSCRIPT_LINE_RE = re.compile(
+    r"^\[(?P<minute>\d{2}):(?P<second>\d{2})\] (?P<speaker>BOT|USER): (?P<text>.*)$"
+)
 
 
 class CallClient(Protocol):
@@ -134,6 +140,35 @@ def _finish_attempt(
             response_error = str(error)
 
     detail = dict(outcome.detail)
+    if outcome.transcript is not None:
+        transcript_lines = [
+            line for line in outcome.transcript.splitlines() if line.strip()
+        ]
+        parsed_lines = [TRANSCRIPT_LINE_RE.fullmatch(line) for line in transcript_lines]
+        format_valid = bool(parsed_lines) and all(match is not None for match in parsed_lines)
+        detail["transcript_available"] = True
+        detail["transcript_format"] = (
+            "timestamped-speaker-lines" if format_valid else "unrecognized"
+        )
+        detail["transcript_persisted"] = False
+        if format_valid and structured is not None and response_error is None:
+            bot_utterances = [
+                match.group("text")
+                for match in parsed_lines
+                if match is not None and match.group("speaker") == "BOT"
+            ]
+            expected_wording: list[str] = []
+            if structured["consent"] != "not_obtained":
+                expected_wording.append(questionnaire["consent_text"])
+            expected_wording.extend(
+                question["wording"]
+                for question in questionnaire["questions"]
+                if structured["spoken_wording"][question["id"]] is not None
+            )
+            detail["transcript_wording_matches"] = all(
+                any(expected in utterance for utterance in bot_utterances)
+                for expected in expected_wording
+            )
     if response_error:
         detail["structured_result_error"] = response_error
     with transaction(connection):
@@ -223,4 +258,3 @@ def run_day(
             raise
         totals[outcome.status] += 1
     return totals
-

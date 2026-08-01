@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .questionnaire import build_task, result_schema
 
@@ -24,6 +24,9 @@ TERMINAL_STATUSES = {
     "EXPIRED",
 }
 
+OBSERVED_SETUP_SECONDS = 40
+ProgressCallback = Callable[[dict[str, Any]], None]
+
 
 @dataclass(frozen=True)
 class CallOutcome:
@@ -31,6 +34,7 @@ class CallOutcome:
     run_id: str | None
     structured_result: dict[str, Any] | None
     detail: dict[str, Any]
+    transcript: str | None = None
 
 
 class FixtureCallClient:
@@ -69,6 +73,13 @@ class FixtureCallClient:
                 question["id"]: answers_in.get(question["id"])
                 for question in questionnaire["questions"]
             }
+            raw_answers_in = pattern.get("raw_answers")
+            if not isinstance(raw_answers_in, dict):
+                raise ValueError("Fixture raw_answers must be an object")
+            raw_answers = {
+                question["id"]: raw_answers_in.get(question["id"])
+                for question in questionnaire["questions"]
+            }
             asked_verbatim = bool(pattern.get("asked_verbatim", True))
             consent = str(pattern.get("consent", "granted"))
             spoken: dict[str, str | None] = {}
@@ -96,6 +107,7 @@ class FixtureCallClient:
                 "spoken_consent_wording": consent_wording,
                 "spoken_wording": spoken,
                 "answers": answers,
+                "raw_answers": raw_answers,
             }
         return CallOutcome(
             status=status,
@@ -119,6 +131,7 @@ class LiveCallClient:
         first_poll_seconds: float = 60.0,
         poll_seconds: float = 10.0,
         poll_timeout_seconds: float = 900.0,
+        progress_callback: ProgressCallback | None = None,
     ) -> None:
         if not api_key:
             raise ValueError("CALLE_API_KEY is required for live mode")
@@ -127,12 +140,16 @@ class LiveCallClient:
         self.first_poll_seconds = first_poll_seconds
         self.poll_seconds = poll_seconds
         self.poll_timeout_seconds = poll_timeout_seconds
+        self.progress_callback = progress_callback
 
     @classmethod
-    def from_environment(cls) -> "LiveCallClient":
+    def from_environment(
+        cls, progress_callback: ProgressCallback | None = None
+    ) -> "LiveCallClient":
         return cls(
             api_key=os.environ.get("CALLE_API_KEY", ""),
             base_url=os.environ.get("CALLE_BASE_URL", "https://api.heycall-e.com"),
+            progress_callback=progress_callback,
         )
 
     def _request(
@@ -166,20 +183,67 @@ class LiveCallClient:
 
     @staticmethod
     def _status(value: dict[str, Any]) -> str | None:
-        status = value.get("status") or value.get("call_status")
-        return status.upper() if isinstance(status, str) else None
+        containers = [value]
+        if isinstance(value.get("result"), dict):
+            containers.append(value["result"])
+        for container in containers:
+            status = container.get("status") or container.get("call_status")
+            if isinstance(status, str):
+                return status.upper()
+        return None
+
+    @staticmethod
+    def _activity(value: dict[str, Any]) -> list[Any]:
+        if isinstance(value.get("activity"), list):
+            return value["activity"]
+        result = value.get("result")
+        if isinstance(result, dict) and isinstance(result.get("activity"), list):
+            return result["activity"]
+        return []
+
+    @classmethod
+    def _activity_progress(cls, value: dict[str, Any]) -> dict[str, Any] | None:
+        activity = cls._activity(value)
+        if not activity:
+            return None
+        latest = activity[-1]
+        timestamp = None
+        if isinstance(latest, dict):
+            for key in ("timestamp", "created_at", "time"):
+                if isinstance(latest.get(key), str):
+                    timestamp = latest[key]
+                    break
+        return {
+            "activity_events": len(activity),
+            "latest_activity_at": timestamp,
+        }
+
+    @staticmethod
+    def _transcript(value: dict[str, Any]) -> str | None:
+        result = value.get("result")
+        if isinstance(result, dict) and isinstance(result.get("transcript"), str):
+            return result["transcript"]
+        return None
 
     @staticmethod
     def _structured_result(value: dict[str, Any]) -> dict[str, Any] | None:
-        for key in ("structured_result", "structuredResult"):
-            if isinstance(value.get(key), dict):
-                return value[key]
-        recipients = value.get("recipients")
-        if isinstance(recipients, list) and recipients and isinstance(recipients[0], dict):
-            recipient = recipients[0]
+        containers = [value]
+        if isinstance(value.get("result"), dict):
+            containers.insert(0, value["result"])
+        for container in containers:
             for key in ("structured_result", "structuredResult"):
-                if isinstance(recipient.get(key), dict):
-                    return recipient[key]
+                if isinstance(container.get(key), dict):
+                    return container[key]
+            recipients = container.get("recipients")
+            if (
+                isinstance(recipients, list)
+                and recipients
+                and isinstance(recipients[0], dict)
+            ):
+                recipient = recipients[0]
+                for key in ("structured_result", "structuredResult"):
+                    if isinstance(recipient.get(key), dict):
+                        return recipient[key]
         return None
 
     def call(
@@ -214,17 +278,38 @@ class LiveCallClient:
         deadline = time.monotonic() + self.poll_timeout_seconds
         time.sleep(self.first_poll_seconds)
         latest = created
+        activity_fingerprint: str | None = None
         while True:
             latest = self._request("GET", f"/v1/calls/{run_id}")
+            activity = self._activity(latest)
+            new_fingerprint = json.dumps(
+                activity, ensure_ascii=False, sort_keys=True, default=str
+            )
+            progress = self._activity_progress(latest)
+            if (
+                progress is not None
+                and new_fingerprint != activity_fingerprint
+                and self.progress_callback is not None
+            ):
+                self.progress_callback(progress)
+            activity_fingerprint = new_fingerprint
             status = self._status(latest)
             if status in TERMINAL_STATUSES:
+                transcript = self._transcript(latest)
+                detail: dict[str, Any] = {
+                    "transport": "live-api",
+                    "progress_source": "activity",
+                    "transcript_location": "result.transcript",
+                }
+                if progress is not None:
+                    detail.update(progress)
                 return CallOutcome(
                     status=status,
                     run_id=run_id,
                     structured_result=self._structured_result(latest),
-                    detail={"transport": "live-api"},
+                    detail=detail,
+                    transcript=transcript,
                 )
             if time.monotonic() >= deadline:
                 raise TimeoutError("CALL-E status polling exceeded the configured timeout")
             time.sleep(self.poll_seconds)
-

@@ -8,7 +8,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Sequence
 
-from .calls import FixtureCallClient, LiveCallClient
+from .calls import OBSERVED_SETUP_SECONDS, FixtureCallClient, LiveCallClient
 from .database import connect, create_study, get_study, initialize
 from .questionnaire import load_questionnaire_file, validate_questionnaire
 from .reporting import build_report
@@ -87,6 +87,13 @@ def _require_initialized(path: Path) -> sqlite3.Connection:
     if not path.exists():
         raise ValueError(f"State database does not exist: {path}")
     return connect(path)
+
+
+def _print_live_progress(progress: dict[str, object]) -> None:
+    print(
+        "live_progress=activity "
+        f"activity_events={progress['activity_events']}"
+    )
 
 
 def _run_demo(workspace: Path, seed: int) -> None:
@@ -170,7 +177,14 @@ def run(argv: Sequence[str] | None = None) -> int:
                     )
                 if not args.consent_attested:
                     raise ValueError("Live mode requires --consent-attested")
-                client = LiveCallClient.from_environment()
+                print(
+                    f"live_plan=max_calls={args.limit} dispatch=serial "
+                    f"observed_setup_seconds_per_call=about-{OBSERVED_SETUP_SECONDS} "
+                    "concurrency=unverified"
+                )
+                client = LiveCallClient.from_environment(
+                    progress_callback=_print_live_progress
+                )
                 mode = "live"
             else:
                 client = FixtureCallClient.from_file(args.fixture)

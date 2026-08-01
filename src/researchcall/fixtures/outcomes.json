@@ -3,7 +3,8 @@
     "status": "COMPLETED",
     "consent": "granted",
     "asked_verbatim": true,
-    "answers": {"q1": "yes", "q2": "satisfied", "q3": "agree"}
+    "answers": {"q1": "yes", "q2": "satisfied", "q3": "agree"},
+    "raw_answers": {"q1": "Ja.", "q2": "Zufrieden.", "q3": "Stimme zu."}
   },
   {"status": "NO_ANSWER"},
   {
@@ -11,7 +12,8 @@
     "structured": true,
     "consent": "declined",
     "asked_verbatim": true,
-    "answers": {"q1": null, "q2": null, "q3": null}
+    "answers": {"q1": null, "q2": null, "q3": null},
+    "raw_answers": {"q1": null, "q2": null, "q3": null}
   },
   {"status": "BUSY"},
   {"status": "VOICEMAIL"},
@@ -19,7 +21,8 @@
     "status": "COMPLETED",
     "consent": "granted",
     "asked_verbatim": false,
-    "answers": {"q1": "yes", "q2": "dissatisfied", "q3": "neutral"}
+    "answers": {"q1": "yes", "q2": "dissatisfied", "q3": "neutral"},
+    "raw_answers": {"q1": "Ja.", "q2": "synthetische Kategorie zwei", "q3": "Neutral."}
   },
   {"status": "FAILED"},
   {"status": "CANCELED"},
@@ -28,7 +31,8 @@
     "status": "COMPLETED",
     "consent": "granted",
     "asked_verbatim": true,
-    "answers": {"q1": "no", "q2": null, "q3": "disagree"}
+    "answers": {"q1": "no", "q2": null, "q3": "disagree"},
+    "raw_answers": {"q1": "Nein.", "q2": null, "q3": "Stimme nicht zu."}
   },
   {
     "status": "DECLINED",
@@ -36,7 +40,7 @@
     "consent": "declined",
     "asked_verbatim": true,
     "withdrawal_requested": true,
-    "answers": {"q1": null, "q2": null, "q3": null}
+    "answers": {"q1": null, "q2": null, "q3": null},
+    "raw_answers": {"q1": null, "q2": null, "q3": null}
   }
 ]
-
