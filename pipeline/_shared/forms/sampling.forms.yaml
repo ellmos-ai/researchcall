@@ -1,0 +1,64 @@
+# Formularvorlagen — Station 4 (Stichprobe)
+# Beispielhaft ausgefuellt; die uebrigen Stationen folgen demselben Muster.
+
+- field: sample.source
+  station: 04-sampling
+  label: "Auswahlgrundlage"
+  question: "Woher kommen die Rufnummern?"
+  type: text
+  required: true
+  help: "Eine Datei oder Datenbank. Was darin fehlt, fehlt auch in der Erhebung."
+
+- field: sample.size
+  station: 04-sampling
+  label: "Umfang"
+  question: "Wie viele Personen sollen befragt werden?"
+  type: number
+  required: true
+
+- field: sample.method
+  station: 04-sampling
+  label: "Ziehungsverfahren"
+  question: "Wie soll gezogen werden — zufaellig, geschichtet oder alle?"
+  type: choice
+  options:
+    - {value: random,     label: "Zufall"}
+    - {value: stratified, label: "Geschichtet"}
+    - {value: census,     label: "Vollerhebung"}
+  default: random
+
+- field: sample.assign_windows_randomly
+  station: 04-sampling
+  label: "Zeitfenster zulosen"
+  question: "Sollen die Anrufzeitfenster zufaellig zugewiesen werden?"
+  type: bool
+  default: true
+  help: >
+    Wer nur morgens anruft, erreicht ueberwiegend Menschen, die tagsueber zu Hause sind.
+    Zulosen macht die Tageszeit zur kontrollierten Variable statt zur stillen Vorauswahl.
+
+- field: contact_rules.attempts_per_person
+  station: 04-sampling
+  label: "Versuche je Person"
+  question: "Soll bei Nichterreichen noch einmal angerufen werden — und wie oft?"
+  type: number
+  default: 0
+  help: >
+    Nachfassen erhoeht die Ausschoepfung, verzerrt aber zugunsten der Erreichbaren.
+    Beides ist vertretbar. Die tatsaechliche Zahl erscheint immer im Bericht.
+
+- field: contact_rules.daily_quota
+  station: 04-sampling
+  label: "Tagesration"
+  question: "Wie viele Anrufe pro Tag?"
+  type: number
+  default: 50
+  help: "Angestossen wird von aussen — das Werkzeug laeuft nicht selbst ueber Tage."
+
+- field: ethics.consent_explicit
+  station: 03-ethics
+  label: "Ausdrueckliche Zustimmung"
+  type: bool
+  default: true
+  locked: true
+  help: "Nicht abschaltbar. Keine Erhebung ohne Zustimmung."

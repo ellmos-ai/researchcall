@@ -1,0 +1,9 @@
+# Station 6 — Feldphase
+fieldwork:
+  storage: files             # database | files | gardener
+  path: "./out"
+  keep_raw_answer: true      # NICHT abschaltbar
+  keep_transcript: true
+  poll_interval_seconds: 10
+  stop_on_error: false
+  resumable: true

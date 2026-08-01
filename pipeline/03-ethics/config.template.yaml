@@ -1,0 +1,18 @@
+# Station 3 — Gespraechsrahmen
+ethics:
+  instruction: "<wer ruft an, was wird untersucht, warum wichtig>"
+  time_estimate: true
+  privacy_text: "<welche Daten, Loeschweg, Ansprechpartner>"
+  consent_explicit: true    # NICHT abschaltbar
+  right_to_stop: true       # NICHT abschaltbar
+  number_origin: "<woher stammt die Rufnummer>"
+
+  on_refusal:
+    ask_reason: true
+    offer_callback: true
+
+  greeting: []
+  closing: []
+  policies: []              # Verweise auf eigene Policy-Dateien
+
+disclosure_level: L3        # L1..L5 aus der Pipeline

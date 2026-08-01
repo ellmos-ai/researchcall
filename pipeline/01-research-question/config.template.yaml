@@ -1,0 +1,10 @@
+# Station 1 — Fragestellung
+question: "<die Fragestellung als ein Satz>"
+
+hypotheses:
+  - id: H1
+    statement: "<Vermutung>"
+    measured_by: "<Indikator, Items, Operatoren>"
+    falsified_if: "<woran erkennt man, dass sie nicht stimmt>"
+
+revisions: []   # je Aenderung: {date, hypothesis, from, to, reason}
