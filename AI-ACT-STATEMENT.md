@@ -84,7 +84,7 @@ Roles follow actual purposes, means, contracts, and branding. The research insti
 | `huckepack-only-host` | A researcher provides their own key, but sample, task, and result transit the host. Roles, processing terms, secret protection, deletion routes, and provider transfers remain necessary. |
 | `pay-membership` | Stub only. Accounts, institutional tenants, roles, study approvals, billing, secret management, rights, deletion, export, and incident procedures are prerequisites. |
 
-`DATA-FLOW.md:17-41, 45-71` documents the live data route, pseudonymisation limits, possible special categories, and huckepack transit. `PRIVACY-TEMPLATE.md:25-77` separates legal bases, special categories, first-contact information, and local withdrawal. `HOST-READINESS.md:19-30` additionally requires study governance, a DPIA decision, and verified CALL-E terms.
+`DATA-FLOW.md:17-41, 45-71` documents the live data route, pseudonymisation limits, possible special categories, and piggyback transit. `PRIVACY-TEMPLATE.md:25-77` separates legal bases, special categories, first-contact information, and local withdrawal. `HOST-READINESS.md:19-30` additionally requires study governance, a DPIA decision, and verified CALL-E terms.
 
 ### Release criteria before live fieldwork or hosting
 
