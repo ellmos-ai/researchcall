@@ -25,6 +25,8 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 
+from datetime import datetime, timezone
+
 from .. import effect, export, forms, huckepack_web, instrument, pretest
 from ..questionnaire import build_task
 from . import field_phase, render, test_mode
@@ -429,6 +431,29 @@ def create_app(
                 values.get("reporting.findings_file") or "findings.md"
             )
         body = render.report_view(summary, translator)
+        # The report is what a researcher takes away; the browser can write it
+        # as a file into the folder they picked, without the host being asked.
+        body += huckepack_web.receipt_script_tag(
+            {
+                "kind": "study-receipt",
+                "app": "researchcall",
+                "order_id": str(summary.get("study_key") or "study"),
+                "business": str(summary.get("title") or "study"),
+                "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "summary": json.dumps(
+                    {
+                        key: value
+                        for key, value in summary.items()
+                        if isinstance(value, (str, int, float, bool))
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                "third_party_notice": (
+                    "Findings rest on answers given by the people who were called."
+                ),
+            }
+        )
         return shell(request, body, translator.t("Report"), "report")
 
     @app.get("/report.md", response_class=PlainTextResponse)
