@@ -8,6 +8,7 @@ the workbench file is tested here as carefully as the database.
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 import sys
 from pathlib import Path
@@ -277,3 +278,96 @@ def test_the_report_page_hands_a_receipt_to_the_browser(monkeypatch, tmp_path):
         page = client.get("/report").text
     assert 'id="huckepack-receipt"' in page
     assert '"kind": "study-receipt"' in page
+
+
+# ------------------------------------------- the guarantees the siblings had
+
+# The three huckepack projects make the same promises, so they have to be held
+# to the same tests. What follows was written for HungryCall first; a promise
+# that is only checked in one of three repositories is a promise about that
+# repository, not about the pattern.
+
+
+def test_closing_a_connection_does_not_throw_the_session_away(monkeypatch, tmp_path):
+    """The data layer closes after every write. For a session that must not delete it."""
+    use_mode(monkeypatch, "huckepack-gift")
+    reset = huckepack_storage.bind_session(TOKEN)
+    try:
+        initialize(tmp_path / "study.db")
+        connection = connect(tmp_path / "study.db")
+        connection.execute(
+            "INSERT INTO study (study_key, title, questionnaire_json, created_at) "
+            "VALUES ('s1', 'Survives', '{}', '2026-08-02')"
+        )
+        connection.commit()
+        connection.close()  # the data layer does this after every write
+
+        again = connect(tmp_path / "study.db")
+        assert [row[0] for row in again.execute("SELECT title FROM study")] == ["Survives"]
+    finally:
+        huckepack_storage.unbind_session(reset)
+
+
+def test_sessions_are_dropped_when_they_go_stale():
+    registry = huckepack_storage.SessionDatabases(ttl_seconds=-1)
+    registry.connection(TOKEN)
+    registry.connection(OTHER_TOKEN)  # the sweep runs on the next access
+    assert registry.known(TOKEN) is False
+
+
+def test_an_oversized_snapshot_is_refused_before_it_is_parked():
+    """Refused on arrival — an unbounded upload would be RAM the host cannot decline."""
+    small = huckepack_storage.SessionDatabases(max_snapshot_bytes=64)
+    with pytest.raises(SnapshotError):
+        small.load(TOKEN, huckepack_storage.SQLITE_MAGIC + b"x" * 200)
+
+
+def test_a_token_that_is_not_a_token_is_refused(monkeypatch, tmp_path):
+    """A short token would be guessable, and it addresses someone's database."""
+    use_mode(monkeypatch, "huckepack-gift")
+    with TestClient(create_app(tmp_path / "workspace")) as client:
+        assert client.get(
+            "/huckepack/session", headers={SESSION_HEADER: "abc"}
+        ).status_code == 400
+
+
+@pytest.mark.parametrize("bad", ["", "   ", "short", "has space in it", "with\nnewline"])
+def test_an_unusable_key_is_refused_without_echoing_it(bad):
+    """The error explains the shape; it never repeats the key it just rejected."""
+    with pytest.raises(huckepack_key.UserKeyError) as error:
+        huckepack_key.validate_key(bad)
+    assert not bad.strip() or bad.strip() not in str(error.value)
+
+
+def test_gift_mode_uses_the_hosts_key_and_ignores_a_sent_one(monkeypatch):
+    """In gift mode the host pays. A key in the header must not redirect that."""
+    use_mode(monkeypatch, "huckepack-gift")
+    reset = huckepack_key.bind_request_key(VISITOR_KEY)
+    try:
+        assert huckepack_key.credential_override() is None
+    finally:
+        huckepack_key.unbind_request_key(reset)
+
+
+def test_the_visitors_key_reaches_no_store_and_no_log(monkeypatch, tmp_path, caplog):
+    """A full only-host request: the key must leave no trace behind it."""
+    use_mode(monkeypatch, "huckepack-only-host")
+
+    with caplog.at_level(logging.DEBUG):
+        with TestClient(create_app(tmp_path / "workspace")) as client:
+            page = client.get(
+                "/", headers={huckepack_key.KEY_HEADER: VISITOR_KEY, SESSION_HEADER: TOKEN}
+            )
+            assert page.status_code == 200
+            assert VISITOR_KEY not in page.text
+
+            snapshot = client.get(
+                "/huckepack/session", headers={SESSION_HEADER: TOKEN}
+            ).content
+
+    assert VISITOR_KEY.encode() not in snapshot
+    assert VISITOR_KEY not in caplog.text
+    # The request is over, so the context variable must be empty again.
+    assert huckepack_key.current_request_key() is None
+    # And nothing about the visitor may have reached the host's disk.
+    assert not list(tmp_path.rglob("*.db"))
