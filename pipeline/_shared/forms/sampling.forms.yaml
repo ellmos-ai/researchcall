@@ -3,126 +3,159 @@
 - field: sample.source
   station: 04-sampling
   label: "Auswahlgrundlage"
+  label_en: "Sampling frame"
   question: "Woher kommen die Rufnummern?"
+  question_en: "Where do the phone numbers come from?"
   type: text
   options: []
   default: null
   help: "Eine Datei oder Datenbank. Was darin fehlt, fehlt auch in der Erhebung."
+  help_en: "A file or a database. Whatever is missing there is missing from the study."
   required: true
   locked: false
 
 - field: sample.size
   station: 04-sampling
   label: "Umfang"
+  label_en: "Sample size"
   question: "Wie viele Personen sollen befragt werden?"
+  question_en: "How many people should be interviewed?"
   type: number
   options: []
   default: null
   help: "Der Umfang wird vor der Ziehung festgelegt."
+  help_en: "The size is fixed before the draw."
   required: true
   locked: false
 
 - field: sample.method
   station: 04-sampling
   label: "Ziehungsverfahren"
+  label_en: "Sampling method"
   question: "Wie soll gezogen werden — zufällig, geschichtet oder als Vollerhebung?"
+  question_en: "How should the sample be drawn — at random, stratified, or as a census?"
   type: choice
   options:
-    - {value: random, label: "Zufall"}
-    - {value: stratified, label: "Geschichtet"}
-    - {value: census, label: "Vollerhebung"}
+    - {value: random, label: "Zufall", label_en: "Random"}
+    - {value: stratified, label: "Geschichtet", label_en: "Stratified"}
+    - {value: census, label: "Vollerhebung", label_en: "Census"}
   default: random
   help: "Geschichtet nur, wenn die Auswahlgrundlage die Schichtmerkmale enthält."
+  help_en: "Stratified only if the sampling frame carries the stratifying attributes."
   required: false
   locked: false
 
 - field: sample.time_windows
   station: 04-sampling
   label: "Zeitfenster"
+  label_en: "Time windows"
   question: "Welche Zeitfenster sollen bei der Ziehung verwendet werden?"
+  question_en: "Which time windows should be used when the sample is drawn?"
   type: multi
   options:
-    - {value: morning, label: "Vormittag"}
-    - {value: afternoon, label: "Nachmittag"}
-    - {value: evening, label: "Abend"}
+    - {value: morning, label: "Vormittag", label_en: "Morning"}
+    - {value: afternoon, label: "Nachmittag", label_en: "Afternoon"}
+    - {value: evening, label: "Abend", label_en: "Evening"}
   default: [morning, afternoon, evening]
   help: "Die Fenster müssen vor der Feldphase feststehen, damit Ausfälle und Antworten später vergleichbar sind."
+  help_en: "The windows must be fixed before fieldwork so that nonresponse and answers stay comparable later."
   required: false
   locked: false
 
 - field: sample.assign_windows_randomly
   station: 04-sampling
   label: "Zeitfenster zulosen"
+  label_en: "Assign time windows at random"
   question: "Sollen die Anrufzeitfenster zufällig zugewiesen werden?"
+  question_en: "Should the call time windows be assigned at random?"
   type: bool
   options: []
   default: true
   help: "Zulosen macht die Tageszeit zur kontrollierten Variable statt zur stillen Vorauswahl."
+  help_en: "Random assignment turns time of day into a controlled variable instead of a silent preselection."
   required: false
   locked: false
 
 - field: contact_rules.attempts_per_person
   station: 04-sampling
   label: "Versuche je Person"
+  label_en: "Attempts per person"
   question: "Soll bei Nichterreichen noch einmal angerufen werden — und wie oft?"
+  question_en: "Should someone be called again when not reached — and how often?"
   type: number
   options: []
   default: 0
   help: "Nachfassen erhöht die Ausschöpfung, verzerrt aber zugunsten der Erreichbaren; die tatsächliche Zahl erscheint im Bericht."
+  help_en: "Follow-up raises the completion yield but biases the sample towards the reachable; the actual number appears in the report."
   required: false
   locked: false
 
 - field: contact_rules.spread_attempts
   station: 04-sampling
   label: "Versuche zeitlich verteilen"
+  label_en: "Spread attempts over the day"
   question: "Sollen weitere Versuche über verschiedene Tageszeiten verteilt werden?"
+  question_en: "Should further attempts be spread across different times of day?"
   type: bool
   options: []
   default: true
   help: "Relevant, wenn mehr als ein Versuch erlaubt ist; sonst würde derselbe Tageszeitfehler wiederholt."
+  help_en: "Relevant when more than one attempt is allowed; otherwise the same time-of-day bias is repeated."
   required: false
   locked: false
 
 - field: contact_rules.callback_after_refusal_max
   station: 04-sampling
   label: "Rückrufe nach Zustimmung"
+  label_en: "Agreed callbacks"
   question: "Wie viele ausdrücklich gewünschte Rückrufe sind höchstens erlaubt?"
+  question_en: "How many explicitly requested callbacks are allowed at most?"
   type: number
   options: []
   default: 3
   help: "Ein Nein ohne ausdrückliche Rückrufzusage bleibt endgültig."
+  help_en: "A no without an explicit callback agreement is final."
   required: false
   locked: false
 
 - field: contact_rules.daily_quota
   station: 04-sampling
   label: "Tagesration"
+  label_en: "Daily quota"
   question: "Wie viele Anrufe soll ein äußerer Lauf höchstens abarbeiten?"
+  question_en: "How many calls should one externally triggered run process at most?"
   type: number
   options: []
   default: 50
   help: "Die Wiederholung wird von außen angestoßen; das Werkzeug läuft nicht selbst über Tage."
+  help_en: "Recurrence is triggered from outside; the tool does not run itself across days."
   required: false
   locked: false
 
 - field: contact_rules.concurrent_calls
   station: 04-sampling
   label: "Gleichzeitige Anrufe"
+  label_en: "Concurrent calls"
   question: "Wie viele Anrufe sollen gleichzeitig laufen?"
+  question_en: "How many calls should run at the same time?"
   type: number
   options: []
   default: 1
   help: "Konservative Vorgabe: Die Parallelitätsgrenze des Dienstes ist nicht verifiziert."
+  help_en: "Conservative default: the concurrency limit of the service is unverified."
   required: false
   locked: false
 
 - field: contact_rules.calling_hours
   station: 04-sampling
   label: "Anrufzeitraum"
+  label_en: "Calling hours"
   question: "In welchem täglichen Zeitraum darf angerufen werden?"
+  question_en: "During which daily time range may calls be placed?"
   type: text
   options: []
   default: "09:00-19:00"
   help: "Der Zeitraum begrenzt die von außen gestarteten Tagesläufe."
+  help_en: "The range bounds the externally started daily runs."
   required: false
   locked: false

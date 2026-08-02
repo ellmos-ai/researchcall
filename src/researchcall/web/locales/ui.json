@@ -1,0 +1,282 @@
+{
+  "A research method, not a call script": {
+    "en": "A research method, not a call script",
+    "de": "Eine Forschungsmethode, kein Anrufskript"
+  },
+  "Analysis": {
+    "en": "Analysis",
+    "de": "Auswertung"
+  },
+  "Analysis rules are fixed at the instrument, not after the results are in.": {
+    "en": "Analysis rules are fixed at the instrument, not after the results are in.",
+    "de": "Auswertungsregeln werden beim Instrument festgelegt, nicht wenn die Ergebnisse da sind."
+  },
+  "Configuration": {
+    "en": "Configuration",
+    "de": "Konfiguration"
+  },
+  "Conversation and ethics frame": {
+    "en": "Conversation and ethics frame",
+    "de": "Gesprächsrahmen und Ethik"
+  },
+  "Descriptive. Differences between windows are shown, not declared significant.": {
+    "en": "Descriptive. Differences between windows are shown, not declared significant.",
+    "de": "Deskriptiv. Unterschiede zwischen den Fenstern werden gezeigt, nicht für signifikant erklärt."
+  },
+  "Draw sample and start dry run": {
+    "en": "Draw sample and start dry run",
+    "de": "Stichprobe ziehen und Trockenlauf starten"
+  },
+  "Dry run against fixtures. No network, no account, no call.": {
+    "en": "Dry run against fixtures. No network, no account, no call.",
+    "de": "Trockenlauf gegen Fixtures. Kein Netz, kein Konto, kein Anruf."
+  },
+  "Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own.": {
+    "en": "Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own.",
+    "de": "Jedes Bedienelement links stammt aus einer Formularvorlage unter pipeline/_shared/forms/. Dieselbe Vorlage ergibt den Config-Wert und die gesprochene Frage. Die Oberfläche fügt kein eigenes Feld hinzu."
+  },
+  "Every number on this page is counted from the form definitions at request time.": {
+    "en": "Every number on this page is counted from the form definitions at request time.",
+    "de": "Jede Zahl auf dieser Seite wird beim Aufruf aus den Formularvorlagen gezählt."
+  },
+  "Field phase": {
+    "en": "Field phase",
+    "de": "Feldphase"
+  },
+  "Fieldwork": {
+    "en": "Fieldwork",
+    "de": "Feldphase"
+  },
+  "Finish the station before this one first.": {
+    "en": "Finish the station before this one first.",
+    "de": "Zuerst die vorherige Station abschließen."
+  },
+  "Finished on": {
+    "en": "Finished on",
+    "de": "Abgeschlossen am"
+  },
+  "Frame rows created:": {
+    "en": "Frame rows created:",
+    "de": "Erzeugte Zeilen der Auswahlgrundlage:"
+  },
+  "Instrument": {
+    "en": "Instrument",
+    "de": "Instrument"
+  },
+  "NO_ANSWER is a time-of-day signal, DECLINED is refusal. They are never added together.": {
+    "en": "NO_ANSWER is a time-of-day signal, DECLINED is refusal. They are never added together.",
+    "de": "NO_ANSWER ist ein Tageszeit-Signal, DECLINED ist Verweigerung. Beides wird nie zusammengezählt."
+  },
+  "Nothing — every value here has a default, so an agent would not ask.": {
+    "en": "Nothing — every value here has a default, so an agent would not ask.",
+    "de": "Nichts — jeder Wert hier hat eine Vorgabe, ein Agent würde also nicht fragen."
+  },
+  "One definition, three ways in": {
+    "en": "One definition, three ways in",
+    "de": "Eine Vorlage, drei Zugänge"
+  },
+  "Outcome structure by assigned time window": {
+    "en": "Outcome structure by assigned time window",
+    "de": "Ausfallstruktur nach zugelostem Zeitfenster"
+  },
+  "Outcomes so far": {
+    "en": "Outcomes so far",
+    "de": "Bisherige Endstatus"
+  },
+  "Overview": {
+    "en": "Overview",
+    "de": "Übersicht"
+  },
+  "Part of the frame": {
+    "en": "Part of the frame",
+    "de": "Teil des Gerüsts"
+  },
+  "Pretest": {
+    "en": "Pretest",
+    "de": "Pretest"
+  },
+  "Records": {
+    "en": "Records",
+    "de": "Fälle"
+  },
+  "Report": {
+    "en": "Report",
+    "de": "Bericht"
+  },
+  "Reporting": {
+    "en": "Reporting",
+    "de": "Bericht und Veröffentlichung"
+  },
+  "Required": {
+    "en": "Required",
+    "de": "Pflichtfeld"
+  },
+  "Research question": {
+    "en": "Research question",
+    "de": "Fragestellung"
+  },
+  "Sampling": {
+    "en": "Sampling",
+    "de": "Stichprobe"
+  },
+  "Save": {
+    "en": "Save",
+    "de": "Speichern"
+  },
+  "Save and finish station": {
+    "en": "Save and finish station",
+    "de": "Speichern und Station abschließen"
+  },
+  "Saved.": {
+    "en": "Saved.",
+    "de": "Gespeichert."
+  },
+  "Saved. Changes to a finished station are marked as later additions.": {
+    "en": "Saved. Changes to a finished station are marked as later additions.",
+    "de": "Gespeichert. Änderungen an einer abgeschlossenen Station werden als nachträglich gekennzeichnet."
+  },
+  "Set a sample size in station 4 before the field phase.": {
+    "en": "Set a sample size in station 4 before the field phase.",
+    "de": "Vor der Feldphase in Station 4 einen Stichprobenumfang festlegen."
+  },
+  "Station": {
+    "en": "Station",
+    "de": "Station"
+  },
+  "Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself.": {
+    "en": "Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself.",
+    "de": "Station N+1 wird frei, sobald N abgeschlossen ist. Spätere Änderungen bleiben möglich und werden als nachträglich gekennzeichnet — der Zweck ist Transparenz gegenüber sich selbst."
+  },
+  "Station finished. The next one is open.": {
+    "en": "Station finished. The next one is open.",
+    "de": "Station abgeschlossen. Die nächste ist frei."
+  },
+  "Still missing before this station can be finished:": {
+    "en": "Still missing before this station can be finished:",
+    "de": "Fehlt noch, bevor diese Station abgeschlossen werden kann:"
+  },
+  "Survey workbench · dry run · no calls": {
+    "en": "Survey workbench · dry run · no calls",
+    "de": "Erhebungs-Werkbank · Trockenlauf · keine Anrufe"
+  },
+  "Terminal outcomes": {
+    "en": "Terminal outcomes",
+    "de": "Endstatus"
+  },
+  "Text in double quotes is spoken word for word. Everything outside the quotes is rephrased by the agent — a behaviour measured in a real call.": {
+    "en": "Text in double quotes is spoken word for word. Everything outside the quotes is rephrased by the agent — a behaviour measured in a real call.",
+    "de": "Text in doppelten Anführungszeichen wird wortgetreu gesprochen. Alles außerhalb der Anführungszeichen formuliert der Agent um — gemessen in einem echten Anruf."
+  },
+  "The report as it is written to disk": {
+    "en": "The report as it is written to disk",
+    "de": "Der Bericht, wie er auf die Platte geschrieben wird"
+  },
+  "The same decisions, asked by an agent": {
+    "en": "The same decisions, asked by an agent",
+    "de": "Dieselben Entscheidungen, von einem Agenten gefragt"
+  },
+  "There is nothing to report yet. Run the field phase first.": {
+    "en": "There is nothing to report yet. Run the field phase first.",
+    "de": "Es gibt noch nichts zu berichten. Zuerst die Feldphase laufen lassen."
+  },
+  "These settings appear in no form and in no question. They are stated here so that nothing is hidden, not so that they can be changed.": {
+    "en": "These settings appear in no form and in no question. They are stated here so that nothing is hidden, not so that they can be changed.",
+    "de": "Diese Einstellungen erscheinen in keinem Formular und in keiner Frage. Sie stehen hier, damit nichts verborgen bleibt — nicht, damit man sie ändern kann."
+  },
+  "This interface cannot place a real call. Only the command line can, and only after the intent is typed out in full.": {
+    "en": "This interface cannot place a real call. Only the command line can, and only after the intent is typed out in full.",
+    "de": "Diese Oberfläche kann keinen echten Anruf auslösen. Das kann nur die Kommandozeile, und auch dort erst, wenn die Absicht vollständig ausgeschrieben wird."
+  },
+  "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them.": {
+    "en": "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them.",
+    "de": "Diese Station trägt außerdem Einstellungen, die zum Gerüst gehören und nicht abschaltbar sind. Sie erscheinen deshalb nicht als Bedienelement; die Konfiguration nennt sie."
+  },
+  "What the pipeline reads. Defaults from the form definitions, your answers on top.": {
+    "en": "What the pipeline reads. Defaults from the form definitions, your answers on top.",
+    "de": "Was die Pipeline liest. Vorgaben aus den Formularvorlagen, darüber deine Antworten."
+  },
+  "added later": {
+    "en": "added later",
+    "de": "nachträglich"
+  },
+  "asked": {
+    "en": "asked",
+    "de": "gefragt"
+  },
+  "attempted": {
+    "en": "attempted",
+    "de": "Versuche"
+  },
+  "completed": {
+    "en": "completed",
+    "de": "abgeschlossen"
+  },
+  "completion yield": {
+    "en": "completion yield",
+    "de": "Ausschöpfungsquote"
+  },
+  "daily quota": {
+    "en": "daily quota",
+    "de": "Tagesration"
+  },
+  "done": {
+    "en": "done",
+    "de": "fertig"
+  },
+  "drawn": {
+    "en": "drawn",
+    "de": "gezogen"
+  },
+  "drawn:": {
+    "en": "drawn:",
+    "de": "gezogen:"
+  },
+  "frame": {
+    "en": "frame",
+    "de": "Gerüst"
+  },
+  "included in the sample": {
+    "en": "included in the sample",
+    "de": "in der Stichprobe"
+  },
+  "later changes stay possible and are marked as later additions.": {
+    "en": "later changes stay possible and are marked as later additions.",
+    "de": "spätere Änderungen bleiben möglich und werden als nachträglich gekennzeichnet."
+  },
+  "records processed": {
+    "en": "records processed",
+    "de": "Fälle bearbeitet"
+  },
+  "sample size": {
+    "en": "sample size",
+    "de": "Stichprobenumfang"
+  },
+  "shown": {
+    "en": "shown",
+    "de": "sichtbar"
+  },
+  "time windows": {
+    "en": "time windows",
+    "de": "Zeitfenster"
+  },
+  "waiting…": {
+    "en": "waiting…",
+    "de": "wartet …"
+  },
+  "window": {
+    "en": "window",
+    "de": "Fenster"
+  },
+  "withdrawn": {
+    "en": "withdrawn",
+    "de": "widerrufen"
+  },
+  "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.": {
+    "en": "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.",
+    "de": "{total} Entscheidungen in acht Stationen. Eine Oberfläche zeigt {visible}, ein Agent fragt {asked}, und {locked} gehören zum Gerüst und erscheinen nirgends."
+  },
+  "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked}": {
+    "en": "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked}",
+    "de": "{visible} von {total} Einstellungen sichtbar · {locked} gehören zum Gerüst · ein Agent fragt {asked}"
+  }
+}

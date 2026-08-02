@@ -16,7 +16,40 @@ Every human decision has one form definition under `pipeline/_shared/forms/`. Th
 
 The station router at `pipeline/SKILL.md` gives agents the procedure in words, while each station's `config.template.yaml` gives the corresponding machine-readable configuration. `load_fields()` connects both to the form definitions. Defaults avoid unnecessary interview turns; required values without defaults become questions; and locked methodological or ethical requirements become neither questions nor visible controls.
 
-This is more than an automated interviewer: the method fixes the research question before the instrument, the instrument before fieldwork, the sampling exposure before outcomes are known, and the analysis rules before results are interpreted. It preserves raw answers beside categories, distinguishes nonresponse mechanisms, and carries measured limitations into the report. No graphical frontend is bundled yet; the shared definitions are the tested boundary from which one can be rendered without creating a second source of truth.
+This is more than an automated interviewer: the method fixes the research question before the instrument, the instrument before fieldwork, the sampling exposure before outcomes are known, and the analysis rules before results are interpreted. It preserves raw answers beside categories, distinguishes nonresponse mechanisms, and carries measured limitations into the report.
+
+## The workbench
+
+`researchcall-web` serves the same eight stations as a bilingual web interface (English and German, switchable in the header). It is a *surface* on the pipeline, not a second implementation: its station pages render `forms.form(...)`, its field phase drives `runner.run_day`, and its report is `reporting.build_report`.
+
+```powershell
+python -m pip install -e ".[web]"
+researchcall-web                    # http://127.0.0.1:8000
+```
+
+The interface adds no setting of its own. Every control is rendered from a form definition, so what it shows is exactly what the definitions declare:
+
+| Station | Controls shown | Part of the frame | An agent asks |
+|---|---|---|---|
+| 1 Research question | 2 | 0 | 2 |
+| 2 Instrument | 4 | 0 | 1 |
+| 3 Conversation and ethics frame | 10 | 2 | 5 |
+| 4 Sampling | 11 | 0 | 2 |
+| 5 Pretest | 6 | 2 | 1 |
+| 6 Fieldwork | 6 | 1 | 0 |
+| 7 Analysis | 4 | 4 | 0 |
+| 8 Reporting | 5 | 2 | 0 |
+| **Total** | **48** | **11** | **11** |
+
+Of 59 decisions, an interface shows 48, an agent asks 11, and 11 are part of the frame. The eleven locked ones — explicit consent, the right to stop, keeping the raw answer beside its interpretation, reporting nonresponse by time window — appear in no form and in no interview question. They are not disabled controls; they are not controls. `/config` and `/config.json` state them so that nothing is hidden.
+
+Gating is enforced rather than described: station N+1 opens once N is finished, a station will not close while a required answer is missing, and a value changed after its station closed is stored as an amendment and marked *added later* in the interface.
+
+**The workbench cannot place a call.** No route accepts a live flag and the package never imports the live client; `FixtureCallClient` is the only transport it can reach. The field phase draws a sample of fictitious numbers, processes it one record at a time against fixtures, and streams progress over server-sent events. Placing a real call remains a command-line action behind the five-part gate below. The workbench reads and writes one local workspace directory (`RESEARCHCALL_WORKSPACE`, default `out/workbench`); it opens no network connection of its own, loads no external asset — HTMX is vendored under `src/researchcall/web/static/` — and prints no phone number on any page.
+
+### Two languages, two places
+
+Field text lives in the form definition itself: `label`/`question`/`help` carry German, `label_en`/`question_en`/`help_en` the English, and any further language is a `<key>_<lang>` entry away. A translation table in code would create a second source of truth for a field and would never reach the question an agent asks. Interface chrome — buttons, headings, messages — is what lives in a table, at `src/researchcall/web/locales/ui.json`. `python manage_translations.py --check --fields` verifies both and exits non-zero when either is incomplete.
 
 ## Methodological contract
 
@@ -34,7 +67,7 @@ The report is descriptive. It does not turn differences between windows into cla
 
 ## Setup
 
-Requires Python 3.11 or newer. Runtime dependencies are limited to the Python standard library.
+Requires Python 3.11 or newer. The command line has no runtime dependencies beyond the Python standard library, so the dry run works with nothing installed. The optional `web` extra adds FastAPI and Uvicorn for the workbench and is the only part that needs them.
 
 ```powershell
 python -m venv .venv
@@ -183,6 +216,8 @@ The content guard rejects questionnaires that explicitly request medical, legal,
 
 Offline fixture mode stays inside the local process and SQLite file. It performs no authentication and no network operation.
 
+The workbench is part of that offline mode. It binds to `127.0.0.1` by default, serves its one script from disk, requests nothing from a third party, and writes only inside its workspace directory. It has no live transport at all.
+
 Live mode sends the selected phone number, locale, exact questionnaire task, result schema, and a pseudonymous sample ID to the external CALL-E/AiRudder service. The documented CALL-E agent/MCP infrastructure is hosted in Singapore at `https://seleven-mcp-sg.airudder.com`; the Developer API base used by the adapter defaults to `https://api.heycall-e.com` and can be changed with `CALLE_BASE_URL`. Service-side security, audit, and operational logs may exist. Do not put unnecessary personal data into the questionnaire or task.
 
 ResearchCall stores terminal status, timestamps, a provider run ID until withdrawal, and the schema-constrained result, including raw answers needed to audit category interpretation. It intentionally does not store full transcripts: the final nested string is inspected in memory and discarded after audit flags are derived. Access tokens are read from environment variables and are never written to the database, report, logs, examples, or source code.
@@ -197,6 +232,8 @@ ResearchCall stores terminal status, timestamps, a provider run ID until withdra
 ## Verified and unverified scope
 
 Verified locally: offline 200-to-50 demonstration, random time-window assignment, single-attempt invariant, timestamps, mixed fixtures, raw-answer/category separation, withdrawal exclusion, wording and nested-transcript audit paths, aggregate report, E.164 validation, output masking, SQLite read-only import, REST schema payload construction, `activity`-based progress handling while status remains `PREPARING`, and live-gate rejection before client creation.
+
+Verified locally for the workbench: each station renders exactly the controls `forms.form()` returns in both languages, no locked field path appears anywhere in the HTML, no rendered control is outside the declared field paths, gating blocks a station until its predecessor is finished and refuses to close one while a required answer is missing, a post-completion change is recorded and marked as an amendment, the language choice survives the next request, both translation layers are complete, a nine-record dry run keeps its terminal statuses distinct, no response of any route contains a phone number, and the web package neither imports the live client nor exposes a route that accepts a live flag.
 
 Measured externally and recorded in `FINDINGS.md`: one real test call spoke quoted wording exactly (including an intentional typo), exposed progress through `activity` while `status` stayed `PREPARING`, returned the final transcript as a string in `result.transcript`, interpreted a free answer into a category, incurred about 40 seconds of setup time, and demonstrated separate MCP/REST ID spaces with an HTTP 404 cross-lookup.
 

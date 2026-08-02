@@ -332,3 +332,101 @@ fatal: Unable to create 'C:/_Local_DEV/repos/researchcall/.git/index.lock': Perm
 ```
 
 No alternative write path was used to bypass the repository-metadata restriction. No file was staged, no commit was created, and no push was attempted.
+
+---
+
+# EVIDENCE — workbench run, 2026-08-02
+
+Building the bilingual web surface. **No real call, no CALL-E network request, no
+account, no credential, no upload, no push.** Everything below was executed in this
+repository; output is reproduced literally.
+
+Baseline revision:
+
+```text
+> git log -1 --oneline
+fbc9536 feat(forms): one definition, three ways in — form templates for all eight stations
+```
+
+## What the form definitions actually contain
+
+Counted from `forms.load_fields()` at the start and again after the English text was
+added; the numbers did not move, because only translations were inserted:
+
+```text
+> python -c "... forms.load_fields() ..."
+01-research-question shown=2 locked=0 asked=2
+02-instrument shown=4 locked=0 asked=1
+03-ethics shown=10 locked=2 asked=5
+04-sampling shown=11 locked=0 asked=2
+05-pretest shown=6 locked=2 asked=1
+06-fieldwork shown=6 locked=1 asked=0
+07-analysis shown=4 locked=4 asked=0
+08-reporting shown=5 locked=2 asked=0
+total=59 shown=48 locked=11 asked=11
+```
+
+The interface renders these counts and no others; `tests/test_web.py` compares the
+controls in the returned HTML against `forms.form()` per station and language.
+
+## Translations
+
+English `label_en` / `question_en` / `help_en` and option `label_en` were inserted into
+all eight `*.forms.yaml` files by a one-off insert-only script with a hand-written
+translation table. Nothing existing was rewritten: of the 49 lines the diff removes, all
+49 reappear as the prefix of an added line (the option maps, which gained a key).
+
+```text
+> python manage_translations.py --check --fields
+[ok] 59 form definitions carry every language.
+[i] 70 interface key(s) in use, 70 in the table
+[ok] every interface string has every language.
+exit_code=0
+```
+
+## Test suite
+
+```text
+> python -m unittest discover -s tests
+----------------------------------------------------------------------
+Ran 42 tests in 13.236s
+
+OK
+exit_code=0
+```
+
+17 of these are the pre-existing tests, unchanged and still passing. 25 are new: 7 for
+the language layer of the form definitions, 18 for the workbench.
+
+One new test failed on first run and was corrected: `test_german_keeps_real_umlauts`
+asserted that a capital `Ü` appears on the German station-1 page, which it has no reason
+to. The assertion was wrong, not the page; it now checks for real `ä ö ü ß`, for the
+absence of HTML entities, and for `abschließen` rather than `abschliessen`.
+
+## Field phase, executed against fixtures
+
+Nine records, drawn from a locally generated frame of fictitious reserved-range numbers,
+processed one at a time through `runner.run_day` with `FixtureCallClient`:
+
+```text
+stream events: 10 | last: {'done': True, 'processed': 9, 'totals': {'BUSY': 1,
+'CANCELED': 1, 'COMPLETED': 2, 'DECLINED': 1, 'EXPIRED': 1, 'FAILED': 1,
+'NO_ANSWER': 1, 'VOICEMAIL': 1}}
+GET /report -> 200
+yield shown: 22.2%
+phone numbers leaked into any page: False
+```
+
+The 22.2% completion yield is what these fixtures produce for nine records. It is a
+property of the fixture file, not a measurement of anything real.
+
+### Not executed in this run
+
+- No CALL-E account, authentication, real call, `--live` path, webhook, or any network
+  request to CALL-E/AiRudder. The web package does not import `LiveCallClient` and reads
+  no credential; a test asserts both.
+- No push, publication, pull request, upload, release, or video.
+- No browser was driven. The interface was exercised through `fastapi.testclient`, so
+  the HTML is verified as text; its appearance in a real browser is unverified.
+- Concurrency, voicemail/busy/no-answer behaviour beyond fixtures, and every other
+  service property listed in the earlier section remain unverified.

@@ -10,17 +10,36 @@ auseinanderlaufen, wird die **Darstellung einmal beschrieben** und von allen dre
 field: sample.method              # Pfad in der Config
 station: 04-sampling
 label: "Ziehungsverfahren"        # Beschriftung in der Oberfläche
+label_en: "Sampling method"
 question: "Wie soll gezogen werden — zufällig, geschichtet oder alle?"   # Skill fragt so
+question_en: "How should the sample be drawn — at random, stratified, or as a census?"
 type: choice                      # text | number | choice | multi | bool | list | table
 options:
-  - {value: random,     label: "Zufall"}
-  - {value: stratified, label: "Geschichtet"}
-  - {value: census,     label: "Vollerhebung"}
+  - {value: random,     label: "Zufall",       label_en: "Random"}
+  - {value: stratified, label: "Geschichtet",  label_en: "Stratified"}
+  - {value: census,     label: "Vollerhebung", label_en: "Census"}
 default: random
 help: "Geschichtet nur, wenn die Auswahlgrundlage die Schichtmerkmale enthält."
+help_en: "Stratified only if the sampling frame carries the stratifying attributes."
 required: true
 locked: false                     # true = nicht abschaltbar, erscheint nicht im Formular
 ```
+
+## Sprachen
+
+**Der Feldtext steht hier, nicht in einer Übersetzungsdatei.** `label`, `question` und `help`
+tragen die Ausgangssprache (Deutsch, `forms.SOURCE_LANGUAGE`); jede weitere Sprache steht als
+`<schlüssel>_<sprache>` daneben — `label_en`, `question_en`, `help_en`, bei Optionen `label_en`.
+Eine dritte Sprache braucht deshalb keine Codeänderung, nur einen weiteren Eintrag.
+
+Der Grund ist derselbe wie für die ganze Datei: Eine Entscheidung hat **einen** Ort. Läge die
+Übersetzung in einer eigenen Tabelle, gäbe es zwei Stellen, die dasselbe Feld beschreiben — und
+die Frage, die ein Agent stellt, käme dort gar nicht an. Fehlt eine Sprache, fällt der Text auf
+die Ausgangssprache zurück.
+
+Bedienelemente, die **kein** Feld sind (Knöpfe, Überschriften, Meldungen), stehen dagegen in
+`src/researchcall/web/locales/ui.json`. Beide Seiten prüft `python manage_translations.py
+--check --fields`.
 
 ## Feldtypen
 
@@ -37,8 +56,9 @@ locked: false                     # true = nicht abschaltbar, erscheint nicht im
 
 ## Regeln
 
-- **`locked: true` erscheint nie im Formular.** Zustimmung und Abbruchrecht sind keine
-  Optionen.
+- **`locked: true` erscheint nie im Formular** — auch nicht als ausgegrautes Feld und nicht als
+  Hinweis am Feld. Zustimmung und Abbruchrecht sind keine Optionen. Die Konfiguration nennt sie,
+  damit nichts verborgen bleibt.
 - **Ein Feld mit `default` wird im Skill nicht gefragt** — nur erwähnt, wenn es vom
   Vorgabewert abweicht.
 - **`help` ist Pflicht, wenn die Einstellung Folgen hat, die man nicht sieht.**
