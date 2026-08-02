@@ -268,3 +268,12 @@ def test_the_browser_half_is_shipped_and_never_prints_the_key():
         assert needed in script
     assert "console." not in script
     assert "researchcall_" in script
+
+
+def test_the_report_page_hands_a_receipt_to_the_browser(monkeypatch, tmp_path):
+    """A study report is a file worth keeping — the browser writes it, not the host."""
+    use_mode(monkeypatch, "local")
+    with TestClient(create_app(tmp_path / "workspace")) as client:
+        page = client.get("/report").text
+    assert 'id="huckepack-receipt"' in page
+    assert '"kind": "study-receipt"' in page
