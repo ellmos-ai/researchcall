@@ -153,6 +153,58 @@ def free_text_csv(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
     return buffer.getvalue()
 
 
+def findings(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
+    """A findings note, started from the numbers rather than from a blank page.
+
+    The pipeline keeps findings as a plain document that grows with the study —
+    the same habit as a proof note. What this writes is the part a machine can
+    know: the question, the hypotheses, what the field phase produced. The
+    reading is left empty on purpose; filling it in is the researcher's work, and
+    a generated interpretation would be a guess wearing the study's name.
+    """
+    questionnaire = load_questionnaire(study)
+    data = collect(connection, study)
+    statuses = data["final_status"]
+    completed = sum(1 for status in statuses.values() if status == "COMPLETED")
+    included = len(data["included_ids"])
+    lines = [
+        f"# Findings: {questionnaire.get('title', study['title'])}",
+        "",
+        "## Research question",
+        "",
+        str(questionnaire.get("question") or questionnaire.get("title", "")),
+        "",
+    ]
+    hypotheses = questionnaire.get("hypotheses") or []
+    if hypotheses:
+        lines.extend(["## Hypotheses", ""])
+        lines.extend(f"- [ ] {line}" for line in hypotheses)
+        lines.append("")
+    lines.extend(
+        [
+            "## What the field phase produced",
+            "",
+            f"- Included records: {included}",
+            f"- Records with an attempt: {len(statuses)}",
+            f"- Attempts placed: {len(data['attempts'])}",
+            f"- Completed interviews: {completed}",
+            "",
+            "## Reading",
+            "",
+            "<!-- Yours. Say what the numbers support and what they do not. A difference",
+            "     between time windows is a difference, not a finding about the population. -->",
+            "",
+            "## Limitations carried from the method",
+            "",
+            "- Time of day is controlled by the assigned window, not by when the run happened.",
+            "- Nonresponse is reported by kind; NO_ANSWER and DECLINED are never added together.",
+            "- Categories are interpretations; the raw answer sits beside every one of them.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
 def codebook(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
     """What every column means — the file that makes the dataset re-usable."""
     questionnaire = load_questionnaire(study)
@@ -166,22 +218,36 @@ def codebook(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
         f"- Answers outside the categories: {coding.get('unlisted_answers', 'as_other')}",
         f"- Free comments: {policy}",
         "",
-        "## Columns that describe the call",
-        "",
-        "| Column | Meaning |",
-        "| --- | --- |",
-        "| record | Pseudonymous record number. It identifies a row, not a person. |",
-        "| assigned_window | The time of day the record was drawn into. |",
-        "| final_window | Where the last attempt was made; differs only with repeated contact. |",
-        "| attempts | How often this record was dialled. |",
-        "| status | Terminal outcome of the last attempt. |",
-        "| consent | granted, declined or not_obtained. |",
-        "| asked_verbatim_reported | What the agent said about its own fidelity. |",
-        "| wording_matched | Whether the returned wording actually matched. |",
-        "",
-        "## Items",
-        "",
     ]
+    hypotheses = questionnaire.get("hypotheses") or []
+    if hypotheses:
+        lines.extend(["## Hypotheses", ""])
+        lines.extend(f"- {line}" for line in hypotheses)
+        lines.append("")
+        lines.append(
+            "Every item below names the hypothesis it serves. An item that serves none "
+            "measures something the study did not set out to measure."
+        )
+        lines.append("")
+    lines.extend(
+        [
+            "## Columns that describe the call",
+            "",
+            "| Column | Meaning |",
+            "| --- | --- |",
+            "| record | Pseudonymous record number. It identifies a row, not a person. |",
+            "| assigned_window | The time of day the record was drawn into. |",
+            "| final_window | Where the last attempt was made; differs only with repeated contact. |",
+            "| attempts | How often this record was dialled. |",
+            "| status | Terminal outcome of the last attempt. |",
+            "| consent | granted, declined or not_obtained. |",
+            "| asked_verbatim_reported | What the agent said about its own fidelity. |",
+            "| wording_matched | Whether the returned wording actually matched. |",
+            "",
+            "## Items",
+            "",
+        ]
+    )
     for number, question in enumerate(questionnaire.get("questions", []), start=1):
         lines.append(f"### {number}. `{question['id']}` — {question.get('format', 'categorical')}")
         lines.append("")

@@ -132,7 +132,8 @@ EFFECTS: dict[str, tuple[str, str]] = {
     # --- 05 pretest ----------------------------------------------------------
     "pretest.export_questionnaire": (
         ANALYSIS,
-        "Offers the instrument as a document to read and to pass around.",
+        "On offers the instrument as a document to read and pass around; off "
+        "withdraws the download.",
     ),
     "pretest.send_to_reviewers": (
         DECLARED,
@@ -154,7 +155,11 @@ EFFECTS: dict[str, tuple[str, str]] = {
         RUN,
         "Added as a deliberately clumsy item; smoothing it out is the tell.",
     ),
-    "pretest.instrument_check.measure": (FRAME, "What the check reports on."),
+    "pretest.instrument_check.measure": (
+        FRAME,
+        "The check reports on exactly these five criteria — and says which two of "
+        "them a dry run cannot decide instead of scoring them.",
+    ),
     "pretest.instrument_check.report_result_honestly": (
         FRAME,
         "A failed check stays visible; nothing suppresses it.",
@@ -170,8 +175,9 @@ EFFECTS: dict[str, tuple[str, str]] = {
     ),
     "fieldwork.keep_raw_answer": (FRAME, "Raw wording is always kept beside the coding."),
     "fieldwork.keep_transcript": (
-        ANALYSIS,
-        "Off keeps the transcript audit only in memory, as the report states.",
+        DECLARED,
+        "Transcripts are never written to disk in this build, so there is nothing "
+        "here to switch off; the audit already happens in memory only.",
     ),
     "fieldwork.poll_interval_seconds": (
         DECLARED,
@@ -216,7 +222,8 @@ EFFECTS: dict[str, tuple[str, str]] = {
     # --- 08 reporting --------------------------------------------------------
     "reporting.findings_file": (
         ANALYSIS,
-        "Names the findings document the report offers to write.",
+        "Names the findings note the report offers for download, started from the "
+        "numbers with the reading left open.",
     ),
     "reporting.journal_format": (
         DECLARED,
@@ -236,9 +243,14 @@ EFFECTS: dict[str, tuple[str, str]] = {
     ),
     "publication.source_check_before_upload": (
         FRAME,
-        "No upload without a source check — stated, never switched off.",
+        "No upload without a source check. This build uploads nowhere at all, so the "
+        "rule holds by construction rather than by enforcement.",
     ),
-    "publication.dry_run_first": (FRAME, "Any upload is rehearsed before it happens."),
+    "publication.dry_run_first": (
+        FRAME,
+        "Any upload is rehearsed first. Nothing here uploads, which is the strictest "
+        "form the rule can take.",
+    ),
 }
 
 

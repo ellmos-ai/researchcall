@@ -489,7 +489,10 @@ def instrument_panel(plan: dict[str, Any], translator: Translator) -> str:
 
 
 def instrument_view(
-    plan: dict[str, Any], script: list[str], translator: Translator
+    plan: dict[str, Any],
+    script: list[str],
+    translator: Translator,
+    downloadable: bool = True,
 ) -> str:
     """The whole call, in the order it is spoken, ready to be read or handed on."""
     questionnaire = plan["questionnaire"]
@@ -528,9 +531,13 @@ def instrument_view(
         f"{table}"
         f'<h3>{e(translator.t("The spoken order"))}</h3>'
         f'<div class="panel"><pre class="script">{e(chr(10).join(script))}</pre></div>'
-        f'<p class="sub"><a href="/instrument.md">{e(translator.t("Download as a document"))}</a> · '
-        f'<a href="/instrument.task.txt">{e(translator.t("The task text an agent receives"))}</a></p>'
-        "</main>"
+        + (
+            f'<p class="sub"><a href="/instrument.md">{e(translator.t("Download as a document"))}</a> · '
+            f'<a href="/instrument.task.txt">{e(translator.t("The task text an agent receives"))}</a></p>'
+            if downloadable
+            else f'<p class="sub">{e(translator.t("Handing the questionnaire around is switched off in station 5."))}</p>'
+        )
+        + "</main>"
     )
 
 
@@ -742,6 +749,7 @@ def report_view(data: dict[str, Any], translator: Translator) -> str:
         f'<a href="/export/dataset.csv">dataset.csv</a> · '
         f'<a href="/export/free-text.csv">free-text.csv</a> · '
         f'<a href="/export/codebook.md">codebook.md</a> · '
+        f'<a href="/export/findings.md">{e(data.get("findings_file", "findings.md"))}</a> · '
         f'<a href="/report.md">report.md</a></p>'
     )
 
