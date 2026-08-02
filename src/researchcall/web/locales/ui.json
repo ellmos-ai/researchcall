@@ -775,6 +775,34 @@
     "en": "wording",
     "de": "Wortlaut"
   },
+  "All eight stations are open. Ethical locked settings stay hidden. Network disabled · fixture transport · no real calls.": {
+    "en": "All eight stations are open. Ethical locked settings stay hidden. Network disabled · fixture transport · no real calls.",
+    "de": "Alle acht Stationen sind geöffnet. Die ethisch gesperrten Einstellungen bleiben verborgen. Netzwerk deaktiviert · Fixture-Transport · keine echten Anrufe."
+  },
+  "Enable a separate example workspace to inspect all eight stations in any order.": {
+    "en": "Enable a separate example workspace to inspect all eight stations in any order.",
+    "de": "Aktiviere einen getrennten Beispiel-Arbeitsbereich, um alle acht Stationen in beliebiger Reihenfolge anzusehen."
+  },
+  "Enable test mode": {
+    "en": "Enable test mode",
+    "de": "Testmodus aktivieren"
+  },
+  "Leave test mode": {
+    "en": "Leave test mode",
+    "de": "Testmodus verlassen"
+  },
+  "Test mode is off": {
+    "en": "Test mode is off",
+    "de": "Testmodus ist aus"
+  },
+  "Test mode opens every station in any order; the example workspace stays separate.": {
+    "en": "Test mode opens every station in any order; the example workspace stays separate.",
+    "de": "Im Testmodus sind alle Stationen in beliebiger Reihenfolge geöffnet; der Beispiel-Arbeitsbereich bleibt getrennt."
+  },
+  "Test mode — example data, not a real study": {
+    "en": "Test mode — example data, not a real study",
+    "de": "Testmodus — Beispieldaten, keine echte Studie"
+  },
   "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.": {
     "en": "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.",
     "de": "{total} Entscheidungen in acht Stationen. Eine Oberfläche zeigt {visible}, ein Agent fragt {asked}, und {locked} gehören zum Gerüst und erscheinen nirgends."

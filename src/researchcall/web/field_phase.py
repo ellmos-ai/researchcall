@@ -48,11 +48,11 @@ def _fixture(name: str) -> pathlib.Path:
 
 
 def database_path(workspace: Workspace) -> pathlib.Path:
-    return workspace.path / DB_NAME
+    return workspace.artifact_directory() / DB_NAME
 
 
 def report_path(workspace: Workspace) -> pathlib.Path:
-    return workspace.path / REPORT_NAME
+    return workspace.artifact_directory() / REPORT_NAME
 
 
 def _setting(workspace: Workspace, fields: list[forms.Field], path: str) -> Any:
@@ -193,8 +193,8 @@ def prepare(
             "frame that has them."
         )
 
-    workspace.path.mkdir(parents=True, exist_ok=True)
     path = database_path(workspace)
+    path.parent.mkdir(parents=True, exist_ok=True)
     questionnaire = _persisted_questionnaire(plan)
     if path.exists():
         # A browser click must never delete collected data. An existing run is
