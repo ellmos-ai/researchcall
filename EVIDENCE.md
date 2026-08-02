@@ -196,3 +196,139 @@ exit code 128
 ```
 
 The alternative FileCommander process call was rejected before execution. A final PowerShell-backed attempt also failed before command execution with `CreateProcessAsUserW failed: 5 (Zugriff verweigert)`. No file was staged, no commit was created, and no push was attempted.
+
+## Form surface completion run — 2026-08-02
+
+This run completed the station form definitions and integrated the previously untracked `forms.py` and `OBERFLAECHE-UND-TEXT.md` work. It made no real call and no CALL-E network request.
+
+Two source-bound assumptions were applied:
+
+- The prompt called station 5 “Ethik/Einwilligung”, but the canonical router, folder, station skill, and config all define `05-pretest`. The form file therefore represents the pretest. Consent and withdrawal remain in canonical station `03-ethics`.
+- No standalone recording-notice config key exists in a station skill or config template. No such field was invented. Recording or transcription disclosure is required as content of `ethics.privacy_text`, and `fieldwork.keep_transcript` remains the linked storage decision.
+
+### Regression-first parser result
+
+The first focused run loaded every file through PyYAML, but exposed a real failure in the dependency-free fallback when an `options:` block started as `None`:
+
+```text
+> python -X utf8 -m unittest discover -s tests -p test_forms.py -v
+test_dependency_free_reader_preserves_inline_list_defaults ... ERROR
+test_every_entry_declares_the_complete_form_contract ... ERROR
+test_every_station_file_loads_individually ... ok
+test_locked_fields_create_neither_questions_nor_form_fields ... ok
+AttributeError: 'NoneType' object has no attribute 'append'
+----------------------------------------------------------------------
+Ran 4 tests in 0.557s
+
+FAILED (errors=2)
+```
+
+After changing only that fallback initialization, the same focused suite produced:
+
+```text
+> python -X utf8 -m unittest discover -s tests -p test_forms.py -v
+test_dependency_free_reader_preserves_inline_list_defaults (test_forms.FormDefinitionTestCase.test_dependency_free_reader_preserves_inline_list_defaults) ... ok
+test_every_entry_declares_the_complete_form_contract (test_forms.FormDefinitionTestCase.test_every_entry_declares_the_complete_form_contract) ... ok
+test_every_station_file_loads_individually (test_forms.FormDefinitionTestCase.test_every_station_file_loads_individually) ... ok
+test_locked_fields_create_neither_questions_nor_form_fields (test_forms.FormDefinitionTestCase.test_locked_fields_create_neither_questions_nor_form_fields) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.269s
+
+OK
+```
+
+### Measured three-surface output
+
+The measurement imported `load_fields`, `interview`, and `form` from the repository `src` tree, loaded `pipeline/_shared/forms`, grouped by `Field.station`, and printed the lengths of the station field list and both renderings. Its exact output was:
+
+```text
+01-research-question: fields=2 questions=2 form_fields=2
+02-instrument: fields=4 questions=1 form_fields=4
+03-ethics: fields=12 questions=5 form_fields=10
+04-sampling: fields=11 questions=2 form_fields=11
+05-pretest: fields=8 questions=1 form_fields=6
+06-fieldwork: fields=7 questions=0 form_fields=6
+07-analysis: fields=8 questions=0 form_fields=4
+08-reporting: fields=7 questions=0 form_fields=5
+TOTAL: fields=59 questions=11 form_fields=48
+exit_code=0
+```
+
+These are generated counts, not estimates. Questions with a default are suppressed unless required. Locked fields contribute to config defaults but produce neither a question nor a visible form field.
+
+### Fresh jury dry-run
+
+The first module invocation omitted the README's source-path activation and failed before creating a workspace:
+
+```text
+> python -X utf8 -m researchcall demo --workspace out/jury-dry-run-20260802-codex --seed 42
+C:\Program Files\Python312\python.exe: No module named researchcall
+```
+
+The documented source activation was then applied and the same unused workspace succeeded:
+
+```text
+> $env:PYTHONPATH='src'
+> python -X utf8 -m researchcall demo --workspace out/jury-dry-run-20260802-codex --seed 42
+mode=dry-run transport=fixture network=disabled
+frame_imported=200 sample_drawn=50 attempts=50
+terminal_statuses={"BUSY":5,"CANCELED":4,"COMPLETED":14,"DECLINED":9,"EXPIRED":4,"FAILED":4,"NO_ANSWER":5,"VOICEMAIL":5}
+report=out\jury-dry-run-20260802-codex\report.md
+exit_code=0
+elapsed_seconds=5.903
+```
+
+`elapsed_seconds` was measured by the local process wrapper around the command. The output path is ignored by Git. No account, credential, SDK call, network request, or phone call was used.
+
+### Final static and automated tests
+
+```text
+> python -X utf8 -m compileall -q src tests
+exit_code=0; no output
+```
+
+```text
+> python -X utf8 -m unittest discover -s tests -v
+test_dependency_free_reader_preserves_inline_list_defaults (test_forms.FormDefinitionTestCase.test_dependency_free_reader_preserves_inline_list_defaults) ... ok
+test_every_entry_declares_the_complete_form_contract (test_forms.FormDefinitionTestCase.test_every_entry_declares_the_complete_form_contract) ... ok
+test_every_station_file_loads_individually (test_forms.FormDefinitionTestCase.test_every_station_file_loads_individually) ... ok
+test_locked_fields_create_neither_questions_nor_form_fields (test_forms.FormDefinitionTestCase.test_locked_fields_create_neither_questions_nor_form_fields) ... ok
+test_demo_runs_end_to_end_without_network (test_researchcall.ResearchCallTestCase.test_demo_runs_end_to_end_without_network) ... ok
+test_duplicate_phone_cannot_create_two_person_attempts (test_researchcall.ResearchCallTestCase.test_duplicate_phone_cannot_create_two_person_attempts) ... ok
+test_fixed_wording_filter_and_audit_schema_are_in_task (test_researchcall.ResearchCallTestCase.test_fixed_wording_filter_and_audit_schema_are_in_task) ... ok
+test_fixture_keeps_raw_answer_separate_from_interpreted_category (test_researchcall.ResearchCallTestCase.test_fixture_keeps_raw_answer_separate_from_interpreted_category) ... ok
+test_live_client_reads_bearer_only_from_calle_api_key (test_researchcall.ResearchCallTestCase.test_live_client_reads_bearer_only_from_calle_api_key) ... ok
+test_live_mode_fails_before_client_creation_without_exact_intent (test_researchcall.ResearchCallTestCase.test_live_mode_fails_before_client_creation_without_exact_intent) ... error=Live mode requires --confirm-live "CALL 1" for this bounded quota
+ok
+test_live_rest_path_uses_activity_and_nested_result (test_researchcall.ResearchCallTestCase.test_live_rest_path_uses_activity_and_nested_result) ... ok
+test_phone_validation_and_masking (test_researchcall.ResearchCallTestCase.test_phone_validation_and_masking) ... ok
+test_random_draw_assigns_windows_and_every_sample_is_attempted_once (test_researchcall.ResearchCallTestCase.test_random_draw_assigns_windows_and_every_sample_is_attempted_once) ... ok
+test_report_preserves_loss_structure_and_never_contains_phone_numbers (test_researchcall.ResearchCallTestCase.test_report_preserves_loss_structure_and_never_contains_phone_numbers) ... ok
+test_sqlite_frame_source_is_opened_read_only (test_researchcall.ResearchCallTestCase.test_sqlite_frame_source_is_opened_read_only) ... ok
+test_transcript_is_audited_in_memory_but_not_persisted (test_researchcall.ResearchCallTestCase.test_transcript_is_audited_in_memory_but_not_persisted) ... ok
+test_withdrawal_erases_identifiers_and_excludes_record (test_researchcall.ResearchCallTestCase.test_withdrawal_erases_identifiers_and_excludes_record) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 7.660s
+
+OK
+exit_code=0
+```
+
+### Not executed in this run
+
+- No CALL-E account registration, authentication, real call, `--live` execution, webhook, or CALL-E/AiRudder network request.
+- No external message, upload, push, release, publication, pull request, submission, or video production.
+- No service concurrency, voicemail, busy, no-answer, remote cancellation, quota-sharing, CI, or jurisdictional behavior was tested.
+
+### Local commit gate
+
+The requested local commit was attempted after the lock had been removed and the verified file list had been narrowed explicitly. Staging failed because this managed session exposes `.git` read-only:
+
+```text
+> git add -- EVIDENCE.md README.md _CODEX-PHASE-REPORT.md pipeline/_shared/OBERFLAECHE-UND-TEXT.md pipeline/_shared/forms/README.md pipeline/_shared/forms/analysis.forms.yaml pipeline/_shared/forms/ethics.forms.yaml pipeline/_shared/forms/fieldwork.forms.yaml pipeline/_shared/forms/instrument.forms.yaml pipeline/_shared/forms/pretest.forms.yaml pipeline/_shared/forms/reporting.forms.yaml pipeline/_shared/forms/research-question.forms.yaml pipeline/_shared/forms/sampling.forms.yaml src/researchcall/forms.py tests/test_forms.py
+fatal: Unable to create 'C:/_Local_DEV/repos/researchcall/.git/index.lock': Permission denied
+```
+
+No alternative write path was used to bypass the repository-metadata restriction. No file was staged, no commit was created, and no push was attempted.

@@ -4,6 +4,20 @@ ResearchCall is a dry-run-first Python tool for standardized scientific telephon
 
 The default path is fully local: no account, credentials, SDK, network connection, or real call is needed. Fixtures exercise the same sampling, attempt, response, withdrawal, and reporting logic used by the gated live adapter.
 
+## One research method, three ways in
+
+ResearchCall is a research procedure that happens to use calls, not a call script with a report attached. Its pipeline covers eight gated stations: research question, instrument, conversation and ethics frame, sampling, pretest, fieldwork, analysis, and reporting. The call transport is only one implementation step inside that method.
+
+Every human decision has one form definition under `pipeline/_shared/forms/`. The same definition can be read in three ways:
+
+- as a config value through `config_defaults()`;
+- as a spoken question for an agent through `interview()`;
+- as a UI-ready field descriptor through `form()`.
+
+The station router at `pipeline/SKILL.md` gives agents the procedure in words, while each station's `config.template.yaml` gives the corresponding machine-readable configuration. `load_fields()` connects both to the form definitions. Defaults avoid unnecessary interview turns; required values without defaults become questions; and locked methodological or ethical requirements become neither questions nor visible controls.
+
+This is more than an automated interviewer: the method fixes the research question before the instrument, the instrument before fieldwork, the sampling exposure before outcomes are known, and the analysis rules before results are interpreted. It preserves raw answers beside categories, distinguishes nonresponse mechanisms, and carries measured limitations into the report. No graphical frontend is bundled yet; the shared definitions are the tested boundary from which one can be rendered without creating a second source of truth.
+
 ## Methodological contract
 
 - Questions use fixed wording and fixed answer categories.
@@ -32,7 +46,16 @@ python -m researchcall --help
 
 The editable install is required when invoking `python -m researchcall` from the repository root. Running directly from an uninstalled `src` layout otherwise requires an explicit `PYTHONPATH=src`, which is not the documented workflow.
 
-## Offline demonstration
+## 30-second jury dry-run — no access required
+
+From the repository root, PowerShell can run the complete demonstration directly from the `src` tree, without installation, an account, credentials, network access, or a real call:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m researchcall demo --workspace out/jury-demo --seed 42
+```
+
+Use an unused workspace name for a repeated run; the demo refuses to overwrite earlier evidence. The command prints `mode=dry-run transport=fixture network=disabled`, the imported/drawn/attempted counts, distinct terminal statuses, and the generated report path.
 
 This command creates 200 fictitious frame rows, draws 50, randomly assigns their time windows, processes all 50 against mixed terminal fixtures, and writes an aggregate report:
 

@@ -1,64 +1,128 @@
-# Formularvorlagen — Station 4 (Stichprobe)
-# Beispielhaft ausgefuellt; die uebrigen Stationen folgen demselben Muster.
+# Form definition — Station 4 (sampling)
 
 - field: sample.source
   station: 04-sampling
   label: "Auswahlgrundlage"
   question: "Woher kommen die Rufnummern?"
   type: text
-  required: true
+  options: []
+  default: null
   help: "Eine Datei oder Datenbank. Was darin fehlt, fehlt auch in der Erhebung."
+  required: true
+  locked: false
 
 - field: sample.size
   station: 04-sampling
   label: "Umfang"
   question: "Wie viele Personen sollen befragt werden?"
   type: number
+  options: []
+  default: null
+  help: "Der Umfang wird vor der Ziehung festgelegt."
   required: true
+  locked: false
 
 - field: sample.method
   station: 04-sampling
   label: "Ziehungsverfahren"
-  question: "Wie soll gezogen werden — zufaellig, geschichtet oder alle?"
+  question: "Wie soll gezogen werden — zufällig, geschichtet oder als Vollerhebung?"
   type: choice
   options:
-    - {value: random,     label: "Zufall"}
+    - {value: random, label: "Zufall"}
     - {value: stratified, label: "Geschichtet"}
-    - {value: census,     label: "Vollerhebung"}
+    - {value: census, label: "Vollerhebung"}
   default: random
+  help: "Geschichtet nur, wenn die Auswahlgrundlage die Schichtmerkmale enthält."
+  required: false
+  locked: false
+
+- field: sample.time_windows
+  station: 04-sampling
+  label: "Zeitfenster"
+  question: "Welche Zeitfenster sollen bei der Ziehung verwendet werden?"
+  type: multi
+  options:
+    - {value: morning, label: "Vormittag"}
+    - {value: afternoon, label: "Nachmittag"}
+    - {value: evening, label: "Abend"}
+  default: [morning, afternoon, evening]
+  help: "Die Fenster müssen vor der Feldphase feststehen, damit Ausfälle und Antworten später vergleichbar sind."
+  required: false
+  locked: false
 
 - field: sample.assign_windows_randomly
   station: 04-sampling
   label: "Zeitfenster zulosen"
-  question: "Sollen die Anrufzeitfenster zufaellig zugewiesen werden?"
+  question: "Sollen die Anrufzeitfenster zufällig zugewiesen werden?"
   type: bool
+  options: []
   default: true
-  help: >
-    Wer nur morgens anruft, erreicht ueberwiegend Menschen, die tagsueber zu Hause sind.
-    Zulosen macht die Tageszeit zur kontrollierten Variable statt zur stillen Vorauswahl.
+  help: "Zulosen macht die Tageszeit zur kontrollierten Variable statt zur stillen Vorauswahl."
+  required: false
+  locked: false
 
 - field: contact_rules.attempts_per_person
   station: 04-sampling
   label: "Versuche je Person"
   question: "Soll bei Nichterreichen noch einmal angerufen werden — und wie oft?"
   type: number
+  options: []
   default: 0
-  help: >
-    Nachfassen erhoeht die Ausschoepfung, verzerrt aber zugunsten der Erreichbaren.
-    Beides ist vertretbar. Die tatsaechliche Zahl erscheint immer im Bericht.
+  help: "Nachfassen erhöht die Ausschöpfung, verzerrt aber zugunsten der Erreichbaren; die tatsächliche Zahl erscheint im Bericht."
+  required: false
+  locked: false
+
+- field: contact_rules.spread_attempts
+  station: 04-sampling
+  label: "Versuche zeitlich verteilen"
+  question: "Sollen weitere Versuche über verschiedene Tageszeiten verteilt werden?"
+  type: bool
+  options: []
+  default: true
+  help: "Relevant, wenn mehr als ein Versuch erlaubt ist; sonst würde derselbe Tageszeitfehler wiederholt."
+  required: false
+  locked: false
+
+- field: contact_rules.callback_after_refusal_max
+  station: 04-sampling
+  label: "Rückrufe nach Zustimmung"
+  question: "Wie viele ausdrücklich gewünschte Rückrufe sind höchstens erlaubt?"
+  type: number
+  options: []
+  default: 3
+  help: "Ein Nein ohne ausdrückliche Rückrufzusage bleibt endgültig."
+  required: false
+  locked: false
 
 - field: contact_rules.daily_quota
   station: 04-sampling
   label: "Tagesration"
-  question: "Wie viele Anrufe pro Tag?"
+  question: "Wie viele Anrufe soll ein äußerer Lauf höchstens abarbeiten?"
   type: number
+  options: []
   default: 50
-  help: "Angestossen wird von aussen — das Werkzeug laeuft nicht selbst ueber Tage."
+  help: "Die Wiederholung wird von außen angestoßen; das Werkzeug läuft nicht selbst über Tage."
+  required: false
+  locked: false
 
-- field: ethics.consent_explicit
-  station: 03-ethics
-  label: "Ausdrueckliche Zustimmung"
-  type: bool
-  default: true
-  locked: true
-  help: "Nicht abschaltbar. Keine Erhebung ohne Zustimmung."
+- field: contact_rules.concurrent_calls
+  station: 04-sampling
+  label: "Gleichzeitige Anrufe"
+  question: "Wie viele Anrufe sollen gleichzeitig laufen?"
+  type: number
+  options: []
+  default: 1
+  help: "Konservative Vorgabe: Die Parallelitätsgrenze des Dienstes ist nicht verifiziert."
+  required: false
+  locked: false
+
+- field: contact_rules.calling_hours
+  station: 04-sampling
+  label: "Anrufzeitraum"
+  question: "In welchem täglichen Zeitraum darf angerufen werden?"
+  type: text
+  options: []
+  default: "09:00-19:00"
+  help: "Der Zeitraum begrenzt die von außen gestarteten Tagesläufe."
+  required: false
+  locked: false
