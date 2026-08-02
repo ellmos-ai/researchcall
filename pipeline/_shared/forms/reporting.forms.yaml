@@ -3,93 +3,114 @@
 - field: reporting.findings_file
   station: 08-reporting
   label: "Befunddatei"
+  label_en: "Findings file"
   question: "In welcher Datei sollen die Befunde festgehalten werden?"
+  question_en: "In which file should the findings be recorded?"
   type: text
   options: []
   default: "BEFUNDE.md"
   help: "Gemessene Befunde, Schlussfolgerungen und offene Punkte werden nachvollziehbar getrennt."
+  help_en: "Measured findings, conclusions and open points are kept traceably apart."
   required: false
   locked: false
 
 - field: reporting.journal_format
   station: 08-reporting
   label: "Journalformat"
+  label_en: "Journal format"
   question: "Welches vorhandene Manuskriptformat soll verwendet werden?"
+  question_en: "Which existing manuscript format should be used?"
   type: choice
   options:
-    - {value: psychology_apa, label: "Psychology APA"}
-    - {value: physics_revtex, label: "Physics RevTeX"}
-    - {value: cs_ieee, label: "Computer Science IEEE"}
-    - {value: polisci_chicago, label: "Political Science Chicago"}
-    - {value: law_german, label: "German Law"}
-    - {value: interdisciplinary, label: "Interdisciplinary"}
+    - {value: psychology_apa, label: "Psychology APA", label_en: "Psychology APA"}
+    - {value: physics_revtex, label: "Physics RevTeX", label_en: "Physics RevTeX"}
+    - {value: cs_ieee, label: "Computer Science IEEE", label_en: "Computer Science IEEE"}
+    - {value: polisci_chicago, label: "Political Science Chicago", label_en: "Political Science Chicago"}
+    - {value: law_german, label: "German Law", label_en: "German Law"}
+    - {value: interdisciplinary, label: "Interdisciplinary", label_en: "Interdisciplinary"}
   default: psychology_apa
   help: "Es wird eines der in der bestehenden Forschungspipeline vorhandenen Formate genutzt."
+  help_en: "One of the formats already present in the existing research pipeline is used."
   required: false
   locked: false
 
 - field: reporting.languages
   station: 08-reporting
   label: "Sprachen"
+  label_en: "Languages"
   question: "In welchen Sprachen soll der Bericht geführt werden?"
+  question_en: "In which languages should the report be kept?"
   type: multi
   options:
-    - {value: de, label: "Deutsch"}
-    - {value: en, label: "Englisch"}
+    - {value: de, label: "Deutsch", label_en: "German"}
+    - {value: en, label: "Englisch", label_en: "English"}
   default: [de, en]
   help: "Bei mehreren Fassungen hält der bilinguale Sync die Inhalte zusammen."
+  help_en: "With several versions the bilingual sync keeps the contents together."
   required: false
   locked: false
 
 - field: reporting.disclosure_level
   station: 08-reporting
   label: "Disclosure-Stufe"
+  label_en: "Disclosure level"
   question: "Welche Disclosure-Stufe gilt für den Bericht?"
+  question_en: "Which disclosure level applies to the report?"
   type: choice
   options:
-    - {value: L1, label: "L1"}
-    - {value: L2, label: "L2"}
-    - {value: L3, label: "L3"}
-    - {value: L4, label: "L4"}
-    - {value: L5, label: "L5"}
+    - {value: L1, label: "L1", label_en: "L1"}
+    - {value: L2, label: "L2", label_en: "L2"}
+    - {value: L3, label: "L3", label_en: "L3"}
+    - {value: L4, label: "L4", label_en: "L4"}
+    - {value: L5, label: "L5", label_en: "L5"}
   default: L3
   help: "Die Stufe entspricht dem Gesprächsrahmen und steuert die KI-Offenlegung."
+  help_en: "The level matches the conversation frame and steers the AI disclosure."
   required: false
   locked: false
 
 - field: publication.target
   station: 08-reporting
   label: "Publikationsziel"
+  label_en: "Publication target"
   question: "Ist das Ziel Zenodo, Journal, Preprint oder keine Veröffentlichung?"
+  question_en: "Is the target Zenodo, a journal, a preprint, or no publication?"
   type: choice
   options:
-    - {value: zenodo, label: "Zenodo"}
-    - {value: journal, label: "Journal"}
-    - {value: preprint, label: "Preprint"}
-    - {value: none, label: "Keine Veröffentlichung"}
+    - {value: zenodo, label: "Zenodo", label_en: "Zenodo"}
+    - {value: journal, label: "Journal", label_en: "Journal"}
+    - {value: preprint, label: "Preprint", label_en: "Preprint"}
+    - {value: none, label: "Keine Veröffentlichung", label_en: "No publication"}
   default: zenodo
   help: "Die Wahl bereitet nur den Weg vor; Upload und Veröffentlichung bleiben eigene Nutzer-Gates."
+  help_en: "The choice only prepares the path; upload and publication stay separate user gates."
   required: false
   locked: false
 
 - field: publication.source_check_before_upload
   station: 08-reporting
   label: "Quellencheck vor Upload"
+  label_en: "Source check before upload"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Jede Referenz wird vor einem Upload gegen die Originalquelle geprüft."
+  help_en: "Not switchable: every reference is verified against the original source before an upload."
   required: true
   locked: true
 
 - field: publication.dry_run_first
   station: 08-reporting
   label: "Trockenlauf vor Veröffentlichung"
+  label_en: "Dry run before publication"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Ein grüner Trockenlauf ist Vorbereitung, keine Veröffentlichung."
+  help_en: "Not switchable: a green dry run is preparation, not publication."
   required: true
   locked: true

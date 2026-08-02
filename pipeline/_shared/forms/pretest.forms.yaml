@@ -3,92 +3,116 @@
 - field: pretest.export_questionnaire
   station: 05-pretest
   label: "Fragebogen ausgeben"
+  label_en: "Export the questionnaire"
   question: "Soll der Fragebogen vor dem Probelauf als Dokument ausgegeben werden?"
+  question_en: "Should the questionnaire be exported as a document before the pretest?"
   type: bool
   options: []
   default: true
   help: "Die Dokumentansicht ist die erste Prüfstufe und macht Wortlaut- und Reihenfolgefehler sichtbar."
+  help_en: "The document view is the first review stage and makes wording and order errors visible."
   required: false
   locked: false
 
 - field: pretest.send_to_reviewers
   station: 05-pretest
   label: "Lesereview"
+  label_en: "Reading review"
   question: "Welche Kolleginnen oder Kollegen sollen den Fragebogen vorab lesen?"
+  question_en: "Which colleagues should read the questionnaire beforehand?"
   type: list
   options: []
   default: []
   help: "Die Liste enthält nur die für den Review nötigen Mailadressen."
+  help_en: "The list holds only the mail addresses needed for the review."
   required: false
   locked: false
 
 - field: pretest.call_reviewers
   station: 05-pretest
   label: "Hörtest"
+  label_en: "Listening test"
   question: "Welche eingeweihten Personen sollen den Fragebogen am Telefon hören?"
+  question_en: "Which briefed people should hear the questionnaire on the phone?"
   type: list
   options: []
   default: []
   help: "Nur vorab informierte Personen und die dafür nötigen Rufnummern eintragen."
+  help_en: "Enter only people informed in advance and the phone numbers needed for it."
   required: false
   locked: false
 
 - field: pretest.self_test_calls
   station: 05-pretest
   label: "Selbsttests"
+  label_en: "Self-test calls"
   question: "Wie viele interne Selbsttest-Anrufe sind vorgesehen?"
+  question_en: "How many internal self-test calls are planned?"
   type: number
   options: []
   default: 1
   help: "Der Selbsttest prüft den vollständigen Gesprächsablauf vor dem Instrumententest."
+  help_en: "The self-test checks the complete conversation flow before the instrument check."
   required: false
   locked: false
 
 - field: pretest.instrument_check.calls
   station: 05-pretest
   label: "Instrumententest-Anrufe"
+  label_en: "Instrument-check calls"
   question: "Mit wie vielen Anrufen soll die Instrumententreue gemessen werden?"
+  question_en: "How many calls should measure instrument fidelity?"
   type: number
   options: []
   default: 30
   help: "Die Zahl wird vor dem Test festgelegt; nicht ausgeführte Anrufe dürfen später nicht als Messung erscheinen."
+  help_en: "The number is fixed before the test; calls that were not made must not appear as measurement later."
   required: false
   locked: false
 
 - field: pretest.instrument_check.syntactic_marker
   station: 05-pretest
   label: "Syntaktischer Marker"
+  label_en: "Syntactic marker"
   question: "Welcher bewusst holprige Satz zeigt, ob das Modell den Wortlaut umformuliert?"
+  question_en: "Which deliberately clumsy sentence reveals whether the model rephrases the wording?"
   type: longtext
   options: []
   default: null
   help: "Der Marker muss syntaktisch sein; orthographische Besonderheiten können von der Sprachausgabe normalisiert werden."
+  help_en: "The marker has to be syntactic; orthographic peculiarities can be normalised by speech synthesis."
   required: true
   locked: false
 
 - field: pretest.instrument_check.measure
   station: 05-pretest
   label: "Messkriterien der Instrumententreue"
+  label_en: "Instrument-fidelity criteria"
   question: ""
+  question_en: ""
   type: multi
   options:
-    - {value: asked_verbatim, label: "Wortlauttreue"}
-    - {value: spoken_wording, label: "Tatsächlich gesprochener Wortlaut"}
-    - {value: unplanned_follow_ups, label: "Ungeplante Nachfragen"}
-    - {value: order_kept, label: "Eingehaltene Reihenfolge"}
-    - {value: ethics_blocks_complete, label: "Vollständige Ethikbausteine"}
+    - {value: asked_verbatim, label: "Wortlauttreue", label_en: "Wording fidelity"}
+    - {value: spoken_wording, label: "Tatsächlich gesprochener Wortlaut", label_en: "Actually spoken wording"}
+    - {value: unplanned_follow_ups, label: "Ungeplante Nachfragen", label_en: "Unplanned probes"}
+    - {value: order_kept, label: "Eingehaltene Reihenfolge", label_en: "Order kept"}
+    - {value: ethics_blocks_complete, label: "Vollständige Ethikbausteine", label_en: "Ethics blocks complete"}
   default: [asked_verbatim, spoken_wording, unplanned_follow_ups, order_kept, ethics_blocks_complete]
   help: "Nicht abschaltbar: Der Instrumententest prüft alle im Stations-Skill festgelegten Kriterien."
+  help_en: "Not switchable: the instrument check tests every criterion fixed in the station skill."
   required: true
   locked: true
 
 - field: pretest.instrument_check.report_result_honestly
   station: 05-pretest
   label: "Ergebnis unverfälscht berichten"
+  label_en: "Report the result unaltered"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Auch mangelnde Wortlauttreue wird als Ergebnis dokumentiert."
+  help_en: "Not switchable: poor wording fidelity is documented as a result too."
   required: true
   locked: true

@@ -3,136 +3,172 @@
 - field: ethics.instruction
   station: 03-ethics
   label: "Instruktion"
+  label_en: "Introduction"
   question: "Wer ruft an, was wird untersucht und warum ist das wichtig?"
+  question_en: "Who is calling, what is being studied, and why does it matter?"
   type: longtext
   options: []
   default: null
   help: "Der erste Satz legt die Automatisierung und die auftraggebende Stelle offen."
+  help_en: "The first sentence discloses the automation and the commissioning body."
   required: true
   locked: false
 
 - field: ethics.time_estimate
   station: 03-ethics
   label: "Zeitschätzung nennen"
+  label_en: "State the expected duration"
   question: "Soll die erwartete Dauer vor der Teilnahmeentscheidung genannt werden?"
+  question_en: "Should the expected duration be stated before the participation decision?"
   type: bool
   options: []
   default: true
   help: "Die genannte Dauer ist ein Versprechen; der Fragebogen muss dazu passen."
+  help_en: "The stated duration is a promise; the questionnaire has to match it."
   required: false
   locked: false
 
 - field: ethics.privacy_text
   station: 03-ethics
   label: "Datenschutzhinweis"
+  label_en: "Privacy notice"
   question: "Welche Daten werden verarbeitet, wird aufgezeichnet oder transkribiert, wie funktioniert die Löschung und wer ist ansprechbar?"
+  question_en: "Which data are processed, is the call recorded or transcribed, how does deletion work, and who can be contacted?"
   type: longtext
   options: []
   default: null
   help: "Der Text nennt Datenarten, Aufzeichnung oder Transkription, Löschweg und Ansprechpartner vollständig."
+  help_en: "The text names data categories, recording or transcription, the deletion route and the contact point in full."
   required: true
   locked: false
 
 - field: ethics.consent_explicit
   station: 03-ethics
   label: "Ausdrückliche Einwilligung"
+  label_en: "Explicit consent"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Ohne ausdrückliche Einwilligung beginnt keine Erhebung."
+  help_en: "Not switchable: no data collection begins without explicit consent."
   required: true
   locked: true
 
 - field: ethics.right_to_stop
   station: 03-ethics
   label: "Widerrufs- und Abbruchrecht"
+  label_en: "Right to stop and withdraw"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Die Teilnahme kann jederzeit ohne Begründung beendet werden."
+  help_en: "Not switchable: participation can be ended at any time without giving a reason."
   required: true
   locked: true
 
 - field: ethics.number_origin
   station: 03-ethics
   label: "Herkunft der Rufnummer"
+  label_en: "Origin of the phone number"
   question: "Woher stammt die Rufnummer?"
+  question_en: "Where does the phone number come from?"
   type: text
   options: []
   default: null
   help: "Die Herkunft wird transparent genannt und muss zur Auswahlgrundlage passen."
+  help_en: "The origin is stated transparently and has to match the sampling frame."
   required: true
   locked: false
 
 - field: ethics.on_refusal.ask_reason
   station: 03-ethics
   label: "Ablehnungsgrund erfragen"
+  label_en: "Ask for the reason after a refusal"
   question: "Soll nach einer Ablehnung freiwillig nach dem Grund gefragt werden?"
+  question_en: "Should the reason be asked for voluntarily after a refusal?"
   type: bool
   options: []
   default: true
   help: "Nicht überreden; die Antwort bleibt freiwillig und fließt nur in die Ausfallanalyse ein."
+  help_en: "No persuasion; the answer stays voluntary and only feeds the nonresponse analysis."
   required: false
   locked: false
 
 - field: ethics.on_refusal.offer_callback
   station: 03-ethics
   label: "Rückruf anbieten"
+  label_en: "Offer a callback"
   question: "Soll bei Ablehnung ein späterer Rückruf angeboten werden?"
+  question_en: "Should a later callback be offered after a refusal?"
   type: bool
   options: []
   default: true
   help: "Nur eine ausdrückliche Rückrufzusage darf in die Kontaktregeln übernommen werden."
+  help_en: "Only an explicit callback agreement may be carried into the contact rules."
   required: false
   locked: false
 
 - field: ethics.greeting
   station: 03-ethics
   label: "Begrüßung"
+  label_en: "Greeting"
   question: "Welche Begrüßungsbausteine darf der Agent frei formulieren?"
+  question_en: "Which greeting blocks may the agent phrase freely?"
   type: list
   options: []
   default: []
   help: "Der warme Gesprächseinstieg darf frei formuliert sein, die Offenlegung im ersten Satz bleibt erhalten."
+  help_en: "The warm opening may be phrased freely; the disclosure in the first sentence stays intact."
   required: true
   locked: false
 
 - field: ethics.closing
   station: 03-ethics
   label: "Abschluss"
+  label_en: "Closing"
   question: "Welche Dank- und Rückfragebausteine gehören an das Gesprächsende?"
+  question_en: "Which thanks and follow-up blocks belong at the end of the call?"
   type: list
   options: []
   default: []
   help: "Der Abschluss enthält Dank und eine Rückfragemöglichkeit."
+  help_en: "The closing contains thanks and an opportunity to ask questions."
   required: true
   locked: false
 
 - field: ethics.policies
   station: 03-ethics
   label: "Zusätzliche Policies"
+  label_en: "Additional policies"
   question: "Welche eigenen Policy-Dateien gelten für diese Erhebung?"
+  question_en: "Which of your own policy files apply to this study?"
   type: list
   options: []
   default: []
   help: "Nur Verweise auf bereits geltende Policy-Dateien eintragen."
+  help_en: "Only reference policy files that already apply."
   required: false
   locked: false
 
 - field: disclosure_level
   station: 03-ethics
   label: "Disclosure-Stufe"
+  label_en: "Disclosure level"
   question: "Welche Disclosure-Stufe der Pipeline gilt?"
+  question_en: "Which disclosure level of the pipeline applies?"
   type: choice
   options:
-    - {value: L1, label: "L1"}
-    - {value: L2, label: "L2"}
-    - {value: L3, label: "L3"}
-    - {value: L4, label: "L4"}
-    - {value: L5, label: "L5"}
+    - {value: L1, label: "L1", label_en: "L1"}
+    - {value: L2, label: "L2", label_en: "L2"}
+    - {value: L3, label: "L3", label_en: "L3"}
+    - {value: L4, label: "L4", label_en: "L4"}
+    - {value: L5, label: "L5", label_en: "L5"}
   default: L3
   help: "Die Stufe steuert die KI-Offenlegung in der späteren Publikation."
+  help_en: "The level steers the AI disclosure in the later publication."
   required: false
   locked: false

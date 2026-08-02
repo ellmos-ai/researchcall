@@ -3,98 +3,122 @@
 - field: analysis.keep_raw_alongside_coded
   station: 07-analysis
   label: "Rohantwort neben Codierung"
+  label_en: "Raw answer beside coding"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Rohantwort und Deutung bleiben für die Prüfung nebeneinander erhalten."
+  help_en: "Not switchable: raw answer and interpretation stay side by side for auditing."
   required: true
   locked: true
 
 - field: analysis.unlisted_answers
   station: 07-analysis
   label: "Nicht gelistete Antworten"
+  label_en: "Answers outside the categories"
   question: "Wie sollen Antworten behandelt werden, die in keiner vorab definierten Kategorie stehen?"
+  question_en: "How should answers be handled that fit none of the categories defined in advance?"
   type: choice
   options:
-    - {value: discard, label: "Verwerfen"}
-    - {value: as_other, label: "Als Sonstiges"}
-    - {value: let_model_map, label: "Vom Modell zuordnen lassen"}
+    - {value: discard, label: "Verwerfen", label_en: "Discard"}
+    - {value: as_other, label: "Als Sonstiges", label_en: "As other"}
+    - {value: let_model_map, label: "Vom Modell zuordnen lassen", label_en: "Let the model map it"}
   default: as_other
   help: "Die Regel wird vor der Auswertung festgelegt; spätere Änderungen werden begründet protokolliert."
+  help_en: "The rule is fixed before analysis; later changes are logged with a reason."
   required: false
   locked: false
 
 - field: analysis.free_comments
   station: 07-analysis
   label: "Freie Kommentare"
+  label_en: "Free comments"
   question: "Wo sollen freie Kommentare in der Auswertung liegen?"
+  question_en: "Where should free comments live in the analysis?"
   type: choice
   options:
-    - {value: in_dataset, label: "Im Datensatz"}
-    - {value: separate, label: "Separat"}
-    - {value: discard, label: "Verwerfen"}
+    - {value: in_dataset, label: "Im Datensatz", label_en: "In the dataset"}
+    - {value: separate, label: "Separat", label_en: "Separate"}
+    - {value: discard, label: "Verwerfen", label_en: "Discard"}
   default: in_dataset
   help: "Die Ablageentscheidung verändert nicht die vorab festgelegten Antwortkategorien."
+  help_en: "The storage decision does not change the answer categories fixed in advance."
   required: false
   locked: false
 
 - field: analysis.qualitative.methods
   station: 07-analysis
   label: "Qualitative Verfahren"
+  label_en: "Qualitative methods"
   question: "Welche qualitativen Verfahren sollen angewandt werden?"
+  question_en: "Which qualitative methods should be applied?"
   type: multi
   options:
-    - {value: summary, label: "Zusammenfassung"}
-    - {value: rating, label: "Rating"}
-    - {value: tendency, label: "Tendenzanalyse"}
-    - {value: taa, label: "Argumentationsanalyse"}
-    - {value: metaphor, label: "Metaphernanalyse"}
+    - {value: summary, label: "Zusammenfassung", label_en: "Summary"}
+    - {value: rating, label: "Rating", label_en: "Rating"}
+    - {value: tendency, label: "Tendenzanalyse", label_en: "Tendency analysis"}
+    - {value: taa, label: "Argumentationsanalyse", label_en: "Argument analysis"}
+    - {value: metaphor, label: "Metaphernanalyse", label_en: "Metaphor analysis"}
   default: [summary, rating, tendency, taa, metaphor]
   help: "Die ausgewählten Verfahren ergänzen die deskriptive Auswertung; Inferenzstatistik bleibt externen Fachwerkzeugen vorbehalten."
+  help_en: "The selected methods complement the descriptive analysis; inferential statistics stays with external specialist tools."
   required: false
   locked: false
 
 - field: analysis.qualitative.rating_models
   station: 07-analysis
   label: "Modelle je Rating"
+  label_en: "Models per rating"
   question: "Wie viele Modelle sollen qualitative Ratings unabhängig vornehmen?"
+  question_en: "How many models should rate qualitative answers independently?"
   type: number
   options: []
   default: 2
   help: "Mindestens zwei Modelle sind für die Interrater-Reliabilität vorgesehen."
+  help_en: "At least two models are intended for interrater reliability."
   required: false
   locked: false
 
 - field: analysis.report.response_rate
   station: 07-analysis
   label: "Ausschöpfungsquote berichten"
+  label_en: "Report the completion yield"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Die Ausschöpfungsquote gehört zum methodischen Kernbericht."
+  help_en: "Not switchable: the completion yield belongs to the methodological core report."
   required: true
   locked: true
 
 - field: analysis.report.dropout_by_window
   station: 07-analysis
   label: "Ausfall nach Zeitfenster berichten"
+  label_en: "Report nonresponse by time window"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: NO_ANSWER, DECLINED, BUSY und VOICEMAIL bleiben je Zeitfenster getrennt."
+  help_en: "Not switchable: NO_ANSWER, DECLINED, BUSY and VOICEMAIL stay separate per time window."
   required: true
   locked: true
 
 - field: analysis.report.answers_by_window
   station: 07-analysis
   label: "Antworten nach Zeitfenster berichten"
+  label_en: "Report answers by time window"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Unterschiede nach zugelostem Zeitfenster bleiben als deskriptiver Befund sichtbar."
+  help_en: "Not switchable: differences by assigned time window stay visible as a descriptive finding."
   required: true
   locked: true

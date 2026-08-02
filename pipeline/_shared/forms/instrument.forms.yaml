@@ -3,45 +3,57 @@
 - field: questionnaire.order
   station: 02-instrument
   label: "Reihenfolge"
+  label_en: "Item order"
   question: "Soll die Reihenfolge fest sein oder randomisiert werden?"
+  question_en: "Should the order be fixed or randomised?"
   type: choice
   options:
-    - {value: fixed, label: "Fest"}
-    - {value: randomised, label: "Randomisiert"}
+    - {value: fixed, label: "Fest", label_en: "Fixed"}
+    - {value: randomised, label: "Randomisiert", label_en: "Randomised"}
   default: randomised
   help: "Randomisierung verteilt Positions- und Abbrucheffekte, sofern keine feste Reihenfolge methodisch nötig ist."
+  help_en: "Randomisation spreads position and drop-off effects unless a fixed order is methodologically required."
   required: false
   locked: false
 
 - field: questionnaire.parallel_forms
   station: 02-instrument
   label: "Parallelformen"
+  label_en: "Parallel forms"
   question: "Wie viele gleichwertige Formen des Fragebogens soll es geben?"
+  question_en: "How many equivalent forms of the questionnaire should exist?"
   type: number
   options: []
   default: 0
   help: "Parallelformen sind nur sinnvoll, wenn Erinnerungseffekte oder ein Paralleltest vorgesehen sind."
+  help_en: "Parallel forms only make sense when memory effects or a parallel test are planned."
   required: false
   locked: false
 
 - field: questionnaire.jump_rules
   station: 02-instrument
   label: "Sprungregeln"
+  label_en: "Skip rules"
   question: "Welche Antworten sollen welche späteren Items überspringen?"
+  question_en: "Which answers should skip which later items?"
   type: table
   options: []
   default: []
   help: "Jede Regel nennt das auslösende Item, den Wert und die zu überspringenden Items; sie wird vor der Feldphase festgelegt."
+  help_en: "Every rule names the triggering item, the value and the items to skip; it is fixed before fieldwork."
   required: false
   locked: false
 
 - field: items
   station: 02-instrument
   label: "Fragebogen-Items"
+  label_en: "Questionnaire items"
   question: "Welche Items messen die Hypothesen — mit welchem Wortlaut, Format, welcher Skala, Nachfragetiefe und Auswertungsregel?"
+  question_en: "Which items measure the hypotheses — with what wording, format, scale, probing depth and analysis rule?"
   type: table
   options: []
   default: []
   help: "Je Item: ID, Hypothese, Format, exakter Wortlaut, Wortlautbindung, Skala, Nachfragetiefe und vorab festgelegte Auswertungsregel."
+  help_en: "Per item: ID, hypothesis, format, exact wording, wording binding, scale, probing depth and the analysis rule fixed in advance."
   required: true
   locked: false
