@@ -78,13 +78,37 @@ def import_frame_rows(
     return len(normalized)
 
 
+def eligible_count(connection: sqlite3.Connection, study_id: int) -> int:
+    """How many frame rows could still be drawn — the size of a census."""
+    row = connection.execute(
+        """
+        SELECT COUNT(*) AS n
+        FROM frame f
+        LEFT JOIN sample s ON s.study_id = f.study_id AND s.frame_id = f.id
+        WHERE f.study_id = ? AND f.withdrawn_at IS NULL AND s.id IS NULL
+        """,
+        (study_id,),
+    ).fetchone()
+    return int(row["n"])
+
+
 def draw_sample(
     connection: sqlite3.Connection,
     study_id: int,
     count: int,
     seed: int,
     windows: tuple[str, ...] = DEFAULT_WINDOWS,
+    assign_randomly: bool = True,
 ) -> int:
+    """Draw ``count`` records and give each one a time of day.
+
+    The time window is part of the draw, not of the dialling: assigning it by lot
+    turns the time of day into a controlled variable instead of a silent
+    preselection of whoever happens to be at home when the run starts. Assigning
+    in equal blocks instead (``assign_randomly=False``) gives exactly balanced
+    windows and is the better choice for a small sample, where chance alone can
+    leave one window nearly empty.
+    """
     if count <= 0:
         raise ValueError("Sample count must be positive")
     if not windows or any(not window.strip() for window in windows):
@@ -110,13 +134,22 @@ def draw_sample(
     rng = random.Random(seed)
     selected = rng.sample([int(row["id"]) for row in candidates], count)
     drawn_at = utc_now()
-    assigned = [(frame_id, rng.choice(windows)) for frame_id in selected]
+    if assign_randomly:
+        assigned = [(frame_id, rng.choice(windows)) for frame_id in selected]
+    else:
+        assigned = [
+            (frame_id, windows[index % len(windows)])
+            for index, frame_id in enumerate(selected)
+        ]
     with transaction(connection):
         connection.executemany(
             """
-            INSERT INTO sample(study_id, frame_id, time_window, drawn_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO sample(study_id, frame_id, time_window, assigned_window, drawn_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            [(study_id, frame_id, window, drawn_at) for frame_id, window in assigned],
+            [
+                (study_id, frame_id, window, window, drawn_at)
+                for frame_id, window in assigned
+            ],
         )
     return len(assigned)

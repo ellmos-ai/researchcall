@@ -27,6 +27,63 @@ TERMINAL_STATUSES = {
 OBSERVED_SETUP_SECONDS = 40
 ProgressCallback = Callable[[dict[str, Any]], None]
 
+#: Stand-in refusal reasons. Short, plausible, and never presented as real: every
+#: one of them is marked as fixture text where it is shown or exported.
+FIXTURE_REFUSALS = (
+    "(fixture) no time right now",
+    "(fixture) does not take part in surveys",
+    "(fixture) does not trust automated calls",
+    "(fixture) topic not relevant to me",
+)
+
+
+def _passes_filter(question: dict[str, Any], answers: dict[str, Any]) -> bool:
+    """Whether a filtered item would be asked, given the answers so far."""
+    condition = question.get("ask_if")
+    if not isinstance(condition, dict):
+        return True
+    given = answers.get(condition.get("question"))
+    if given is None:
+        return False
+    equals = condition.get("equals")
+    allowed = [equals] if isinstance(equals, str) else list(equals or ())
+    return given in allowed
+
+
+def _fits(question: dict[str, Any], value: Any) -> bool:
+    """Whether a recorded fixture answer belongs to *this* item.
+
+    Item ids repeat across studies — ``q1`` is ``q1`` everywhere. Without this
+    check the demo fixture's ``satisfied`` would land in a five-point scale built
+    in the workbench, and the run would spend its time reporting a coding problem
+    that only the fixture had. A pattern that wants an out-of-category answer on
+    purpose says so with ``allow_unlisted``.
+    """
+    if value is None:
+        return True
+    categories = question.get("categories") or []
+    if not categories:      # an open item is never categorized during the call
+        return False
+    return value in categories
+
+
+def _stand_in(
+    question: dict[str, Any], sample_id: int, asked: bool
+) -> tuple[Any, str | None]:
+    """A deterministic answer for an item the fixture file does not know."""
+    if not asked:
+        return None, None
+    categories = question.get("categories") or []
+    if not categories:
+        return None, f"(fixture) free answer for {question['id']}"
+    index = (sample_id * 7 + sum(ord(char) for char in str(question["id"]))) % len(categories)
+    category = categories[index]
+    return category, f"(fixture) {category}"
+
+
+def _refusal_reason(sample_id: int) -> str:
+    return FIXTURE_REFUSALS[sample_id % len(FIXTURE_REFUSALS)]
+
 
 @dataclass(frozen=True)
 class CallOutcome:
@@ -69,25 +126,46 @@ class FixtureCallClient:
             answers_in = pattern.get("answers", {})
             if not isinstance(answers_in, dict):
                 raise ValueError("Fixture answers must be an object")
-            answers = {
-                question["id"]: answers_in.get(question["id"])
-                for question in questionnaire["questions"]
-            }
             raw_answers_in = pattern.get("raw_answers")
             if not isinstance(raw_answers_in, dict):
                 raise ValueError("Fixture raw_answers must be an object")
-            raw_answers = {
-                question["id"]: raw_answers_in.get(question["id"])
-                for question in questionnaire["questions"]
-            }
             asked_verbatim = bool(pattern.get("asked_verbatim", True))
             consent = str(pattern.get("consent", "granted"))
+            answered = consent == "granted"
+
+            allow_unlisted = bool(pattern.get("allow_unlisted", False))
+            answers: dict[str, Any] = {}
+            raw_answers: dict[str, str | None] = {}
+            for question in questionnaire["questions"]:
+                question_id = question["id"]
+                if (question_id in answers_in or question_id in raw_answers_in) and (
+                    allow_unlisted
+                    or _fits(question, answers_in.get(question_id))
+                ):
+                    answers[question_id] = answers_in.get(question_id)
+                    raw_answers[question_id] = raw_answers_in.get(question_id)
+                    continue
+                # The fixture has no line for this item — it belongs to an
+                # instrument somebody built in the workbench. Rather than return
+                # nothing, stand in for an answer, deterministically and visibly
+                # marked as invented, so a dry run of a fresh questionnaire is
+                # still worth watching.
+                value, raw = _stand_in(
+                    question, int(sample["sample_id"]), answered and _passes_filter(question, answers)
+                )
+                answers[question_id] = value
+                raw_answers[question_id] = raw
+
             spoken: dict[str, str | None] = {}
             changed = False
             for question in questionnaire["questions"]:
                 question_id = question["id"]
-                if answers[question_id] is None:
+                if answers[question_id] is None and raw_answers.get(question_id) is None:
                     spoken[question_id] = None
+                elif not question.get("verbatim", True):
+                    # A free item is meant to be rephrased; saying it word for
+                    # word would be the deviation, not the other way round.
+                    spoken[question_id] = "Fixture rephrasing: " + question["wording"]
                 elif asked_verbatim or changed:
                     spoken[question_id] = question["wording"]
                 else:
@@ -109,6 +187,16 @@ class FixtureCallClient:
                 "answers": answers,
                 "raw_answers": raw_answers,
             }
+            on_refusal = questionnaire.get("on_refusal") or {}
+            if consent == "declined":
+                if on_refusal.get("ask_reason"):
+                    structured["refusal_reason"] = pattern.get(
+                        "refusal_reason", _refusal_reason(int(sample["sample_id"]))
+                    )
+                if on_refusal.get("offer_callback"):
+                    structured["callback_wanted"] = bool(
+                        pattern.get("callback_wanted", int(sample["sample_id"]) % 3 == 0)
+                    )
         return CallOutcome(
             status=status,
             run_id=f"fixture-{sample['sample_id']}",

@@ -18,10 +18,20 @@ from __future__ import annotations
 import html
 from typing import Any, Iterable
 
-from .. import forms
+from .. import effect, forms
 from .i18n import LANGUAGE_NAMES, Translator
 from .workspace import STATIONS, Workspace
 
+
+#: What each class of setting is called on screen. The keys are English source
+#: strings, like every other piece of interface text.
+EFFECT_LABELS = {
+    effect.SCRIPT: "shapes the call",
+    effect.RUN: "steers the run",
+    effect.ANALYSIS: "shapes the analysis",
+    effect.FRAME: "part of the frame",
+    effect.DECLARED: "recorded only",
+}
 
 STATION_TITLES = {
     "01-research-question": "Research question",
@@ -175,6 +185,19 @@ table.data td.n { text-align: right; font-variant-numeric: tabular-nums; }
   padding: .7rem .9rem; max-height: 20rem; overflow: auto; }
 .log div { padding: .05rem 0; }
 .log .st { color: var(--muted); }
+
+.eff { display: inline-block; font-size: .68rem; letter-spacing: .03em;
+  text-transform: uppercase; padding: .1rem .5rem; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); margin-left: .4rem;
+  vertical-align: .1rem; font-weight: 600; }
+.eff-declared { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+.field.declared { border-left: 3px dashed var(--warn); }
+.why { color: var(--muted); font-size: .78rem; margin: .35rem 0 0; }
+ul.plain { margin: .3rem 0 0; padding-left: 1.1rem; font-size: .88rem; }
+ul.plain li { margin-bottom: .25rem; }
+pre.script { margin: 0; white-space: pre-wrap; word-break: break-word;
+  font-size: .84rem; line-height: 1.5; max-height: 26rem; overflow: auto; }
+.problem { color: var(--warn); font-size: .85rem; }
 """
 
 
@@ -219,7 +242,11 @@ def rail(workspace: Workspace, translator: Translator, active: str) -> str:
                 f'<span class="num">{index}</span>{e(title)} ·</span></li>'
             )
     extras = (
-        f'<li class="extra"><a class="{"current" if active == "fieldwork" else ""}" '
+        f'<li class="extra"><a class="{"current" if active == "instrument" else ""}" '
+        f'href="/instrument?lang={e(translator.language)}">{e(translator.t("The call, as written"))}</a></li>'
+        f'<li><a class="{"current" if active == "pretest" else ""}" '
+        f'href="/pretest?lang={e(translator.language)}">{e(translator.t("Instrument check"))}</a></li>'
+        f'<li><a class="{"current" if active == "fieldwork" else ""}" '
         f'href="/fieldwork?lang={e(translator.language)}">{e(translator.t("Field phase"))}</a></li>'
         f'<li><a class="{"current" if active == "report" else ""}" '
         f'href="/report?lang={e(translator.language)}">{e(translator.t("Report"))}</a></li>'
@@ -273,12 +300,27 @@ def control(descriptor: dict[str, Any], value: Any) -> str:
     return f'<input type="text" id="{name}" name="{name}" value="{shown}"{required}>'
 
 
+def effect_badge(path: str, translator: Translator) -> str:
+    """Where this setting acts — or that it does not act yet.
+
+    A control that changes nothing looks exactly like one that changes
+    everything. The badge is the only thing that tells them apart, so it is
+    attached to the control rather than mentioned in a document.
+    """
+    name = effect.effect_of(path)
+    label = translator.t(EFFECT_LABELS[name])
+    css = " eff-declared" if name == effect.DECLARED else ""
+    return f'<span class="eff{css}">{e(label)}</span>'
+
+
 def field_block(
     descriptor: dict[str, Any],
     value: Any,
     translator: Translator,
     amended: bool = False,
 ) -> str:
+    path = descriptor["name"]
+    declared = not effect.is_effective(path)
     mark = (
         f'<span class="amended-mark">{e(translator.t("added later"))}</span>'
         if amended
@@ -292,12 +334,24 @@ def field_block(
     help_text = (
         f'<p class="help">{e(descriptor["help"])}</p>' if descriptor.get("help") else ""
     )
+    why = (
+        f'<p class="why">{e(translator.t("Nothing reads this value yet:"))} '
+        f'{e(translator.t(effect.reason_of(path)))}</p>'
+        if declared
+        else f'<p class="why">{e(translator.t(effect.reason_of(path)))}</p>'
+    )
+    classes = "field"
+    if amended:
+        classes += " amended"
+    if declared:
+        classes += " declared"
     return (
-        f'<div class="field{" amended" if amended else ""}">'
-        f'<label class="name" for="{e(descriptor["name"])}">'
-        f'<span class="path mono">{e(descriptor["name"])}</span>'
-        f'{e(descriptor["label"])}{required}{mark}</label>'
-        f"{control(descriptor, value)}{help_text}</div>"
+        f'<div class="{classes}">'
+        f'<label class="name" for="{e(path)}">'
+        f'<span class="path mono">{e(path)}</span>'
+        f'{e(descriptor["label"])}{required}{mark}'
+        f"{effect_badge(path, translator)}</label>"
+        f"{control(descriptor, value)}{help_text}{why}</div>"
     )
 
 
@@ -310,6 +364,7 @@ def station_view(
     translator: Translator,
     message: str = "",
     missing: Iterable[str] = (),
+    panels: str = "",
 ) -> str:
     language = translator.language
     descriptors = forms.form(fields, station, language)
@@ -360,13 +415,19 @@ def station_view(
 
     index = STATIONS.index(station) + 1
     title = translator.t(STATION_TITLES[station])
-    counts = translator.t("{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked}")
+    declared_here = effect.declared_only(fields, station)
+    counts = translator.t("{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked} · {declared} are recorded without effect")
     counts = (
         counts.replace("{visible}", str(len(descriptors)))
         .replace("{total}", str(sum(1 for f in fields if f.station == station)))
         .replace("{locked}", str(len(locked_here)))
         .replace("{asked}", str(len(asks)))
+        .replace("{declared}", str(len(declared_here)))
     )
+    if declared_here:
+        notes.append(
+            f'<p class="note warn">{e(translator.t("Some settings on this station are kept but not yet read by anything. They are marked, because a control that quietly changes nothing is worse than one that is missing."))}</p>'
+        )
 
     body = (
         f'<main><h2>{index}. {e(title)}</h2>'
@@ -381,12 +442,166 @@ def station_view(
         f'{e(translator.t("Save and finish station"))}</button>'
         "</div></form></section>"
         "<aside>"
+        f"{panels}"
         f'<div class="panel"><h3>{e(translator.t("The same decisions, asked by an agent"))}</h3>{ask_list}</div>'
         f'<div class="panel"><h3>{e(translator.t("One definition, three ways in"))}</h3>'
         f'<p class="none">{e(translator.t("Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own."))}</p></div>'
         "</aside></div></main>"
     )
     return body
+
+
+# --- the instrument -----------------------------------------------------------
+
+def problem_list(problems: Iterable[Any], translator: Translator) -> str:
+    problems = list(problems)
+    if not problems:
+        return ""
+    rows = "".join(
+        f'<li><span class="mono">{e(problem.text)}</span><br>'
+        f'<span class="problem">{e(translator.t("line"))} {problem.line}: '
+        f"{e(problem.message)}</span></li>"
+        for problem in problems
+    )
+    return (
+        f'<div class="panel"><h3>{e(translator.t("What could not be read"))}</h3>'
+        f'<ul class="plain">{rows}</ul></div>'
+    )
+
+
+def instrument_panel(plan: dict[str, Any], translator: Translator) -> str:
+    """The short version beside the form: how many items, how long, what broke."""
+    body = (
+        f'<p class="none">{e(translator.t("items"))}: <strong>{plan["questions"]}</strong> · '
+        f'{e(translator.t("open"))}: <strong>{plan["open_questions"]}</strong><br>'
+        f'{e(translator.t("announced duration"))}: <strong>{plan["minutes"]} '
+        f'{e(translator.t("minutes"))}</strong><br>'
+        f'{e(translator.t("item order"))}: <strong>{e(plan["order"])}</strong></p>'
+        f'<p class="none"><a href="/instrument?lang={e(translator.language)}">'
+        f'{e(translator.t("Read the call as it will be spoken"))}</a></p>'
+    )
+    if plan["problems"]:
+        body += (
+            f'<p class="problem">{len(plan["problems"])} '
+            f'{e(translator.t("lines could not be read — the field phase will refuse to start."))}</p>'
+        )
+    return f'<div class="panel"><h3>{e(translator.t("The instrument so far"))}</h3>{body}</div>'
+
+
+def instrument_view(
+    plan: dict[str, Any], script: list[str], translator: Translator
+) -> str:
+    """The whole call, in the order it is spoken, ready to be read or handed on."""
+    questionnaire = plan["questionnaire"]
+    rows = []
+    for number, question in enumerate(questionnaire["questions"], start=1):
+        condition = question.get("ask_if")
+        filter_text = ""
+        if condition:
+            values = condition["equals"]
+            values = [values] if isinstance(values, str) else list(values)
+            filter_text = f'{e(condition["question"])} = {e(" / ".join(values))}'
+        categories = ", ".join(question.get("categories") or []) or "—"
+        rows.append(
+            "<tr>"
+            f'<td class="n">{number}</td>'
+            f'<td class="mono">{e(question["id"])}</td>'
+            f'<td>{e(question.get("format", ""))}</td>'
+            f'<td>{e(translator.t("word for word")) if question.get("verbatim", True) else e(translator.t("freely phrased"))}</td>'
+            f"<td>{e(categories)}</td>"
+            f"<td>{filter_text}</td>"
+            "</tr>"
+        )
+    table = (
+        '<div class="scroll"><table class="data"><thead><tr>'
+        f'<th></th><th>{e(translator.t("item"))}</th><th>{e(translator.t("format"))}</th>'
+        f'<th>{e(translator.t("wording"))}</th><th>{e(translator.t("categories"))}</th>'
+        f'<th>{e(translator.t("asked only if"))}</th>'
+        f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        if rows
+        else f'<p class="note warn">{e(translator.t("Station 2 carries no items yet, so there is nothing to ask."))}</p>'
+    )
+    return (
+        f'<main><h2>{e(translator.t("The call, as written"))}</h2>'
+        f'<p class="sub">{e(translator.t("Built from stations 1 to 4. Quoted lines are spoken word for word; everything else the agent phrases itself — a difference measured against the real service, not assumed."))}</p>'
+        f'{problem_list(plan["problems"], translator)}'
+        f"{table}"
+        f'<h3>{e(translator.t("The spoken order"))}</h3>'
+        f'<div class="panel"><pre class="script">{e(chr(10).join(script))}</pre></div>'
+        f'<p class="sub"><a href="/instrument.md">{e(translator.t("Download as a document"))}</a> · '
+        f'<a href="/instrument.task.txt">{e(translator.t("The task text an agent receives"))}</a></p>'
+        "</main>"
+    )
+
+
+def pretest_view(
+    result: dict[str, Any] | None, plan: dict[str, Any], translator: Translator
+) -> str:
+    """The instrument tested on itself, before a single real person is called."""
+    language = translator.language
+    intro = (
+        f'<main><h2>{e(translator.t("Instrument check"))}</h2>'
+        f'<p class="sub">{e(translator.t("A small study about the instrument: run the interview against the fixture transport and measure how faithfully it was delivered."))}</p>'
+        f'<p class="note">{e(translator.t("This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it."))}</p>'
+    )
+    if plan["problems"]:
+        return (
+            intro
+            + f'{problem_list(plan["problems"], translator)}</main>'
+        )
+    start = (
+        f'<form hx-post="/pretest/run?lang={e(language)}" hx-target="#check" hx-swap="innerHTML">'
+        f'<button type="submit">{e(translator.t("Run the check"))}</button>'
+        "</form>"
+    )
+    return intro + start + f'<div id="check">{pretest_result(result, translator) if result else ""}</div></main>'
+
+
+def pretest_result(result: dict[str, Any], translator: Translator) -> str:
+    rows = []
+    for name, entry in result["measured"].items():
+        share = "n/a" if not entry["of"] else f"{100 * entry['value'] / entry['of']:.1f}%"
+        rows.append(
+            f'<tr><td class="mono">{e(name)}</td>'
+            f'<td class="n">{entry["value"]} / {entry["of"]}</td>'
+            f'<td class="n">{e(share)}</td>'
+            f'<td>{e(translator.t(entry["note"]))}</td></tr>'
+        )
+    marker = result["marker"]
+    if marker["used"]:
+        rows.append(
+            f'<tr><td class="mono">syntactic_marker</td>'
+            f'<td class="n">{marker["intact"]} / {marker["asked"]}</td>'
+            f'<td class="n">'
+            + (
+                f"{100 * marker['intact'] / marker['asked']:.1f}%"
+                if marker["asked"]
+                else "n/a"
+            )
+            + f'</td><td>{e(translator.t(marker["note"]))}</td></tr>'
+        )
+    order = result["order"]
+    not_measurable = "".join(
+        f'<li><span class="mono">{e(name)}</span> — {e(translator.t(note))}</li>'
+        for name, note in result["not_measurable"].items()
+    )
+    return (
+        f'<div class="counts" style="margin-top:1.4rem">'
+        f'<div><span class="big">{result["calls"]}</span><span class="cap">'
+        f'{e(translator.t("test interviews"))}</span></div>'
+        f'<div><span class="big">{result["interviews"]}</span><span class="cap">'
+        f'{e(translator.t("with consent"))}</span></div>'
+        f'<div><span class="big">{order["distinct_orders"]}</span><span class="cap">'
+        f'{e(translator.t("distinct item orders"))} ({e(order["mode"])})</span></div>'
+        "</div>"
+        '<div class="scroll"><table class="data"><thead><tr>'
+        f'<th>{e(translator.t("criterion"))}</th><th>{e(translator.t("kept"))}</th>'
+        f'<th>{e(translator.t("share"))}</th><th>{e(translator.t("what it means"))}</th>'
+        f'</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
+        f'<h3>{e(translator.t("Not measurable in a dry run"))}</h3>'
+        f'<ul class="plain">{not_measurable}</ul>'
+        f'<p class="note warn">{e(translator.t(result["honest_note"]))}</p>'
+    )
 
 
 # --- field phase --------------------------------------------------------------
@@ -405,12 +620,22 @@ def fieldwork_view(
         f'<div class="counts">'
         f'<div><span class="big">{plan["size"]}</span><span class="cap">'
         f'{e(translator.t("sample size"))}</span></div>'
+        f'<div><span class="big">{plan["questions"]}</span><span class="cap">'
+        f'{e(translator.t("items"))} · {plan["minutes"]} {e(translator.t("minutes"))}</span></div>'
+        f'<div><span class="big">{plan["attempts"]}</span><span class="cap">'
+        f'{e(translator.t("attempts allowed per person"))}</span></div>'
         f'<div><span class="big">{plan["quota"]}</span><span class="cap">'
         f'{e(translator.t("daily quota"))}</span></div>'
         f'<div><span class="big">{len(plan["windows"])}</span><span class="cap">'
         f'{e(translator.t("time windows"))} · {e(windows)}</span></div>'
         "</div>"
     )
+    if plan["attempts"] > 1:
+        facts += (
+            f'<p class="note warn">{e(translator.t("Repeated contact raises the yield and shifts the sample towards people who are reachable more often. The report states how many records it affected."))}</p>'
+        )
+    if plan["problems"]:
+        facts = problem_list(plan["problems"], translator) + facts
     if problem:
         note = f'<p class="note warn">{e(problem)}</p>'
     else:
@@ -423,9 +648,13 @@ def fieldwork_view(
         )
 
     start = (
-        f'<form hx-post="/fieldwork/prepare?lang={e(language)}" hx-target="#monitor" hx-swap="innerHTML">'
-        f'<button type="submit">{e(translator.t("Draw sample and start dry run"))}</button>'
-        "</form>"
+        ""
+        if plan["problems"]
+        else (
+            f'<form hx-post="/fieldwork/prepare?lang={e(language)}" hx-target="#monitor" hx-swap="innerHTML">'
+            f'<button type="submit">{e(translator.t("Draw sample and start dry run"))}</button>'
+            "</form>"
+        )
     )
     monitor = monitor_panel(translator) if ready else ""
 
@@ -500,11 +729,20 @@ def report_view(data: dict[str, Any], translator: Translator) -> str:
         f'<span class="cap">{e(translator.t("completed"))}</span></div>'
         f'<div><span class="big">{data["attempted"]}</span>'
         f'<span class="cap">{e(translator.t("attempted"))}</span></div>'
+        f'<div><span class="big">{data.get("attempts", data["attempted"])}</span>'
+        f'<span class="cap">{e(translator.t("calls placed"))}</span></div>'
+        f'<div><span class="big">{data.get("repeated", 0)}</span>'
+        f'<span class="cap">{e(translator.t("dialled more than once"))}</span></div>'
         f'<div><span class="big">{data["included"]}</span>'
         f'<span class="cap">{e(translator.t("included in the sample"))}</span></div>'
         f'<div><span class="big">{data["withdrawn"]}</span>'
         f'<span class="cap">{e(translator.t("withdrawn"))}</span></div>'
         "</div>"
+        f'<p class="sub">{e(translator.t("Take the data with you:"))} '
+        f'<a href="/export/dataset.csv">dataset.csv</a> · '
+        f'<a href="/export/free-text.csv">free-text.csv</a> · '
+        f'<a href="/export/codebook.md">codebook.md</a> · '
+        f'<a href="/report.md">report.md</a></p>'
     )
 
     statuses = data["statuses"]
@@ -561,12 +799,28 @@ def config_view(
         f'<tr><td class="mono">{e(f.path)}</td><td>{e(f.text("help", translator.language))}</td></tr>'
         for f in locked
     )
+    summary = effect.summary(fields)
+    declared = effect.declared_only(fields)
+    declared_rows = "".join(
+        f'<tr><td class="mono">{e(f.path)}</td>'
+        f'<td>{e(translator.t(effect.reason_of(f.path)))}</td></tr>'
+        for f in declared
+    )
+    counts = " · ".join(
+        f"{summary[name]} {translator.t(EFFECT_LABELS[name])}"
+        for name in effect.ORDER
+        if summary[name]
+    )
     return (
         f'<main><h2>{e(translator.t("Configuration"))}</h2>'
         f'<p class="sub">{e(translator.t("What the pipeline reads. Defaults from the form definitions, your answers on top."))}</p>'
+        f'<p class="sub">{e(counts)}</p>'
         f'<div class="split"><section><div class="panel"><pre class="config">{e(json.dumps(config, ensure_ascii=False, indent=2))}</pre></div></section>'
         f'<aside><div class="panel"><h3>{e(translator.t("Part of the frame"))}</h3>'
         f'<p class="none">{e(translator.t("These settings appear in no form and in no question. They are stated here so that nothing is hidden, not so that they can be changed."))}</p>'
-        f'<div class="scroll"><table class="data">{locked_rows}</table></div>'
+        f'<div class="scroll"><table class="data">{locked_rows}</table></div></div>'
+        f'<div class="panel"><h3>{e(translator.t("Recorded, not yet read"))}</h3>'
+        f'<p class="none">{e(translator.t("These values are kept and exported, but no part of the machinery acts on them yet. The list is generated from the code, so a setting cannot quietly move between the two groups."))}</p>'
+        f'<div class="scroll"><table class="data">{declared_rows}</table></div>'
         "</div></aside></div></main>"
     )

@@ -44,8 +44,18 @@ def mask_phone(phone: str) -> str:
     return f"+***{visible}"
 
 
-def idempotency_key(study_key: str, sample_id: int) -> str:
-    digest = hashlib.sha256(f"{study_key}:{sample_id}".encode("utf-8")).hexdigest()
+def idempotency_key(study_key: str, sample_id: int, attempt_no: int = 1) -> str:
+    """A stable key per attempt.
+
+    The first attempt keeps the key it always had, so a state file written before
+    repeated attempts existed stays consistent. A repeat is a different call and
+    must be allowed through — the key therefore carries the attempt number, and
+    only from the second one on.
+    """
+    seed = f"{study_key}:{sample_id}"
+    if attempt_no > 1:
+        seed = f"{seed}:{attempt_no}"
+    digest = hashlib.sha256(seed.encode("utf-8")).hexdigest()
     return f"researchcall-{digest[:32]}"
 
 

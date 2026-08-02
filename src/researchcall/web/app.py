@@ -25,10 +25,14 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 
-from .. import forms
+from .. import effect, export, forms, instrument, pretest
+from ..questionnaire import build_task
 from . import field_phase, render
 from .i18n import DEFAULT_LANGUAGE, LANGUAGES, Translator, load_table, normalize
 from .workspace import STATIONS, Workspace, coerce
+
+#: Stations where the instrument being built is the thing under discussion.
+INSTRUMENT_PANEL_STATIONS = {"02-instrument", "03-ethics", "05-pretest", "06-fieldwork"}
 
 STATIC = pathlib.Path(__file__).resolve().parent / "static"
 LANGUAGE_COOKIE = "researchcall_lang"
@@ -81,6 +85,13 @@ def create_app(
 
     def load_workspace() -> Workspace:
         return Workspace.load(directory)
+
+    def panels_for(station: str, workspace: Workspace, translator: Translator) -> str:
+        """The aside panels a station carries beyond its own form."""
+        if station not in INSTRUMENT_PANEL_STATIONS:
+            return ""
+        plan = field_phase.planned(workspace, fields, translator.language)
+        return render.instrument_panel(plan, translator)
 
     def shell(request: Request, body: str, title: str, active: str) -> HTMLResponse:
         translator = translator_of(request)
@@ -156,7 +167,9 @@ def create_app(
             return RedirectResponse(
                 f"/station/{STATIONS[0]}?lang={translator.language}", status_code=303
             )
-        body = render.station_view(station, fields, workspace, translator)
+        body = render.station_view(
+            station, fields, workspace, translator, panels=panels_for(station, workspace, translator)
+        )
         return shell(request, body, translator.t(render.STATION_TITLES[station]), station)
 
     @app.post("/station/{station}", response_class=HTMLResponse)
@@ -200,7 +213,13 @@ def create_app(
         workspace.save()
 
         body = render.station_view(
-            station, fields, workspace, translator, message=message, missing=missing
+            station,
+            fields,
+            workspace,
+            translator,
+            message=message,
+            missing=missing,
+            panels=panels_for(station, workspace, translator),
         )
         return shell(request, body, translator.t(render.STATION_TITLES[station]), station)
 
@@ -216,16 +235,86 @@ def create_app(
     async def config_json() -> Any:
         return load_workspace().config(fields)
 
+    # --- the instrument ----------------------------------------------------
+
+    @app.get("/instrument", response_class=HTMLResponse)
+    async def instrument_page(request: Request) -> HTMLResponse:
+        translator = translator_of(request)
+        plan = field_phase.planned(load_workspace(), fields, translator.language)
+        script = instrument.describe(plan["questionnaire"], translator.language)
+        body = render.instrument_view(plan, script, translator)
+        return shell(request, body, translator.t("The call, as written"), "instrument")
+
+    @app.get("/instrument.md", response_class=PlainTextResponse)
+    async def instrument_markdown(request: Request) -> PlainTextResponse:
+        translator = translator_of(request)
+        plan = field_phase.planned(load_workspace(), fields, translator.language)
+        lines = instrument.describe(plan["questionnaire"], translator.language)
+        if plan["problems"]:
+            lines += ["", "## Lines that could not be read", ""]
+            lines += [
+                f"- line {problem.line}: {problem.message} — {problem.text}"
+                for problem in plan["problems"]
+            ]
+        return PlainTextResponse("\n".join(lines) + "\n")
+
+    @app.get("/instrument.task.txt", response_class=PlainTextResponse)
+    async def instrument_task(request: Request) -> PlainTextResponse:
+        """The exact text an agent would receive — the only channel this API has."""
+        translator = translator_of(request)
+        plan = field_phase.planned(load_workspace(), fields, translator.language)
+        if not plan["questionnaire"]["questions"]:
+            return PlainTextResponse(
+                "Station 2 carries no items, so there is no task to build.\n",
+                status_code=404,
+            )
+        return PlainTextResponse(build_task(plan["questionnaire"]))
+
+    # --- pretest -----------------------------------------------------------
+
+    @app.get("/pretest", response_class=HTMLResponse)
+    async def pretest_page(request: Request) -> HTMLResponse:
+        translator = translator_of(request)
+        plan = field_phase.planned(load_workspace(), fields, translator.language)
+        body = render.pretest_view(None, plan, translator)
+        return shell(request, body, translator.t("Instrument check"), "pretest")
+
+    @app.post("/pretest/run", response_class=HTMLResponse)
+    async def pretest_run(request: Request) -> HTMLResponse:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        plan = field_phase.planned(workspace, fields, translator.language)
+        if plan["problems"] or not plan["questionnaire"]["questions"]:
+            return HTMLResponse(
+                f'<p class="note warn">'
+                f'{render.e(translator.t("Station 2 carries no items yet, so there is nothing to ask."))}'
+                "</p>"
+            )
+        values = field_phase.values_of(workspace, fields)
+        try:
+            calls = int(values.get("pretest.instrument_check.calls") or 30)
+        except (TypeError, ValueError):
+            calls = 30
+        result = pretest.check(
+            plan["questionnaire"],
+            calls,
+            field_phase._fixture("outcomes.json"),
+            str(values.get("pretest.instrument_check.syntactic_marker") or ""),
+        )
+        return HTMLResponse(render.pretest_result(result, translator))
+
     # --- field phase -------------------------------------------------------
 
     @app.get("/fieldwork", response_class=HTMLResponse)
     async def fieldwork_page(request: Request) -> HTMLResponse:
         translator = translator_of(request)
         workspace = load_workspace()
-        plan = field_phase.planned(workspace, fields)
+        plan = field_phase.planned(workspace, fields, translator.language)
         problem = ""
-        if plan["size"] <= 0:
+        if plan["size"] <= 0 and plan["method"] != "census":
             problem = translator.t("Set a sample size in station 4 before the field phase.")
+        elif plan["questions"] == 0:
+            problem = translator.t("Station 2 carries no items yet, so there is nothing to ask.")
         body = render.fieldwork_view(
             plan, None, translator, field_phase.exists(workspace), problem
         )
@@ -236,7 +325,7 @@ def create_app(
         translator = translator_of(request)
         workspace = load_workspace()
         try:
-            field_phase.prepare(workspace, fields)
+            field_phase.prepare(workspace, fields, language=translator.language)
         except (ValueError, OSError) as error:
             return HTMLResponse(
                 f'<p class="note warn">{render.e(str(error))}</p>', status_code=200
@@ -274,6 +363,32 @@ def create_app(
         if not field_phase.exists(workspace):
             return PlainTextResponse("No field phase has run yet.\n", status_code=404)
         return PlainTextResponse(field_phase.summary(workspace)["report"])
+
+    # --- export ------------------------------------------------------------
+
+    def _exported(builder, media_type: str) -> Any:
+        workspace = load_workspace()
+        if not field_phase.exists(workspace):
+            return PlainTextResponse("No field phase has run yet.\n", status_code=404)
+        connection, study = field_phase.open_database(workspace)
+        try:
+            text = builder(connection, study)
+        finally:
+            connection.close()
+        return PlainTextResponse(text, media_type=media_type)
+
+    @app.get("/export/dataset.csv")
+    async def export_dataset() -> Any:
+        """One row per person, one column per item — the shape every tool reads."""
+        return _exported(export.dataset_csv, "text/csv; charset=utf-8")
+
+    @app.get("/export/free-text.csv")
+    async def export_free_text() -> Any:
+        return _exported(export.free_text_csv, "text/csv; charset=utf-8")
+
+    @app.get("/export/codebook.md", response_class=PlainTextResponse)
+    async def export_codebook() -> Any:
+        return _exported(export.codebook, "text/markdown; charset=utf-8")
 
     return app
 

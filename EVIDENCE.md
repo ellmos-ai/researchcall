@@ -430,3 +430,128 @@ property of the fixture file, not a measurement of anything real.
   the HTML is verified as text; its appearance in a real browser is unverified.
 - Concurrency, voicemail/busy/no-answer behaviour beyond fixtures, and every other
   service property listed in the earlier section remain unverified.
+
+---
+
+# Round two — the settings now act (2026-08-02)
+
+Round one built the surface; this round connected it. Every claim below was produced by
+running the code in this repository, offline, and is quoted as it appeared.
+
+## Test suite
+
+```text
+81 passed, 1 warning, 365 subtests passed in 29.66s
+```
+
+Was 42 passed / 287 subtests before this round. `tests/test_instrument.py` is new
+(34 tests): item grammar, skip rules, per-respondent order, conversation frame,
+coding rules, contact rules against a live database, export, instrument check, and
+the effect register. Five more were added to `tests/test_web.py`, among them one that
+asserts the *absence* of an effect is visible on the control itself.
+
+## Translation completeness
+
+```text
+[ok] 59 form definitions carry every language.
+[i] 186 interface key(s) in use, 186 in the table
+[ok] every interface string has every language.
+```
+
+118 new German strings were written by hand, including the sentence shown beside every
+control. `manage_translations.dynamic_keys()` now also reads the effect register and the
+instrument-check notes, so a new one of either cannot be forgotten.
+
+## Command line, unchanged
+
+```text
+mode=dry-run transport=fixture network=disabled
+frame_imported=200 sample_drawn=50 attempts=50
+terminal_statuses={"BUSY":5,"CANCELED":4,"COMPLETED":14,"DECLINED":9,"EXPIRED":4,
+"FAILED":4,"NO_ANSWER":5,"VOICEMAIL":5}
+```
+
+Same numbers as before the change: with the default of one call per person, 50 records
+produce 50 attempts.
+
+## A questionnaire built in the workbench, run end to end
+
+Four items (dichotomous, scale, reversed scale, open with two probes), one skip rule,
+randomised order, one extra attempt per person, twelve records:
+
+```text
+questions: 4 open: 1 minutes: 5
+consent: Sie können das Gespräch jederzeit beenden, ohne einen Grund zu nennen.
+         Möchten Sie an der Befragung teilnehmen?
+prepared: {'frame': 60, 'drawn': 12, 'resumed': 0}
+processed: 17 {'BUSY': 2, 'CANCELED': 1, 'COMPLETED': 4, 'DECLINED': 4, 'EXPIRED': 1,
+'FAILED': 1, 'NO_ANSWER': 2, 'VOICEMAIL': 2}
+included: 11 attempts: 16 repeated: 4
+```
+
+The spoken scale carries its poles:
+
+```text
+Wie zufrieden sind Sie mit dem Takt? Bitte antworten Sie auf einer Skala von 1 bis 5,
+wobei 1 „sehr unzufrieden“ bedeutet und 5 „sehr zufrieden“.
+```
+
+The dataset, one row per person, with the reversed item carried twice:
+
+```text
+record,assigned_window,final_window,attempts,status,consent,asked_verbatim_reported,
+wording_matched,q1,q2,q3,q3_recoded,q4_text,refusal_reason
+1,evening,evening,1,COMPLETED,granted,1,1,yes,1,2,4,(fixture) free answer for q4,
+2,morning,afternoon,2,NO_ANSWER,,,,,,,,,
+3,morning,evening,3,DECLINED,declined,1,1,,,,,,(fixture) topic not relevant to me
+```
+
+Record 2 was dialled in the morning, did not answer, and was dialled again in the
+afternoon. Record 3 declined, invited a later call, and was dialled twice more within the
+configured limit of three.
+
+## Instrument check, 20 dry-run interviews
+
+```text
+- Test interviews attempted: 20
+- Interviews with consent granted: 5
+- Results the schema rejected: 0
+- asked_verbatim: 3 of 5 (60.0%)
+- spoken_wording: 3 of 5 (60.0%)
+- ethics_blocks_complete: 3 of 5 (60.0%)
+- filters_respected: 10 of 10 (100.0%)
+- syntactic marker: asked 5 times, returned untouched 5 times
+- item order (randomised): 15 distinct orders
+```
+
+**60 %, not 100 %, is the point.** The fixture file deviates from the required wording in
+some records on purpose; a check that scored perfectly would only prove that it measures
+nothing. What it measures is the local harness — the dry run has no agent. Two criteria
+are reported as not measurable rather than scored: unplanned follow-ups and the order the
+agent really spoke in, both of which need a live transcript.
+
+## A bug the dry run found
+
+The first end-to-end run coded every scale answer as *outside the categories*. Cause: the
+demo fixture carries answers for ids `q1`–`q3`, and an instrument built in the workbench
+may use the same ids for entirely different items — `satisfied` landed in a five-point
+scale. `FixtureCallClient` now uses a recorded answer only when it fits the item it is
+being given to, unless a pattern asks for an out-of-category answer with
+`allow_unlisted`. Without the run, the demo would have spent its time reporting a coding
+problem that only the fixture had.
+
+## Not executed in this round
+
+- No CALL-E account, credential, real call, `--live` path, webhook, or network request.
+  `network=disabled` above is the CLI stating its own transport.
+- No push, publication, pull request, upload, release, or video.
+- No browser. The interface was exercised through `fastapi.testclient`; its appearance in
+  a real browser remains unverified, and design is explicitly the next agent's task.
+- The German strings were written, not reviewed by a second person.
+- Parallel forms, the L1–L5 disclosure catalogue, mail and colleague calls in the
+  pretest, storage backends, calling hours and concurrency remain **recorded without
+  effect** — 18 settings, each with its reason in `src/researchcall/effect.py` and shown
+  beside its own control.
+- `sample.method: stratified` is **refused**, not silently drawn at random: the dry-run
+  frame carries no stratifying attributes, and a random draw reported as stratified would
+  be a method claimed but never run.
