@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from researchcall import forms  # noqa: E402
+from researchcall.web import test_mode  # noqa: E402
 from researchcall.web.workspace import STATIONS, Workspace  # noqa: E402
 
 try:  # the web surface is an optional extra; the command line needs nothing
@@ -93,6 +94,14 @@ class WorkbenchTestCase(unittest.TestCase):
         for station in STATIONS:
             text = self.finish(station, language)
             self.assertNotIn("Still missing", text, station)
+
+    def toggle_test_mode(self, language: str = "en", next_path: str = "/") -> str:
+        response = self.client.post(
+            "/test-mode/toggle?"
+            + urllib.parse.urlencode({"lang": language, "next": next_path})
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.text
 
     # --- what the interface shows -----------------------------------------
 
@@ -226,6 +235,94 @@ class WorkbenchTestCase(unittest.TestCase):
         opened = self.client.get("/fieldwork?lang=en")
         self.assertIn("Continue prepared dry run", opened.text)
         self.assertNotIn("new EventSource", opened.text)
+
+    def test_test_mode_is_off_by_default_and_keeps_the_normal_gate(self) -> None:
+        overview = self.client.get("/?lang=en")
+        self.assertIn("Test mode is off", overview.text)
+        self.assertIn("Enable test mode", overview.text)
+        self.assertFalse(Workspace.load(self.directory).test_mode)
+
+        station = self.client.get("/station/08-reporting?lang=en")
+        self.assertEqual(station.url.path, f"/station/{STATIONS[0]}")
+
+    def test_test_mode_opens_every_station_and_prefills_an_example(self) -> None:
+        html = self.toggle_test_mode()
+        self.assertIn("Test mode — example data, not a real study", html)
+        self.assertIn("Network disabled · fixture transport · no real calls", html)
+
+        for station in STATIONS:
+            with self.subTest(station=station):
+                response = self.client.get(f"/station/{station}?lang=en")
+                self.assertEqual(response.url.path, f"/station/{station}")
+                self.assertEqual(response.status_code, 200)
+        station_one = self.client.get("/station/01-research-question?lang=en").text
+        self.assertIn("How does the frequency of local bus service", station_one)
+        station_two = self.client.get("/station/02-instrument?lang=en").text
+        self.assertIn("Do you usually use the bus for your commute?", station_two)
+
+        german = self.client.get("/?lang=de").text
+        self.assertIn("Testmodus — Beispieldaten, keine echte Studie", german)
+        self.assertIn("Netzwerk deaktiviert · Fixture-Transport · keine echten Anrufe", german)
+
+    def test_test_mode_never_supplies_or_reveals_a_locked_field(self) -> None:
+        self.assertEqual(len(self.locked), 11)
+        examples = test_mode.example_values(self.fields)
+        self.assertEqual(set(examples), {field.path for field in self.fields if not field.locked})
+        self.assertTrue(set(examples).isdisjoint(self.locked))
+
+        self.toggle_test_mode()
+        pages = [self.client.get("/?lang=en").text, self.client.get("/config?lang=en").text]
+        pages.extend(
+            self.client.get(f"/station/{station}?lang=en").text for station in STATIONS
+        )
+        for html in pages:
+            for path in self.locked:
+                self.assertNotIn(path, html)
+                self.assertNotIn(f'name="{path}"', html)
+
+    def test_test_mode_keeps_example_answers_apart_from_study_answers(self) -> None:
+        study = Workspace(path=self.directory)
+        study.values["question"] = "This is the actual study question."
+        study.completed = {STATIONS[0]: "actual-study"}
+        study.save()
+
+        self.toggle_test_mode()
+        active = Workspace.load(self.directory)
+        self.assertTrue(active.test_mode)
+        self.assertEqual(active.values["question"], "This is the actual study question.")
+        self.assertNotEqual(active.value(next(f for f in self.fields if f.path == "question")), active.values["question"])
+
+        body = self.payload(
+            STATIONS[0],
+            question="A changed tour example.",
+            hypotheses="H1 | Tour only | I1 | No difference",
+        )
+        self.client.post(
+            f"/station/{STATIONS[0]}?lang=en",
+            content=body + "&action=complete",
+            headers=FORM_ENCODED,
+        )
+        self.toggle_test_mode()
+
+        restored = Workspace.load(self.directory)
+        self.assertFalse(restored.test_mode)
+        self.assertEqual(restored.values["question"], "This is the actual study question.")
+        self.assertEqual(restored.completed, {STATIONS[0]: "actual-study"})
+        self.assertNotIn("A changed tour example", self.client.get("/config.json").text)
+
+    def test_test_mode_bypasses_action_prerequisites_but_stays_fixture_only(self) -> None:
+        self.toggle_test_mode()
+
+        pretest = self.client.post("/pretest/run?lang=en")
+        self.assertNotIn("Finish stations 1 to 5", pretest.text)
+        self.assertIn("Not measurable in a dry run", pretest.text)
+
+        prepared = self.client.post("/fieldwork/prepare?lang=en")
+        self.assertNotIn("Finish stations 1 to 6", prepared.text)
+        self.assertFalse((self.directory / "fieldwork.db").exists())
+        self.assertTrue(
+            (self.directory / "test-mode-artifacts" / "fieldwork.db").exists()
+        )
 
     def test_a_station_will_not_close_while_a_required_answer_is_missing(self) -> None:
         body = self.payload(STATIONS[0], question="") + "&action=complete"
