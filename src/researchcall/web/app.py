@@ -27,7 +27,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .. import effect, export, forms, instrument, pretest
 from ..questionnaire import build_task
-from . import field_phase, render
+from . import field_phase, render, test_mode
 from .i18n import DEFAULT_LANGUAGE, LANGUAGES, Translator, load_table, normalize
 from .workspace import STATIONS, Workspace, coerce
 
@@ -96,13 +96,35 @@ def create_app(
     def shell(request: Request, body: str, title: str, active: str) -> HTMLResponse:
         translator = translator_of(request)
         workspace = load_workspace()
+        mode_banner = test_mode.banner(workspace.test_mode, translator, request.url.path)
         page = render.page(
             title,
-            f'<div class="shell">{render.rail(workspace, translator, active)}{body}</div>',
+            f'{mode_banner}<div class="shell">'
+            f'{render.rail(workspace, translator, active)}{body}</div>',
             translator,
             active,
         )
         response = HTMLResponse(page)
+        response.set_cookie(
+            LANGUAGE_COOKIE, translator.language, max_age=31_536_000, samesite="lax"
+        )
+        return response
+
+    @app.post("/test-mode/toggle")
+    async def toggle_test_mode(request: Request) -> RedirectResponse:
+        """Switch the isolated fixture tour on or off; never changes live capability."""
+        translator = translator_of(request)
+        workspace = load_workspace()
+        if workspace.test_mode:
+            workspace.disable_test_mode()
+        else:
+            workspace.enable_test_mode(test_mode.example_values(fields))
+        workspace.save()
+        target = test_mode.safe_return_path(request.query_params.get("next"))
+        separator = "&" if "?" in target else "?"
+        response = RedirectResponse(
+            f"{target}{separator}lang={translator.language}", status_code=303
+        )
         response.set_cookie(
             LANGUAGE_COOKIE, translator.language, max_age=31_536_000, samesite="lax"
         )
@@ -134,10 +156,19 @@ def create_app(
             .replace("{visible}", str(visible))
             .replace("{asked}", str(asked))
         )
+        order_note = (
+            translator.t(
+                "Test mode opens every station in any order; the example workspace stays separate."
+            )
+            if workspace.test_mode
+            else translator.t(
+                "Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself."
+            )
+        )
         body = (
             f'<main><h2>{render.e(translator.t("A research method, not a call script"))}</h2>'
             f'<p class="sub">{render.e(headline)}</p>'
-            f'<p class="note">{render.e(translator.t("Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself."))}</p>'
+            f'<p class="note">{render.e(order_note)}</p>'
             f'<p class="note">{render.e(translator.t("Analysis rules are fixed at the instrument, not after the results are in."))}</p>'
             '<div class="scroll"><table class="data"><thead><tr>'
             f'<th></th><th>{render.e(translator.t("Station"))}</th>'

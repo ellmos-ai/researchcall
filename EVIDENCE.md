@@ -629,3 +629,65 @@ CreateProcessAsUserW failed: 5 (Zugriff verweigert)
 ```
 
 Nothing was staged, no commit was created, and no push was attempted.
+
+---
+
+# Test-mode station tour — Codex (2026-08-02)
+
+This round added an off-by-default, bilingual test mode to the workbench. It opens all
+eight station pages and the pretest/fieldwork prerequisite views only while active. The
+normal sequential gate remains unchanged.
+
+The tour state is separate from study state: 48 visible declared fields receive fixture
+example values, while the 11 `locked: true` fields receive no example and remain absent
+from forms, agent questions, and human-readable HTML. Test-mode fieldwork writes under
+`test-mode-artifacts/`, not beside real-study artifacts. The web package still exposes no
+live-call client, API-key path, or live flag.
+
+## Actual verification
+
+```text
+tests_run=90
+subtests_run=506
+failures=0
+errors=0
+skipped=0
+successful=True
+```
+
+The pre-existing 85 tests / 497 subtests stayed green; five tests and nine subtests were
+added. A focused web run also completed with `Ran 32 tests ... OK`. In addition:
+
+```text
+python -X utf8 -m compileall -q src tests
+exit=0
+
+python -X utf8 manage_translations.py --check --fields
+[ok] 59 form definitions carry every language.
+[i] 193 interface key(s) in use, 205 in the table
+[ok] every interface string has every language.
+
+git diff --check
+exit=0
+```
+
+`git diff --check` emitted only line-ending conversion warnings for tracked text files.
+
+## Not executed
+
+- No CALL-E account, credential, real call, `--live` path, webhook, or network request.
+- No push, publication, pull request, upload, release, or external contact.
+- No browser or screenshot acceptance; routes and rendered HTML were exercised through
+  `fastapi.testclient`.
+
+## Local commit attempt
+
+The narrow staging attempt named only this round's eight files. Git could not write the
+managed repository index:
+
+```text
+fatal: Unable to create 'C:/_Local_DEV/repos/researchcall/.git/index.lock': Permission denied
+```
+
+Nothing was staged and no local commit was created. The concurrent logo/banner files
+were not included, and no push was attempted.

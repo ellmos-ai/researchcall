@@ -79,8 +79,12 @@ class Workspace:
 
     path: pathlib.Path
     values: dict[str, Any] = dataclasses.field(default_factory=dict)
-    completed: dict[str, str] = dataclasses.field(default_factory=dict)
-    amendments: list[dict[str, str]] = dataclasses.field(default_factory=list)
+    _completed: dict[str, str] = dataclasses.field(default_factory=dict, repr=False)
+    _amendments: list[dict[str, str]] = dataclasses.field(default_factory=list, repr=False)
+    test_mode: bool = False
+    test_values: dict[str, Any] = dataclasses.field(default_factory=dict)
+    test_completed: dict[str, str] = dataclasses.field(default_factory=dict)
+    test_amendments: list[dict[str, str]] = dataclasses.field(default_factory=list)
 
     # --- persistence -------------------------------------------------------
 
@@ -94,16 +98,24 @@ class Workspace:
         return cls(
             path=directory,
             values=dict(stored.get("values", {})),
-            completed=dict(stored.get("completed", {})),
-            amendments=list(stored.get("amendments", [])),
+            _completed=dict(stored.get("completed", {})),
+            _amendments=list(stored.get("amendments", [])),
+            test_mode=bool(stored.get("test_mode", False)),
+            test_values=dict(stored.get("test_values", {})),
+            test_completed=dict(stored.get("test_completed", {})),
+            test_amendments=list(stored.get("test_amendments", [])),
         )
 
     def save(self) -> None:
         self.path.mkdir(parents=True, exist_ok=True)
         payload = {
             "values": self.values,
-            "completed": self.completed,
-            "amendments": self.amendments,
+            "completed": self._completed,
+            "amendments": self._amendments,
+            "test_mode": self.test_mode,
+            "test_values": self.test_values,
+            "test_completed": self.test_completed,
+            "test_amendments": self.test_amendments,
         }
         target = self.path / WORKSPACE_FILE
         temporary = target.with_suffix(".json.tmp")
@@ -114,23 +126,66 @@ class Workspace:
 
     # --- values ------------------------------------------------------------
 
+    @property
+    def completed(self) -> dict[str, str]:
+        """The station progress for the active, isolated workspace."""
+        return self.test_completed if self.test_mode else self._completed
+
+    @completed.setter
+    def completed(self, value: dict[str, str]) -> None:
+        if self.test_mode:
+            self.test_completed = value
+        else:
+            self._completed = value
+
+    @property
+    def amendments(self) -> list[dict[str, str]]:
+        """The later additions for the active, isolated workspace."""
+        return self.test_amendments if self.test_mode else self._amendments
+
+    @amendments.setter
+    def amendments(self, value: list[dict[str, str]]) -> None:
+        if self.test_mode:
+            self.test_amendments = value
+        else:
+            self._amendments = value
+
+    def active_values(self) -> dict[str, Any]:
+        return self.test_values if self.test_mode else self.values
+
+    def enable_test_mode(self, examples: dict[str, Any]) -> None:
+        """Open or resume the example workspace without changing study answers."""
+        for path, value in examples.items():
+            self.test_values.setdefault(path, value)
+        self.test_mode = True
+
+    def disable_test_mode(self) -> None:
+        """Return to the study exactly as it was before the tour."""
+        self.test_mode = False
+
+    def artifact_directory(self) -> pathlib.Path:
+        """Keep fixture-tour outputs separate from actual study outputs."""
+        return self.path / "test-mode-artifacts" if self.test_mode else self.path
+
     def value(self, field: forms.Field) -> Any:
         """The stored answer, or the default the definition brings along."""
-        if field.path in self.values:
-            return self.values[field.path]
+        active = self.active_values()
+        if field.path in active:
+            return active[field.path]
         return field.default
 
     def record(self, station: str, submitted: dict[str, Any]) -> list[str]:
         """Store answers for one station and return the paths counted as later additions."""
         amended: list[str] = []
+        active = self.active_values()
         already_closed = station in self.completed
         for path, value in submitted.items():
-            if already_closed and self.values.get(path) != value:
+            if already_closed and active.get(path) != value:
                 amended.append(path)
                 self.amendments.append(
                     {"station": station, "field": path, "at": utc_now()}
                 )
-            self.values[path] = value
+            active[path] = value
         return amended
 
     # --- gating ------------------------------------------------------------
@@ -147,6 +202,8 @@ class Workspace:
 
     def is_open(self, station: str) -> bool:
         """A station is reachable once its predecessor is finished."""
+        if self.test_mode:
+            return True
         index = STATIONS.index(station)
         if index == 0:
             return True
@@ -159,6 +216,8 @@ class Workspace:
         direct URLs. They must obey the same pipeline gate as the station rail;
         otherwise the navigation only *looks* gated while the actions are open.
         """
+        if self.test_mode:
+            return True
         end = STATIONS.index(station) + 1
         return all(name in self.completed for name in STATIONS[:end])
 
@@ -186,12 +245,13 @@ class Workspace:
         """
         fields = list(fields)
         nested = forms.config_defaults(fields)
+        active = self.active_values()
         for field in fields:
-            if field.path not in self.values:
+            if field.path not in active:
                 continue
             node = nested
             *parents, leaf = field.path.split(".")
             for part in parents:
                 node = node.setdefault(part, {})
-            node[leaf] = self.values[field.path]
+            node[leaf] = active[field.path]
         return nested
