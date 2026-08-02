@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator
 
+from .huckepack_storage import open_connection
+
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS study (
@@ -80,7 +82,12 @@ def utc_now() -> str:
 
 
 def connect(path: str | Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(Path(path), timeout=30)
+    """Open the database this installation is supposed to use.
+
+    Which one that is depends on the server mode: the file below, or the copy
+    the browser sent for this session. See ``huckepack_storage``.
+    """
+    connection = open_connection(str(path))
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     connection.execute("PRAGMA busy_timeout = 30000")

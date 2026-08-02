@@ -91,6 +91,47 @@ The current workbench sets a `researchcall_lang` language cookie for one year. `
 Notice changes/version archive: `[REPLACE]`<br>
 How participants can learn about study results: `[REPLACE or remove]`
 
+## Annex A - Server modes (huckepack)
+
+> **Still a template.** Pick the one block that matches `RESEARCHCALL_SERVER_MODE`, delete the others, keep replacing every marker. A mode changes what has to be written here; it does not remove the need to write it - and for a study it does not touch the ethics file at all.
+
+**Which mode is deployed:** `[REPLACE: local | huckepack-gift | huckepack-only-host]` - verifiable at `[REPLACE: URL]/huckepack/mode`.
+
+### A.1 If the mode is `local`
+
+Sections 1-11 apply unchanged. Database and workbench file are on the host; the operator is the controller for both.
+
+### A.2 If the mode is `huckepack-gift` or `huckepack-only-host`
+
+**Replace section 7 (Storage, withdrawal and deletion) with:**
+
+> This installation keeps no study database. The sampling frame, the attempts, the answers **and the workbench file with your station entries** are stored by your browser on your device. While you work, a copy is held in this server's working memory so the same queries can run; it is discarded at the latest `[REPLACE: confirm SESSION_TTL_SECONDS]` after your last request, when you delete your data, and when the server restarts. Nothing is written to a file on the server.
+>
+> Deleting your browser data deletes the study, and we cannot restore it. Use "back up data". **That file is the sampling frame**: it contains the link between record number and person, telephone numbers included. It is not encrypted.
+>
+> `[REPLACE: server, proxy and infrastructure logs exist regardless and must be described here after verification]`
+
+**Replace section 10 (Browser storage) with:**
+
+| Name | Purpose | Lifetime |
+| --- | --- | --- |
+| `[REPLACE: language cookie]` | Interface language | `[REPLACE]` |
+| `huckepack.session` (local storage) | Identifies your working copy on the server | Until you delete your data |
+| `huckepack` (IndexedDB) | **The study**: database and workbench file | Until you delete it |
+| `huckepack.calle-key` (local storage) | *Only in `only-host`:* your own CALL-E key | Until you press "forget" |
+
+`[REPLACE: assess device-storage consent per row under the applicable implementation of Article 5(3) ePrivacy Directive - in Germany section 25 TDDDG.]`
+
+**Sections 1, 2, 6, 8 and 9 stay exactly as they are.** They concern the **participants** - people who are called, recorded and analysed. Where the researcher's copy of the data lives changes nothing about their position, their information rights or the ethics approval.
+
+**One thing does change, and against them:** withdrawal and access. If the operator holds no copy, only the researcher at that browser can act on a withdrawal. `[REPLACE: name who receives a withdrawal, how they are reached, and how it is honoured. A study whose participants cannot withdraw in practice has a consent problem, not a documentation problem.]`
+
+### A.3 Only in `huckepack-only-host` - the researcher's own key
+
+> You enter your own CALL-E key. It stays in your browser, is shown only by its last four characters, and is sent to this server with a run so calls are placed in your name and billed to your account with `[REPLACE: entity]`. This server does not store it and does not log it.
+
+`[REPLACE: who is controller for the fieldwork calls under the deployed setup?]`
+
 ## Pre-use checklist
 
 - [ ] Every placeholder is replaced or removed and the questionnaire is attached to the review.
@@ -102,3 +143,7 @@ How participants can learn about study results: `[REPLACE or remove]`
 - [ ] Authentication and tenant authorization protect every study, write, report and export in any hosted deployment.
 - [ ] DPIA necessity has been decided and recorded before high-risk processing.
 - [ ] A qualified lawyer/data-protection officer and, where applicable, ethics body have reviewed the study-specific materials.
+- [ ] The deployed `RESEARCHCALL_SERVER_MODE` is stated, and only the matching block of Annex A remains.
+- [ ] In a huckepack mode: checked on the running installation that neither the database nor `workspace.json` appears on disk.
+- [ ] It is written down how a participant withdraws when the operator holds no copy.
+- [ ] Device-storage consent assessed per row of Annex A.2.

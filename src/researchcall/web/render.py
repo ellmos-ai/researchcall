@@ -331,6 +331,7 @@ def page(title: str, body: str, translator: Translator, active: str = "") -> str
         f'<link rel="icon" href="{FAVICON}">'
         f"<style>{STYLE}</style>"
         '<script src="/static/htmx.min.js" defer></script>'
+        '<script src="/static/huckepack.js" defer></script>'
         "</head><body>"
         f'<header class="top"><h1>{BRAND_MARK}ResearchCall</h1>'
         f'<span class="tag">{e(translator.t("Survey workbench · dry run · no calls"))}</span>'

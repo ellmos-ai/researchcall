@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from typing import Any, Iterable
 
 from .. import forms
+from ..huckepack_storage import session_document, store_session_document
+from ..server_mode import current_mode
 
 
 STATIONS: tuple[str, ...] = (
@@ -90,7 +92,30 @@ class Workspace:
 
     @classmethod
     def load(cls, path: str | pathlib.Path) -> "Workspace":
+        """Read the workbench file — from disk, or from the browser's copy.
+
+        In a huckepack mode this file must not land on the host's disk either,
+        and it has to travel with an export: a backup that restored the
+        database but not the answers would be a backup in name only. It is
+        therefore kept inside the session database, which makes the snapshot
+        the single artefact that carries everything.
+        """
         directory = pathlib.Path(path)
+        if current_mode().stores_in_browser:
+            raw = session_document(WORKSPACE_FILE)
+            if not raw:
+                return cls(path=directory)
+            stored = json.loads(raw)
+            return cls(
+                path=directory,
+                values=dict(stored.get("values", {})),
+                _completed=dict(stored.get("completed", {})),
+                _amendments=list(stored.get("amendments", [])),
+                test_mode=bool(stored.get("test_mode", False)),
+                test_values=dict(stored.get("test_values", {})),
+                test_completed=dict(stored.get("test_completed", {})),
+                test_amendments=list(stored.get("test_amendments", [])),
+            )
         file = directory / WORKSPACE_FILE
         if not file.exists():
             return cls(path=directory)
@@ -107,7 +132,6 @@ class Workspace:
         )
 
     def save(self) -> None:
-        self.path.mkdir(parents=True, exist_ok=True)
         payload = {
             "values": self.values,
             "completed": self._completed,
@@ -117,11 +141,14 @@ class Workspace:
             "test_completed": self.test_completed,
             "test_amendments": self.test_amendments,
         }
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        if current_mode().stores_in_browser:
+            store_session_document(WORKSPACE_FILE, text)
+            return
+        self.path.mkdir(parents=True, exist_ok=True)
         target = self.path / WORKSPACE_FILE
         temporary = target.with_suffix(".json.tmp")
-        temporary.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        temporary.write_text(text, encoding="utf-8")
         temporary.replace(target)
 
     # --- values ------------------------------------------------------------

@@ -25,7 +25,7 @@ from fastapi.responses import (
 )
 from fastapi.staticfiles import StaticFiles
 
-from .. import effect, export, forms, instrument, pretest
+from .. import effect, export, forms, huckepack_web, instrument, pretest
 from ..questionnaire import build_task
 from . import field_phase, render, test_mode
 from .i18n import DEFAULT_LANGUAGE, LANGUAGES, Translator, load_table, normalize
@@ -60,6 +60,9 @@ def create_app(
 
     if STATIC.is_dir():
         app.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
+
+    # Server modes: descriptor, browser snapshot, per-request session and key.
+    huckepack_web.install(app)
 
     app.state.workspace_dir = directory
     app.state.fields = fields

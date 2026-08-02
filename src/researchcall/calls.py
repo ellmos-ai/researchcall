@@ -234,8 +234,17 @@ class LiveCallClient:
     def from_environment(
         cls, progress_callback: ProgressCallback | None = None
     ) -> "LiveCallClient":
+        """The one place a live client is built — and whose key it spends.
+
+        In ``huckepack-only-host`` the visitor's own key outranks the host's
+        environment, and its absence raises instead of falling back: charging
+        the host for a visitor's call is the failure nobody would notice.
+        """
+        from .huckepack_key import credential_override
+
+        override = credential_override()
         return cls(
-            api_key=os.environ.get("CALLE_API_KEY", ""),
+            api_key=override or os.environ.get("CALLE_API_KEY", ""),
             base_url=os.environ.get("CALLE_BASE_URL", "https://api.heycall-e.com"),
             progress_callback=progress_callback,
         )
