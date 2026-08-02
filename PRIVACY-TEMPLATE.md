@@ -91,7 +91,7 @@ The current workbench sets a `researchcall_lang` language cookie for one year. `
 Notice changes/version archive: `[REPLACE]`<br>
 How participants can learn about study results: `[REPLACE or remove]`
 
-## Annex A - Server modes (huckepack)
+## Annex A - Server modes (piggyback)
 
 > **Still a template.** Pick the one block that matches `RESEARCHCALL_SERVER_MODE`, delete the others, keep replacing every marker. A mode changes what has to be written here; it does not remove the need to write it - and for a study it does not touch the ethics file at all.
 
@@ -144,6 +144,6 @@ Sections 1-11 apply unchanged. Database and workbench file are on the host; the 
 - [ ] DPIA necessity has been decided and recorded before high-risk processing.
 - [ ] A qualified lawyer/data-protection officer and, where applicable, ethics body have reviewed the study-specific materials.
 - [ ] The deployed `RESEARCHCALL_SERVER_MODE` is stated, and only the matching block of Annex A remains.
-- [ ] In a huckepack mode: checked on the running installation that neither the database nor `workspace.json` appears on disk.
+- [ ] In a piggyback mode: checked on the running installation that neither the database nor `workspace.json` appears on disk.
 - [ ] It is written down how a participant withdraws when the operator holds no copy.
 - [ ] Device-storage consent assessed per row of Annex A.2.

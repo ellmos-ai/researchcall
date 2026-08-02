@@ -44,6 +44,12 @@ See `HOST-READINESS.md` for the multi-user gap and `PRIVACY-TEMPLATE.md` for an 
 
 ## Server modes (added 2026-08-02)
 
+> **On the name.** In English this hosting pattern is called *piggyback*:
+> the application rides on infrastructure it does not own. The literal mode
+> values are still spelled `huckepack-gift` and `huckepack-only-host` — that is
+> the German working title the code was built under, and it is what an operator
+> actually types. Prose says piggyback; configuration says huckepack.
+
 Everything above describes `local`, which is what an unconfigured installation is. `RESEARCHCALL_SERVER_MODE` selects one of four modes (`src/researchcall/server_mode.py:25-76`); an unknown value is refused by name (`:78-90`), and the resolved mode is held for the process, so no request can switch it (`:98-113`).
 
 | Mode | Where the study data are | Whose key pays | Accounts |
@@ -53,7 +59,7 @@ Everything above describes `local`, which is what an unconfigured installation i
 | `huckepack-only-host` | the visitor's browser | the visitor's, per request | none |
 | `pay-membership` | - | - | would be required; **not built**, every page answers 503 (`src/researchcall/huckepack_web.py:47-50, 145-155`) |
 
-### What changes in a huckepack mode
+### What changes in a piggyback mode
 
 | Data | Collection and use | Storage | Retention implemented in code | Who can see it | Leaves the computer? | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
