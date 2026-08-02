@@ -20,3 +20,30 @@
       vollständigen lokalen/externen Löschpfad mit Regressionstests belegen.
 - [x] Bei der Prüfung keinen echten Anruf ausgelöst und keine echten Rufnummern
       dokumentiert.
+
+## EU AI Act und Schutz angerufener Personen [Prüfung 2026-08-02]
+
+- [ ] **Scope-Gate:** Vor jeder Bereitstellung dokumentieren, ob die enge
+      Ausnahme des Art. 2 Abs. 6 AI Act für ein ausschließlich wissenschaftlich
+      entwickeltes und eingesetztes System tatsächlich greift. Ohne belastbaren
+      Nachweis Art. 50 vollständig anwenden.
+- [ ] **Live-Sperre – erste KI-Offenlegung:** Einen unveränderlichen,
+      wortwörtlichen KI-/AI-Satz vor `ethics.greeting` und allen anderen Blöcken
+      ausgeben. `ethics.instruction` zusätzlich inhaltlich validieren; eine bloße
+      Formularhilfe zur „Automatisierung“ genügt nicht.
+- [ ] **Live-Sperre – Nachweis und Reihenfolge:** Die widerspruchsfreie Abfolge
+      KI-Hinweis, Studien-/Datenschutzinformation und Teilnahmeentscheidung
+      festlegen. Das erste BOT-Segment auf Offenlegung prüfen; die bestehende
+      Transkriptprüfung für Einwilligung und Fragen entsprechend erweitern.
+- [ ] **Live-Sperre – Studienakte:** Stichprobenquelle, Vor-Kontakt-
+      Rechtsgrundlage, Art.-13/14-Information, Art.-9-Ausnahme, Ethikvotum,
+      DPIA-Entscheidung, Versuchslimit, Sperrliste und Anbieter-/Audioverhalten
+      belegen. `--consent-attested` allein ist kein Nachweis dieser Punkte.
+- [ ] **Hosting-Sperre:** Rollen, Transitdaten und Rechteprozesse für local,
+      huckepack-gift und huckepack-only-host sowie CALL-E-Vertrag, Art. 28,
+      Verarbeitungsländer/Kapitel V, Fristen und Löschung verifizieren.
+      pay-membership bleibt bis zur vollständigen Mandanten- und
+      Compliance-Umsetzung gesperrt.
+- [ ] Maßnahmen zur KI-Kompetenz nach Art. 4 und eine Anhang-III-Neubewertung
+      vor jeder Bildungs-, Beschäftigungs- oder sonstigen Entscheidungsnutzung
+      verbindlich in die Studienfreigabe aufnehmen.
