@@ -1,7 +1,7 @@
 # Initial EU AI Act assessment: ResearchCall
 
-**Date:** 2 August 2026  
-**Scope:** AI-assisted standardised scientific telephone surveys with an ethics and consent framework  
+**Date:** 2 August 2026
+**Scope:** AI-assisted standardised scientific telephone surveys with an ethics and consent framework
 **Notice:** This is a technical and editorial initial assessment, not legal advice. The research institution or specific operator must obtain legal and ethics review of the study, sampling source, roles, contracts, and legal bases before live fieldwork.
 
 ## Executive finding

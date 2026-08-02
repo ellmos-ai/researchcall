@@ -1,7 +1,7 @@
 # Ersteinschätzung zum EU AI Act: ResearchCall
 
-**Stand:** 2. August 2026  
-**Gegenstand:** KI-gestützte standardisierte wissenschaftliche Telefonbefragungen mit Ethik- und Einwilligungsrahmen  
+**Stand:** 2. August 2026
+**Gegenstand:** KI-gestützte standardisierte wissenschaftliche Telefonbefragungen mit Ethik- und Einwilligungsrahmen
 **Hinweis:** Diese technische und redaktionelle Ersteinschätzung ist keine Rechtsberatung. Die Forschungseinrichtung beziehungsweise der konkrete Betreiber muss Studie, Stichprobenquelle, Rollen, Verträge, Ethik und Rechtsgrundlagen vor Live-Feldarbeit prüfen lassen.
 
 ## Kurzurteil
