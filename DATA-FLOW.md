@@ -41,3 +41,32 @@ Evidence: `src/researchcall/export.py:1-154`; `src/researchcall/reporting.py`.
 - Browser, reverse-proxy, operating-system and infrastructure logs are deployment facts and must be added to the final data inventory and privacy notice.
 
 See `HOST-READINESS.md` for the multi-user gap and `PRIVACY-TEMPLATE.md` for an operator-owned notice template.
+
+## Server modes (added 2026-08-02)
+
+Everything above describes `local`, which is what an unconfigured installation is. `RESEARCHCALL_SERVER_MODE` selects one of four modes (`src/researchcall/server_mode.py:25-76`); an unknown value is refused by name (`:78-90`), and the resolved mode is held for the process, so no request can switch it (`:98-113`).
+
+| Mode | Where the study data are | Whose key pays | Accounts |
+| --- | --- | --- | --- |
+| `local` (default) | SQLite file and `workspace.json` on the host, as before | `CALLE_API_KEY` in the environment | none |
+| `huckepack-gift` | the visitor's browser | the host's | none |
+| `huckepack-only-host` | the visitor's browser | the visitor's, per request | none |
+| `pay-membership` | - | - | would be required; **not built**, every page answers 503 (`src/researchcall/huckepack_web.py:47-50, 145-155`) |
+
+### What changes in a huckepack mode
+
+| Data | Collection and use | Storage | Retention implemented in code | Who can see it | Leaves the computer? | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| Study, frame, sample, attempts, answers - the whole database | Unchanged in purpose; the same schema and the same SQL | **Not on the host.** The durable copy is a SQLite file in the visitor's browser (IndexedDB); the host holds a copy in memory for the length of a browser session | Memory only: dropped after two hours without use, on session delete, on process exit; no file is created | The one browser session that supplied the session token | The database bytes travel between browser and host on load and after each change; never written to the host's disk | `src/researchcall/huckepack_storage.py:59-73, 75-164, 192-203`; `src/researchcall/database.py:82-96`; test `test_a_huckepack_mode_never_creates_the_database_file` |
+| **`workspace.json` - the answers to the eight stations** | The workbench state between two clicks | In the same place as the database: a row in the session database, so the export carries it | As above | As above | As above | `src/researchcall/huckepack_storage.py` (`session_document`, `store_session_document`); `src/researchcall/web/workspace.py` (`Workspace.load`, `Workspace.save`); tests `test_the_workbench_file_stays_off_the_host_disk`, `test_the_workbench_file_travels_inside_the_snapshot` |
+| Session token | Addresses the in-memory database of one browser | Browser `localStorage`, sent as `X-Huckepack-Session` | Until the visitor deletes the data | Browser and host process | Sent with every request | `src/researchcall/huckepack_web.py:27-40` |
+| Visitor's CALL-E key (`huckepack-only-host` only) | Authenticates that visitor's own live calls | **Browser `localStorage`**, displayed masked to the last four characters | Until the visitor presses "forget"; on the host only for the duration of one request | The visitor's browser; the host process; CALL-E | Sent as the `X-Calle-Key` request header, then on to CALL-E | `src/researchcall/huckepack_key.py:29-105`; `src/researchcall/calls.py:232-252` |
+| Export / import file | The visitor's own backup and their way to another device | A `.sqlite` file wherever the visitor puts it | The visitor decides | Whoever can read that file - **it is the unmasked database, including the sampling frame with phone numbers** | Leaves only on the visitor's own instruction | `src/researchcall/web/static/huckepack.js` (`exportData`, `importData`) |
+
+### Boundaries that remain
+
+- **The workbench still cannot place a call**, and the live CLI path is unchanged. What the mode changes is where the study data rest.
+- **The export is the sampling frame.** The rows about pseudonymity above stay valid: an export contains the link between record number and person. A researcher who mails that file around has undone the pseudonymisation, whatever the interface says.
+- **A cleared browser is a total loss** - for a study in progress that means the field data. Export is a condition of the pattern, not a convenience.
+- **`local` is unchanged.** One additional script tag in the page shell (`src/researchcall/web/render.py:334`), which in `local` does nothing beyond offering the receipt download.
+
