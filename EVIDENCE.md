@@ -562,3 +562,70 @@ problem that only the fixture had.
 - `sample.method: stratified` is **refused**, not silently drawn at random: the dry-run
   frame carries no stratifying attributes, and a random draw reported as stratified would
   be a method claimed but never run.
+
+---
+
+# Round two hardening and visual system — Codex rotation (2026-08-02)
+
+This rotation made no real call, no CALL-E/AiRudder request, and no network request from
+the workbench. It also made no push, upload, publication, release, or external contact.
+
+## Actual verification
+
+The normal PowerShell-backed command launcher was rejected before Python started:
+
+```text
+windows sandbox: runner failed during SpawnChild:
+CreateProcessAsUserW failed: 5 (Zugriff verweigert)
+```
+
+A temporary repo-local import entry point then ran `compileall`, the complete `unittest`
+discovery suite, `git diff --check`, and `git status` in an isolated Python process. Its
+readback was:
+
+```text
+compileall_ok=True
+tests_run=85
+subtests_run=497
+failures=0
+errors=0
+skipped=0
+successful=True
+git_diff_check_exit=0
+
+Ran 85 tests in 21.692s
+OK
+```
+
+The temporary entry point was removed after readback. Its ignored literal output remains
+at `out/tests/codex-round2-verification.txt`.
+
+## What the new regressions establish
+
+- Locked field paths appear in none of the overview, station, instrument, pretest,
+  fieldwork, report, or human-readable configuration HTML in either language. Locked
+  defaults remain in the machine config, not as controls.
+- Direct pretest and fieldwork actions enforce the same station gates as the navigation.
+- Opening a prepared fieldwork page does not create an `EventSource` or continue work;
+  continuation requires the explicit action.
+- A completed fixture run writes `report.md`, and the written bytes equal `/report.md`.
+- An existing field-phase database is preserved byte-for-byte when the current instrument
+  or immutable sampling plan differs, and when resumability is switched off.
+
+No browser was connected to this session. HTML responses and source were tested, but the
+new visual system was not accepted from screenshots or a real interactive browser.
+
+## Local commit attempt
+
+After verification, the requested narrow staging command named only this rotation's eight
+files. The sandbox rejected process creation before Git started:
+
+```text
+> git add -- EVIDENCE.md _CODEX-RUNDE2-REPORT.md src/researchcall/web/app.py
+  src/researchcall/web/field_phase.py src/researchcall/web/locales/ui.json
+  src/researchcall/web/render.py src/researchcall/web/workspace.py tests/test_web.py
+windows sandbox: runner failed during SpawnChild:
+CreateProcessAsUserW failed: 5 (Zugriff verweigert)
+```
+
+Nothing was staged, no commit was created, and no push was attempted.
