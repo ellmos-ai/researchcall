@@ -1,0 +1,95 @@
+# Form definition — Station 8 (reporting and publication)
+
+- field: reporting.findings_file
+  station: 08-reporting
+  label: "Befunddatei"
+  question: "In welcher Datei sollen die Befunde festgehalten werden?"
+  type: text
+  options: []
+  default: "BEFUNDE.md"
+  help: "Gemessene Befunde, Schlussfolgerungen und offene Punkte werden nachvollziehbar getrennt."
+  required: false
+  locked: false
+
+- field: reporting.journal_format
+  station: 08-reporting
+  label: "Journalformat"
+  question: "Welches vorhandene Manuskriptformat soll verwendet werden?"
+  type: choice
+  options:
+    - {value: psychology_apa, label: "Psychology APA"}
+    - {value: physics_revtex, label: "Physics RevTeX"}
+    - {value: cs_ieee, label: "Computer Science IEEE"}
+    - {value: polisci_chicago, label: "Political Science Chicago"}
+    - {value: law_german, label: "German Law"}
+    - {value: interdisciplinary, label: "Interdisciplinary"}
+  default: psychology_apa
+  help: "Es wird eines der in der bestehenden Forschungspipeline vorhandenen Formate genutzt."
+  required: false
+  locked: false
+
+- field: reporting.languages
+  station: 08-reporting
+  label: "Sprachen"
+  question: "In welchen Sprachen soll der Bericht geführt werden?"
+  type: multi
+  options:
+    - {value: de, label: "Deutsch"}
+    - {value: en, label: "Englisch"}
+  default: [de, en]
+  help: "Bei mehreren Fassungen hält der bilinguale Sync die Inhalte zusammen."
+  required: false
+  locked: false
+
+- field: reporting.disclosure_level
+  station: 08-reporting
+  label: "Disclosure-Stufe"
+  question: "Welche Disclosure-Stufe gilt für den Bericht?"
+  type: choice
+  options:
+    - {value: L1, label: "L1"}
+    - {value: L2, label: "L2"}
+    - {value: L3, label: "L3"}
+    - {value: L4, label: "L4"}
+    - {value: L5, label: "L5"}
+  default: L3
+  help: "Die Stufe entspricht dem Gesprächsrahmen und steuert die KI-Offenlegung."
+  required: false
+  locked: false
+
+- field: publication.target
+  station: 08-reporting
+  label: "Publikationsziel"
+  question: "Ist das Ziel Zenodo, Journal, Preprint oder keine Veröffentlichung?"
+  type: choice
+  options:
+    - {value: zenodo, label: "Zenodo"}
+    - {value: journal, label: "Journal"}
+    - {value: preprint, label: "Preprint"}
+    - {value: none, label: "Keine Veröffentlichung"}
+  default: zenodo
+  help: "Die Wahl bereitet nur den Weg vor; Upload und Veröffentlichung bleiben eigene Nutzer-Gates."
+  required: false
+  locked: false
+
+- field: publication.source_check_before_upload
+  station: 08-reporting
+  label: "Quellencheck vor Upload"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Jede Referenz wird vor einem Upload gegen die Originalquelle geprüft."
+  required: true
+  locked: true
+
+- field: publication.dry_run_first
+  station: 08-reporting
+  label: "Trockenlauf vor Veröffentlichung"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Ein grüner Trockenlauf ist Vorbereitung, keine Veröffentlichung."
+  required: true
+  locked: true
