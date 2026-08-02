@@ -237,7 +237,9 @@ class WorkbenchTestCase(unittest.TestCase):
             ]
         self.assertTrue(events)
         self.assertTrue(events[-1]["done"])
-        self.assertEqual(events[-1]["processed"], 9)
+        # Calls, not people: nine records were drawn, and whoever declined but
+        # invited a later call is dialled again, up to the configured limit.
+        self.assertGreaterEqual(events[-1]["processed"], 9)
         totals = events[-1]["totals"]
         self.assertIn("COMPLETED", totals)
         self.assertGreater(len(totals), 1, "distinct terminal statuses must stay distinct")
@@ -246,7 +248,86 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertEqual(report.status_code, 200)
         self.assertIn("NO_ANSWER", report.text)
         self.assertIn("DECLINED", report.text)
-        self.assertEqual(self.client.get("/report.md").status_code, 200)
+        markdown = self.client.get("/report.md")
+        self.assertEqual(markdown.status_code, 200)
+        self.assertIn("Included records: 9", markdown.text)
+        self.assertIn("Attempts recorded: " + str(events[-1]["processed"]), markdown.text)
+
+    def test_a_person_who_invited_a_later_call_is_dialled_again_and_the_report_says_so(
+        self,
+    ) -> None:
+        """Repeated contact is allowed, bounded, and never silent."""
+        self.finish_all()
+        self.client.post("/fieldwork/prepare?lang=en")
+        with self.client.stream("GET", "/fieldwork/stream") as stream:
+            events = [
+                json.loads(line[6:])
+                for line in stream.iter_lines()
+                if line.startswith("data: ")
+            ]
+        markdown = self.client.get("/report.md").text
+        attempts = events[-1]["processed"]
+        self.assertGreater(attempts, 9, "the callback rule should produce repeat calls")
+        self.assertIn("## Repeated contact", markdown)
+        self.assertIn("Attempts allowed per person: 1", markdown)
+        self.assertIn("Callbacks allowed after a refusal: 3", markdown)
+        self.assertRegex(markdown, r"Records dialled more than once: [1-9]")
+        # A repeat lands in a different time of day; anything else would measure
+        # the same availability twice.
+        self.assertRegex(
+            markdown, r"Attempts made in a time window other than the assigned one: [1-9]"
+        )
+
+    def test_a_setting_without_effect_says_so_on_its_own_control(self) -> None:
+        """The honesty layer has to be visible where the decision is made."""
+        from researchcall import effect
+
+        workspace = Workspace(path=self.directory)
+        workspace.completed = {station: "now" for station in STATIONS}
+        workspace.save()
+        declared = {field.path for field in effect.declared_only(self.fields)}
+        self.assertTrue(declared)
+        for language, badge in (("en", "recorded only"), ("de", "nur erfasst")):
+            with self.subTest(language=language):
+                html = self.client.get(f"/station/04-sampling?lang={language}").text
+                self.assertIn(badge, html)
+                self.assertIn("contact_rules.calling_hours", declared)
+                config = self.client.get(f"/config?lang={language}").text
+                for path in sorted(declared):
+                    self.assertIn(path, config, path)
+
+    def test_a_method_the_frame_cannot_support_is_refused_not_faked(self) -> None:
+        self.finish_all()
+        body = self.payload("04-sampling", **{"sample.method": "stratified"})
+        self.client.post(
+            "/station/04-sampling?lang=en", content=body + "&action=save",
+            headers=FORM_ENCODED,
+        )
+        response = self.client.post("/fieldwork/prepare?lang=en")
+        self.assertIn("stratifying attributes", response.text)
+        self.assertFalse((self.directory / "fieldwork.db").exists())
+
+    def test_the_instrument_pages_show_the_call_that_will_be_spoken(self) -> None:
+        self.finish_all()
+        page = self.client.get("/instrument?lang=en")
+        self.assertEqual(page.status_code, 200)
+        self.assertIn("Do you use the bus?", page.text)
+        task = self.client.get("/instrument.task.txt")
+        self.assertEqual(task.status_code, 200)
+        self.assertIn('I1 (say exactly): "Do you use the bus?"', task.text)
+        self.assertIn("automated research call", task.text)
+        self.assertIn("public directory", task.text)
+        document = self.client.get("/instrument.md")
+        self.assertEqual(document.status_code, 200)
+        self.assertIn("[consent]", document.text)
+
+    def test_the_instrument_check_runs_and_names_its_own_limits(self) -> None:
+        self.finish_all()
+        result = self.client.post("/pretest/run?lang=en")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn("Not measurable in a dry run", result.text)
+        self.assertIn("unplanned_follow_ups", result.text)
+        self.assertIn("not the CALL-E agent", result.text)
 
     def test_the_report_says_so_when_no_field_phase_has_run(self) -> None:
         self.assertIn("nothing to report", self.client.get("/report?lang=en").text)

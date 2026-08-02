@@ -32,21 +32,28 @@ CREATE TABLE IF NOT EXISTS sample (
     study_id INTEGER NOT NULL REFERENCES study(id) ON DELETE CASCADE,
     frame_id INTEGER NOT NULL REFERENCES frame(id) ON DELETE RESTRICT,
     time_window TEXT NOT NULL,
+    assigned_window TEXT,
     drawn_at TEXT NOT NULL,
     excluded_at TEXT,
     exclusion_reason TEXT,
     UNIQUE(study_id, frame_id)
 );
 
+-- One row per attempt, not per person: a second attempt is a fact of its own,
+-- with its own time and its own window. Collapsing it into the first would hide
+-- exactly the bias that repeated contact introduces.
 CREATE TABLE IF NOT EXISTS attempt (
     id INTEGER PRIMARY KEY,
-    sample_id INTEGER NOT NULL UNIQUE REFERENCES sample(id) ON DELETE RESTRICT,
+    sample_id INTEGER NOT NULL REFERENCES sample(id) ON DELETE RESTRICT,
+    attempt_no INTEGER NOT NULL DEFAULT 1,
+    time_window TEXT,
     started_at TEXT NOT NULL,
     ended_at TEXT,
     call_status TEXT NOT NULL,
     run_id TEXT,
     idempotency_key TEXT NOT NULL UNIQUE,
-    detail_json TEXT NOT NULL DEFAULT '{}'
+    detail_json TEXT NOT NULL DEFAULT '{}',
+    UNIQUE(sample_id, attempt_no)
 );
 
 CREATE TABLE IF NOT EXISTS response (
@@ -80,10 +87,77 @@ def connect(path: str | Path) -> sqlite3.Connection:
     return connection
 
 
+def _columns(connection: sqlite3.Connection, table: str) -> set[str]:
+    return {
+        str(row["name"])
+        for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
+    }
+
+
+def migrate(connection: sqlite3.Connection) -> list[str]:
+    """Bring a database written by an earlier version up to the current shape.
+
+    ``CREATE TABLE IF NOT EXISTS`` leaves an existing table exactly as it was, so
+    a state file from before repeated attempts existed would silently keep its
+    one-attempt-per-person constraint and fail at the worst moment — when a study
+    is already running. The changes are additive and keep every recorded row.
+    """
+    applied: list[str] = []
+    sample_columns = _columns(connection, "sample")
+    if sample_columns and "assigned_window" not in sample_columns:
+        connection.execute("ALTER TABLE sample ADD COLUMN assigned_window TEXT")
+        connection.execute("UPDATE sample SET assigned_window = time_window")
+        applied.append("sample.assigned_window")
+
+    attempt_columns = _columns(connection, "attempt")
+    if attempt_columns and "attempt_no" not in attempt_columns:
+        connection.executescript(
+            """
+            ALTER TABLE attempt RENAME TO attempt_before_retries;
+            CREATE TABLE attempt (
+                id INTEGER PRIMARY KEY,
+                sample_id INTEGER NOT NULL REFERENCES sample(id) ON DELETE RESTRICT,
+                attempt_no INTEGER NOT NULL DEFAULT 1,
+                time_window TEXT,
+                started_at TEXT NOT NULL,
+                ended_at TEXT,
+                call_status TEXT NOT NULL,
+                run_id TEXT,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                detail_json TEXT NOT NULL DEFAULT '{}',
+                UNIQUE(sample_id, attempt_no)
+            );
+            INSERT INTO attempt(
+                id, sample_id, attempt_no, time_window, started_at, ended_at,
+                call_status, run_id, idempotency_key, detail_json
+            )
+            SELECT a.id, a.sample_id, 1, s.time_window, a.started_at, a.ended_at,
+                   a.call_status, a.run_id, a.idempotency_key, a.detail_json
+            FROM attempt_before_retries a JOIN sample s ON s.id = a.sample_id;
+            DROP TABLE attempt_before_retries;
+            """
+        )
+        applied.append("attempt.attempt_no")
+    elif attempt_columns and "time_window" not in attempt_columns:
+        connection.execute("ALTER TABLE attempt ADD COLUMN time_window TEXT")
+        connection.execute(
+            """
+            UPDATE attempt SET time_window = (
+                SELECT s.time_window FROM sample s WHERE s.id = attempt.sample_id
+            )
+            """
+        )
+        applied.append("attempt.time_window")
+    return applied
+
+
 def initialize(path: str | Path) -> None:
     connection = connect(path)
     try:
+        applied = migrate(connection)
         connection.executescript(SCHEMA)
+        if applied:
+            connection.commit()
         connection.commit()
     finally:
         connection.close()

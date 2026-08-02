@@ -1,7 +1,35 @@
 {
+  "A deliberately clumsy sentence. Smoothing it out is the tell.": {
+    "en": "A deliberately clumsy sentence. Smoothing it out is the tell.",
+    "de": "Ein absichtlich holpriger Satz. Wird er geglättet, ist das der Beleg."
+  },
+  "A failed check stays visible; nothing suppresses it.": {
+    "en": "A failed check stays visible; nothing suppresses it.",
+    "de": "Ein misslungener Test bleibt sichtbar; nichts unterdrückt ihn."
+  },
+  "A filtered item was asked exactly when its condition held.": {
+    "en": "A filtered item was asked exactly when its condition held.",
+    "de": "Ein gefiltertes Item wurde genau dann gestellt, wenn seine Bedingung galt."
+  },
   "A research method, not a call script": {
     "en": "A research method, not a call script",
     "de": "Eine Forschungsmethode, kein Anrufskript"
+  },
+  "A small study about the instrument: run the interview against the fixture transport and measure how faithfully it was delivered.": {
+    "en": "A small study about the instrument: run the interview against the fixture transport and measure how faithfully it was delivered.",
+    "de": "Eine kleine Studie über das Instrument: das Interview gegen den Fixture-Transport laufen lassen und messen, wie treu es ausgeliefert wurde."
+  },
+  "A test call to yourself is still a real call.": {
+    "en": "A test call to yourself is still a real call.",
+    "de": "Ein Testanruf bei sich selbst ist trotzdem ein echter Anruf."
+  },
+  "Added as a deliberately clumsy item; smoothing it out is the tell.": {
+    "en": "Added as a deliberately clumsy item; smoothing it out is the tell.",
+    "de": "Wird als absichtlich holpriges Item ergänzt; wird es geglättet, ist das der Beleg."
+  },
+  "Adds the refusal question and a schema field that stores the answer.": {
+    "en": "Adds the refusal question and a schema field that stores the answer.",
+    "de": "Ergänzt die Frage nach dem Ablehnungsgrund und ein Schemafeld, das die Antwort speichert."
   },
   "Analysis": {
     "en": "Analysis",
@@ -11,17 +39,69 @@
     "en": "Analysis rules are fixed at the instrument, not after the results are in.",
     "de": "Auswertungsregeln werden beim Instrument festgelegt, nicht wenn die Ergebnisse da sind."
   },
+  "Answer distributions are always shown per window.": {
+    "en": "Answer distributions are always shown per window.",
+    "de": "Antwortverteilungen werden immer je Zeitfenster gezeigt."
+  },
+  "Any upload is rehearsed before it happens.": {
+    "en": "Any upload is rehearsed before it happens.",
+    "de": "Jeder Upload wird vorher trocken geprobt."
+  },
+  "Applied when a returned answer fits none of the categories.": {
+    "en": "Applied when a returned answer fits none of the categories.",
+    "de": "Greift, wenn eine zurückgegebene Antwort in keine Kategorie passt."
+  },
+  "Becomes the questionnaire the dry run actually asks.": {
+    "en": "Becomes the questionnaire the dry run actually asks.",
+    "de": "Wird zu dem Fragebogen, den der Trockenlauf tatsächlich stellt."
+  },
+  "Built from stations 1 to 4. Quoted lines are spoken word for word; everything else the agent phrases itself — a difference measured against the real service, not assumed.": {
+    "en": "Built from stations 1 to 4. Quoted lines are spoken word for word; everything else the agent phrases itself — a difference measured against the real service, not assumed.",
+    "de": "Gebaut aus den Stationen 1 bis 4. Zitierte Zeilen werden wörtlich gesprochen; alles andere formuliert der Agent selbst — ein Unterschied, der am echten Dienst gemessen und nicht angenommen wurde."
+  },
+  "Calling a colleague is a real call, which this interface cannot place.": {
+    "en": "Calling a colleague is a real call, which this interface cannot place.",
+    "de": "Einen Kollegen anzurufen ist ein echter Anruf, den diese Oberfläche nicht auslösen kann."
+  },
+  "Compiled into a filter condition on every skipped item.": {
+    "en": "Compiled into a filter condition on every skipped item.",
+    "de": "Wird in eine Filterbedingung an jedem übersprungenen Item übersetzt."
+  },
   "Configuration": {
     "en": "Configuration",
     "de": "Konfiguration"
+  },
+  "Consent is asked before any question.": {
+    "en": "Consent is asked before any question.",
+    "de": "Die Zustimmung wird vor jeder Frage eingeholt."
+  },
+  "Consent sentence spoken word for word. Opening blocks are not part of the result schema and cannot be checked from it.": {
+    "en": "Consent sentence spoken word for word. Opening blocks are not part of the result schema and cannot be checked from it.",
+    "de": "Zustimmungssatz wörtlich gesprochen. Die Eröffnungsbausteine stehen nicht im Ergebnisschema und lassen sich daraus nicht prüfen."
   },
   "Conversation and ethics frame": {
     "en": "Conversation and ethics frame",
     "de": "Gesprächsrahmen und Ethik"
   },
+  "Counting is done; metaphor, framing and worldview analysis need a model this dry-run build does not call.": {
+    "en": "Counting is done; metaphor, framing and worldview analysis need a model this dry-run build does not call.",
+    "de": "Auszählen ist umgesetzt; Metaphern-, Framing- und Weltbildanalyse brauchen ein Modell, das dieser Trockenlauf nicht aufruft."
+  },
+  "Decides whether free text enters the dataset, a second file, or neither.": {
+    "en": "Decides whether free text enters the dataset, a second file, or neither.",
+    "de": "Entscheidet, ob Freitext in den Datensatz, in eine zweite Datei oder nirgendwohin geht."
+  },
   "Descriptive. Differences between windows are shown, not declared significant.": {
     "en": "Descriptive. Differences between windows are shown, not declared significant.",
     "de": "Deskriptiv. Unterschiede zwischen den Fenstern werden gezeigt, nicht für signifikant erklärt."
+  },
+  "Distinct item orders the instrument produced across the test calls.": {
+    "en": "Distinct item orders the instrument produced across the test calls.",
+    "de": "Verschiedene Item-Reihenfolgen, die das Instrument über die Testanrufe erzeugt hat."
+  },
+  "Download as a document": {
+    "en": "Download as a document",
+    "de": "Als Dokument herunterladen"
   },
   "Draw sample and start dry run": {
     "en": "Draw sample and start dry run",
@@ -31,6 +111,10 @@
     "en": "Dry run against fixtures. No network, no account, no call.",
     "de": "Trockenlauf gegen Fixtures. Kein Netz, kein Konto, kein Anruf."
   },
+  "Each item names the hypothesis it serves; the codebook groups by it.": {
+    "en": "Each item names the hypothesis it serves; the codebook groups by it.",
+    "de": "Jedes Item nennt die Hypothese, auf die es einzahlt; das Codebuch gruppiert danach."
+  },
   "Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own.": {
     "en": "Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own.",
     "de": "Jedes Bedienelement links stammt aus einer Formularvorlage unter pipeline/_shared/forms/. Dieselbe Vorlage ergibt den Config-Wert und die gesprochene Frage. Die Oberfläche fügt kein eigenes Feld hinzu."
@@ -38,6 +122,10 @@
   "Every number on this page is counted from the form definitions at request time.": {
     "en": "Every number on this page is counted from the form definitions at request time.",
     "de": "Jede Zahl auf dieser Seite wird beim Aufruf aus den Formularvorlagen gezählt."
+  },
+  "Extra attempts after no answer, busy or voicemail. The report states the number reached this way.": {
+    "en": "Extra attempts after no answer, busy or voicemail. The report states the number reached this way.",
+    "de": "Zusätzliche Versuche nach Nichtabnehmen, Besetzt oder Mailbox. Der Bericht nennt die Zahl, die so erreicht wurde."
   },
   "Field phase": {
     "en": "Field phase",
@@ -55,25 +143,109 @@
     "en": "Finished on",
     "de": "Abgeschlossen am"
   },
+  "First spoken block, quoted word for word.": {
+    "en": "First spoken block, quoted word for word.",
+    "de": "Erster gesprochener Baustein, wörtlich zitiert."
+  },
   "Frame rows created:": {
     "en": "Frame rows created:",
     "de": "Erzeugte Zeilen der Auswahlgrundlage:"
+  },
+  "Heads the codebook and the report.": {
+    "en": "Heads the codebook and the report.",
+    "de": "Steht über dem Codebuch und dem Bericht."
+  },
+  "How many dry-run interviews the instrument check performs.": {
+    "en": "How many dry-run interviews the instrument check performs.",
+    "de": "Wie viele Trockenlauf-Interviews der Instrumententest durchführt."
+  },
+  "How many records are drawn.": {
+    "en": "How many records are drawn.",
+    "de": "Wie viele Datensätze gezogen werden."
   },
   "Instrument": {
     "en": "Instrument",
     "de": "Instrument"
   },
+  "Instrument check": {
+    "en": "Instrument check",
+    "de": "Instrumententest"
+  },
+  "Inter-rater reliability needs two models rating the same answers.": {
+    "en": "Inter-rater reliability needs two models rating the same answers.",
+    "de": "Interrater-Reliabilität braucht zwei Modelle, die dieselben Antworten raten."
+  },
+  "Losses are always broken down by time window.": {
+    "en": "Losses are always broken down by time window.",
+    "de": "Ausfälle werden immer nach Zeitfenster aufgeschlüsselt."
+  },
+  "Manuscript templates are a later station of the pipeline.": {
+    "en": "Manuscript templates are a later station of the pipeline.",
+    "de": "Manuskriptvorlagen sind eine spätere Station der Pipeline."
+  },
   "NO_ANSWER is a time-of-day signal, DECLINED is refusal. They are never added together.": {
     "en": "NO_ANSWER is a time-of-day signal, DECLINED is refusal. They are never added together.",
     "de": "NO_ANSWER ist ein Tageszeit-Signal, DECLINED ist Verweigerung. Beides wird nie zusammengezählt."
+  },
+  "Named for the record; the dry run draws from a generated fictitious frame.": {
+    "en": "Named for the record; the dry run draws from a generated fictitious frame.",
+    "de": "Für die Akte festgehalten; der Trockenlauf zieht aus einer erzeugten, fiktiven Auswahlgrundlage."
+  },
+  "Names the findings document the report offers to write.": {
+    "en": "Names the findings document the report offers to write.",
+    "de": "Benennt das Befunde-Dokument, das der Bericht anzulegen anbietet."
+  },
+  "Needs a scheduler with a clock; this tool has no daemon and no timer.": {
+    "en": "Needs a scheduler with a clock; this tool has no daemon and no timer.",
+    "de": "Braucht einen Planer mit Uhr; dieses Werkzeug hat weder Daemon noch Zeitgeber."
+  },
+  "Needs a transcript of a real conversation; the fixture transport has none.": {
+    "en": "Needs a transcript of a real conversation; the fixture transport has none.",
+    "de": "Braucht das Transkript eines echten Gesprächs; der Fixture-Transport hat keines."
+  },
+  "No upload without a source check — stated, never switched off.": {
+    "en": "No upload without a source check — stated, never switched off.",
+    "de": "Kein Upload ohne Quellencheck — benannt, nie abschaltbar."
+  },
+  "Not measurable in a dry run": {
+    "en": "Not measurable in a dry run",
+    "de": "Im Trockenlauf nicht messbar"
+  },
+  "Nothing reads this value yet:": {
+    "en": "Nothing reads this value yet:",
+    "de": "Diesen Wert liest bislang nichts:"
   },
   "Nothing — every value here has a default, so an agent would not ask.": {
     "en": "Nothing — every value here has a default, so an agent would not ask.",
     "de": "Nichts — jeder Wert hier hat eine Vorgabe, ein Agent würde also nicht fragen."
   },
+  "Off assigns windows in equal blocks instead of by lot.": {
+    "en": "Off assigns windows in equal blocks instead of by lot.",
+    "de": "Aus verteilt die Fenster in gleichen Blöcken statt per Los."
+  },
+  "Off keeps the transcript audit only in memory, as the report states.": {
+    "en": "Off keeps the transcript audit only in memory, as the report states.",
+    "de": "Aus hält die Transkriptprüfung nur im Speicher, wie es der Bericht ausweist."
+  },
+  "Offers a later call and re-queues whoever accepts, up to the callback limit.": {
+    "en": "Offers a later call and re-queues whoever accepts, up to the callback limit.",
+    "de": "Bietet einen späteren Anruf an und reiht wieder ein, wer zustimmt — bis zur Rückrufgrenze."
+  },
+  "Offers the instrument as a document to read and to pass around.": {
+    "en": "Offers the instrument as a document to read and to pass around.",
+    "de": "Gibt das Instrument als Dokument aus, zum Lesen und Weiterreichen."
+  },
+  "On leaves finished records alone so a second run continues where it stopped.": {
+    "en": "On leaves finished records alone so a second run continues where it stopped.",
+    "de": "An lässt fertige Datensätze unangetastet, damit ein zweiter Lauf dort weitermacht, wo er aufhörte."
+  },
   "One definition, three ways in": {
     "en": "One definition, three ways in",
     "de": "Eine Vorlage, drei Zugänge"
+  },
+  "Only the live transport polls, and this interface cannot reach it.": {
+    "en": "Only the live transport polls, and this interface cannot reach it.",
+    "de": "Nur der Live-Transport pollt, und den erreicht diese Oberfläche nicht."
   },
   "Outcome structure by assigned time window": {
     "en": "Outcome structure by assigned time window",
@@ -91,13 +263,49 @@
     "en": "Part of the frame",
     "de": "Teil des Gerüsts"
   },
+  "Policy files are named but not read; there is no policy reader yet.": {
+    "en": "Policy files are named but not read; there is no policy reader yet.",
+    "de": "Policy-Dateien werden benannt, aber nicht gelesen; einen Policy-Leser gibt es noch nicht."
+  },
   "Pretest": {
     "en": "Pretest",
     "de": "Pretest"
   },
+  "Random draw or census. Stratified is refused rather than silently drawn at random, because the dry-run frame carries no stratifying attributes.": {
+    "en": "Random draw or census. Stratified is refused rather than silently drawn at random, because the dry-run frame carries no stratifying attributes.",
+    "de": "Zufallsziehung oder Vollerhebung. Geschichtet wird abgelehnt statt stillschweigend zufällig gezogen, weil die Auswahlgrundlage des Trockenlaufs keine Schichtmerkmale trägt."
+  },
+  "Randomised draws a fresh item order per respondent, filters respected.": {
+    "en": "Randomised draws a fresh item order per respondent, filters respected.",
+    "de": "Randomisiert zieht je Befragtem eine neue Item-Reihenfolge, Filter bleiben gewahrt."
+  },
+  "Raw answer and interpretation stay side by side.": {
+    "en": "Raw answer and interpretation stay side by side.",
+    "de": "Rohantwort und Deutung bleiben nebeneinander stehen."
+  },
+  "Raw wording is always kept beside the coding.": {
+    "en": "Raw wording is always kept beside the coding.",
+    "de": "Der Rohwortlaut bleibt immer neben der Codierung erhalten."
+  },
+  "Read the call as it will be spoken": {
+    "en": "Read the call as it will be spoken",
+    "de": "Den Anruf lesen, wie er gesprochen wird"
+  },
+  "Recorded, not yet read": {
+    "en": "Recorded, not yet read",
+    "de": "Erfasst, noch nicht gelesen"
+  },
   "Records": {
     "en": "Records",
     "de": "Fälle"
+  },
+  "Records worked per window in one run.": {
+    "en": "Records worked per window in one run.",
+    "de": "Datensätze, die je Fenster in einem Lauf abgearbeitet werden."
+  },
+  "Repeated contact raises the yield and shifts the sample towards people who are reachable more often. The report states how many records it affected.": {
+    "en": "Repeated contact raises the yield and shifts the sample towards people who are reachable more often. The report states how many records it affected.",
+    "de": "Wiederholter Kontakt hebt die Ausschöpfung und verschiebt die Stichprobe zu Menschen, die häufiger erreichbar sind. Der Bericht nennt, wie viele Datensätze das betraf."
   },
   "Report": {
     "en": "Report",
@@ -114,6 +322,18 @@
   "Research question": {
     "en": "Research question",
     "de": "Fragestellung"
+  },
+  "Returned wording compared with the required wording, item by item.": {
+    "en": "Returned wording compared with the required wording, item by item.",
+    "de": "Zurückgegebener Wortlaut, Item für Item mit dem geforderten verglichen."
+  },
+  "Run the check": {
+    "en": "Run the check",
+    "de": "Test durchführen"
+  },
+  "Same catalogue as the conversation frame, and equally absent here.": {
+    "en": "Same catalogue as the conversation frame, and equally absent here.",
+    "de": "Derselbe Katalog wie im Gesprächsrahmen — und hier ebenso wenig vorhanden."
   },
   "Sampling": {
     "en": "Sampling",
@@ -135,13 +355,53 @@
     "en": "Saved. Changes to a finished station are marked as later additions.",
     "de": "Gespeichert. Änderungen an einer abgeschlossenen Station werden als nachträglich gekennzeichnet."
   },
+  "Sending mail is a connector this build does not carry.": {
+    "en": "Sending mail is a connector this build does not carry.",
+    "de": "Mailversand ist ein Konnektor, den dieser Stand nicht mitbringt."
+  },
+  "Sends a repeat attempt into a different time window.": {
+    "en": "Sends a repeat attempt into a different time window.",
+    "de": "Schickt einen Wiederholungsversuch in ein anderes Zeitfenster."
+  },
   "Set a sample size in station 4 before the field phase.": {
     "en": "Set a sample size in station 4 before the field phase.",
     "de": "Vor der Feldphase in Station 4 einen Stichprobenumfang festlegen."
   },
+  "Some settings on this station are kept but not yet read by anything. They are marked, because a control that quietly changes nothing is worse than one that is missing.": {
+    "en": "Some settings on this station are kept but not yet read by anything. They are marked, because a control that quietly changes nothing is worse than one that is missing.",
+    "de": "Einige Einstellungen dieser Station werden gespeichert, aber noch von nichts gelesen. Sie sind gekennzeichnet, denn ein Bedienelement, das stillschweigend nichts bewirkt, ist schlimmer als eines, das fehlt."
+  },
+  "Speaks a duration computed from the instrument, not a typed guess.": {
+    "en": "Speaks a duration computed from the instrument, not a typed guess.",
+    "de": "Nennt eine Dauer, die aus dem Instrument berechnet wird — keine getippte Schätzung."
+  },
+  "Spoken before consent is asked.": {
+    "en": "Spoken before consent is asked.",
+    "de": "Wird gesprochen, bevor um Zustimmung gebeten wird."
+  },
+  "Spoken block: where the number came from.": {
+    "en": "Spoken block: where the number came from.",
+    "de": "Gesprochener Baustein: woher die Rufnummer stammt."
+  },
+  "Spoken closing, phrased freely by the agent.": {
+    "en": "Spoken closing, phrased freely by the agent.",
+    "de": "Gesprochener Abschluss, vom Agenten frei formuliert."
+  },
+  "Spoken opening, phrased freely by the agent.": {
+    "en": "Spoken opening, phrased freely by the agent.",
+    "de": "Gesprochene Begrüßung, vom Agenten frei formuliert."
+  },
+  "State is SQLite in the workspace; a file-per-record backend is not built.": {
+    "en": "State is SQLite in the workspace; a file-per-record backend is not built.",
+    "de": "Der Zustand liegt als SQLite im Arbeitsordner; ein Backend mit einer Datei je Datensatz ist nicht gebaut."
+  },
   "Station": {
     "en": "Station",
     "de": "Station"
+  },
+  "Station 2 carries no items yet, so there is nothing to ask.": {
+    "en": "Station 2 carries no items yet, so there is nothing to ask.",
+    "de": "Station 2 trägt noch keine Items, also gibt es nichts zu fragen."
   },
   "Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself.": {
     "en": "Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself.",
@@ -155,9 +415,17 @@
     "en": "Still missing before this station can be finished:",
     "de": "Fehlt noch, bevor diese Station abgeschlossen werden kann:"
   },
+  "Stops the run at the first failed record.": {
+    "en": "Stops the run at the first failed record.",
+    "de": "Hält den Lauf beim ersten fehlgeschlagenen Datensatz an."
+  },
   "Survey workbench · dry run · no calls": {
     "en": "Survey workbench · dry run · no calls",
     "de": "Erhebungs-Werkbank · Trockenlauf · keine Anrufe"
+  },
+  "Take the data with you:": {
+    "en": "Take the data with you:",
+    "de": "Die Daten mitnehmen:"
   },
   "Terminal outcomes": {
     "en": "Terminal outcomes",
@@ -167,13 +435,65 @@
     "en": "Text in double quotes is spoken word for word. Everything outside the quotes is rephrased by the agent — a behaviour measured in a real call.",
     "de": "Text in doppelten Anführungszeichen wird wortgetreu gesprochen. Alles außerhalb der Anführungszeichen formuliert der Agent um — gemessen in einem echten Anruf."
   },
+  "The agent's own report. It is a claim, not evidence.": {
+    "en": "The agent's own report. It is a claim, not evidence.",
+    "de": "Die Selbstauskunft des Agenten. Eine Behauptung, kein Beleg."
+  },
+  "The call, as written": {
+    "en": "The call, as written",
+    "de": "Der Anruf, wie er geschrieben steht"
+  },
+  "The dry run is serial by design; the API's concurrency limit is unverified.": {
+    "en": "The dry run is serial by design; the API's concurrency limit is unverified.",
+    "de": "Der Trockenlauf ist bewusst seriell; die Parallelitätsgrenze der API ist ungeprüft."
+  },
+  "The instrument so far": {
+    "en": "The instrument so far",
+    "de": "Das Instrument bis hierher"
+  },
+  "The pipeline's L1-L5 catalogue is not in this repository, and inventing its wording would be worse than leaving it unused.": {
+    "en": "The pipeline's L1-L5 catalogue is not in this repository, and inventing its wording would be worse than leaving it unused.",
+    "de": "Der L1-L5-Katalog der Pipeline liegt nicht in diesem Repository, und seinen Wortlaut zu erfinden wäre schlimmer, als ihn ungenutzt zu lassen."
+  },
+  "The report always states the yield.": {
+    "en": "The report always states the yield.",
+    "de": "Der Bericht nennt immer die Ausschöpfungsquote."
+  },
   "The report as it is written to disk": {
     "en": "The report as it is written to disk",
     "de": "Der Bericht, wie er auf die Platte geschrieben wird"
   },
+  "The report is written in one language; a second version needs a translator.": {
+    "en": "The report is written in one language; a second version needs a translator.",
+    "de": "Der Bericht entsteht in einer Sprache; eine zweite Fassung braucht eine Übersetzung."
+  },
+  "The right to stop is stated in every call.": {
+    "en": "The right to stop is stated in every call.",
+    "de": "Das Abbruchrecht wird in jedem Anruf genannt."
+  },
   "The same decisions, asked by an agent": {
     "en": "The same decisions, asked by an agent",
     "de": "Dieselben Entscheidungen, von einem Agenten gefragt"
+  },
+  "The spoken order": {
+    "en": "The spoken order",
+    "de": "Die gesprochene Reihenfolge"
+  },
+  "The structured result carries no order. What the instrument prescribed is measured below; whether the agent kept it needs a live transcript.": {
+    "en": "The structured result carries no order. What the instrument prescribed is measured below; whether the agent kept it needs a live transcript.",
+    "de": "Das strukturierte Ergebnis trägt keine Reihenfolge. Was das Instrument vorgab, wird unten gemessen; ob der Agent sie einhielt, braucht ein Live-Transkript."
+  },
+  "The task text an agent receives": {
+    "en": "The task text an agent receives",
+    "de": "Der Auftragstext, den ein Agent bekommt"
+  },
+  "The windows a record can be assigned to.": {
+    "en": "The windows a record can be assigned to.",
+    "de": "Die Fenster, in die ein Datensatz gelost werden kann."
+  },
+  "The workspace directory is set when the server starts, not per study.": {
+    "en": "The workspace directory is set when the server starts, not per study.",
+    "de": "Der Arbeitsordner wird beim Start des Servers gesetzt, nicht je Studie."
   },
   "There is nothing to report yet. Run the field phase first.": {
     "en": "There is nothing to report yet. Run the field phase first.",
@@ -183,13 +503,41 @@
     "en": "These settings appear in no form and in no question. They are stated here so that nothing is hidden, not so that they can be changed.",
     "de": "Diese Einstellungen erscheinen in keinem Formular und in keiner Frage. Sie stehen hier, damit nichts verborgen bleibt — nicht, damit man sie ändern kann."
   },
+  "These values are kept and exported, but no part of the machinery acts on them yet. The list is generated from the code, so a setting cannot quietly move between the two groups.": {
+    "en": "These values are kept and exported, but no part of the machinery acts on them yet. The list is generated from the code, so a setting cannot quietly move between the two groups.",
+    "de": "Diese Werte werden gespeichert und exportiert, aber kein Teil der Mechanik handelt danach. Die Liste entsteht aus dem Code, damit keine Einstellung unbemerkt die Gruppe wechselt."
+  },
   "This interface cannot place a real call. Only the command line can, and only after the intent is typed out in full.": {
     "en": "This interface cannot place a real call. Only the command line can, and only after the intent is typed out in full.",
     "de": "Diese Oberfläche kann keinen echten Anruf auslösen. Das kann nur die Kommandozeile, und auch dort erst, wenn die Absicht vollständig ausgeschrieben wird."
   },
+  "This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it.": {
+    "en": "This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it.",
+    "de": "Gemessen wird der lokale Prüfstand, nicht der CALL-E-Agent. Ein Trockenlauf kann zeigen, dass das Instrument durchgesetzt und geprüft wird; ob der Agent es auch spricht, zeigt nur ein echter Anruf."
+  },
   "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them.": {
     "en": "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them.",
     "de": "Diese Station trägt außerdem Einstellungen, die zum Gerüst gehören und nicht abschaltbar sind. Sie erscheinen deshalb nicht als Bedienelement; die Konfiguration nennt sie."
+  },
+  "Two equivalent forms need paired items; the item grammar has no pairing yet.": {
+    "en": "Two equivalent forms need paired items; the item grammar has no pairing yet.",
+    "de": "Zwei gleichwertige Formen brauchen gepaarte Items; die Item-Grammatik kennt noch keine Paarung."
+  },
+  "Uploading anywhere is a step this build deliberately does not take.": {
+    "en": "Uploading anywhere is a step this build deliberately does not take.",
+    "de": "Irgendwohin hochzuladen ist ein Schritt, den dieser Stand bewusst nicht geht."
+  },
+  "Upper bound for people who refused but accepted a later call.": {
+    "en": "Upper bound for people who refused but accepted a later call.",
+    "de": "Obergrenze für Menschen, die abgelehnt, einem späteren Anruf aber zugestimmt haben."
+  },
+  "What could not be read": {
+    "en": "What could not be read",
+    "de": "Was nicht gelesen werden konnte"
+  },
+  "What the check reports on.": {
+    "en": "What the check reports on.",
+    "de": "Worüber der Test berichtet."
   },
   "What the pipeline reads. Defaults from the form definitions, your answers on top.": {
     "en": "What the pipeline reads. Defaults from the form definitions, your answers on top.",
@@ -199,13 +547,33 @@
     "en": "added later",
     "de": "nachträglich"
   },
+  "announced duration": {
+    "en": "announced duration",
+    "de": "angekündigte Dauer"
+  },
   "asked": {
     "en": "asked",
     "de": "gefragt"
   },
+  "asked only if": {
+    "en": "asked only if",
+    "de": "nur gestellt, wenn"
+  },
   "attempted": {
     "en": "attempted",
     "de": "Versuche"
+  },
+  "attempts allowed per person": {
+    "en": "attempts allowed per person",
+    "de": "erlaubte Versuche je Person"
+  },
+  "calls placed": {
+    "en": "calls placed",
+    "de": "getätigte Anrufe"
+  },
+  "categories": {
+    "en": "categories",
+    "de": "Kategorien"
   },
   "completed": {
     "en": "completed",
@@ -215,9 +583,21 @@
     "en": "completion yield",
     "de": "Ausschöpfungsquote"
   },
+  "criterion": {
+    "en": "criterion",
+    "de": "Kriterium"
+  },
   "daily quota": {
     "en": "daily quota",
     "de": "Tagesration"
+  },
+  "dialled more than once": {
+    "en": "dialled more than once",
+    "de": "mehr als einmal angerufen"
+  },
+  "distinct item orders": {
+    "en": "distinct item orders",
+    "de": "verschiedene Item-Reihenfolgen"
   },
   "done": {
     "en": "done",
@@ -231,17 +611,65 @@
     "en": "drawn:",
     "de": "gezogen:"
   },
+  "format": {
+    "en": "format",
+    "de": "Format"
+  },
   "frame": {
     "en": "frame",
     "de": "Gerüst"
+  },
+  "freely phrased": {
+    "en": "freely phrased",
+    "de": "frei formuliert"
   },
   "included in the sample": {
     "en": "included in the sample",
     "de": "in der Stichprobe"
   },
+  "item": {
+    "en": "item",
+    "de": "Item"
+  },
+  "item order": {
+    "en": "item order",
+    "de": "Item-Reihenfolge"
+  },
+  "items": {
+    "en": "items",
+    "de": "Items"
+  },
+  "kept": {
+    "en": "kept",
+    "de": "eingehalten"
+  },
   "later changes stay possible and are marked as later additions.": {
     "en": "later changes stay possible and are marked as later additions.",
     "de": "spätere Änderungen bleiben möglich und werden als nachträglich gekennzeichnet."
+  },
+  "line": {
+    "en": "line",
+    "de": "Zeile"
+  },
+  "lines could not be read — the field phase will refuse to start.": {
+    "en": "lines could not be read — the field phase will refuse to start.",
+    "de": "Zeilen konnten nicht gelesen werden — die Feldphase startet nicht."
+  },
+  "minutes": {
+    "en": "minutes",
+    "de": "Minuten"
+  },
+  "open": {
+    "en": "open",
+    "de": "offen"
+  },
+  "part of the frame": {
+    "en": "part of the frame",
+    "de": "Teil des Rahmens"
+  },
+  "recorded only": {
+    "en": "recorded only",
+    "de": "nur erfasst"
   },
   "records processed": {
     "en": "records processed",
@@ -251,9 +679,29 @@
     "en": "sample size",
     "de": "Stichprobenumfang"
   },
+  "shapes the analysis": {
+    "en": "shapes the analysis",
+    "de": "prägt die Auswertung"
+  },
+  "shapes the call": {
+    "en": "shapes the call",
+    "de": "prägt den Anruf"
+  },
+  "share": {
+    "en": "share",
+    "de": "Anteil"
+  },
   "shown": {
     "en": "shown",
     "de": "sichtbar"
+  },
+  "steers the run": {
+    "en": "steers the run",
+    "de": "steuert den Lauf"
+  },
+  "test interviews": {
+    "en": "test interviews",
+    "de": "Testinterviews"
   },
   "time windows": {
     "en": "time windows",
@@ -263,20 +711,36 @@
     "en": "waiting…",
     "de": "wartet …"
   },
+  "what it means": {
+    "en": "what it means",
+    "de": "was es bedeutet"
+  },
   "window": {
     "en": "window",
     "de": "Fenster"
+  },
+  "with consent": {
+    "en": "with consent",
+    "de": "mit Zustimmung"
   },
   "withdrawn": {
     "en": "withdrawn",
     "de": "widerrufen"
   },
+  "word for word": {
+    "en": "word for word",
+    "de": "wörtlich"
+  },
+  "wording": {
+    "en": "wording",
+    "de": "Wortlaut"
+  },
   "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.": {
     "en": "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.",
     "de": "{total} Entscheidungen in acht Stationen. Eine Oberfläche zeigt {visible}, ein Agent fragt {asked}, und {locked} gehören zum Gerüst und erscheinen nirgends."
   },
-  "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked}": {
-    "en": "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked}",
-    "de": "{visible} von {total} Einstellungen sichtbar · {locked} gehören zum Gerüst · ein Agent fragt {asked}"
+  "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked} · {declared} are recorded without effect": {
+    "en": "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked} · {declared} are recorded without effect",
+    "de": "{visible} von {total} Einstellungen gezeigt · {locked} gehören zum Rahmen · ein Agent fragt {asked} · {declared} sind ohne Wirkung erfasst"
   }
 }

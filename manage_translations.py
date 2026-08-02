@@ -52,13 +52,22 @@ def _unescape(text: str) -> str:
 def dynamic_keys() -> set[str]:
     """Keys looked up through a variable, which no regex can see.
 
-    The station titles are the only ones: ``t(STATION_TITLES[station])``. They are
-    read from the mapping itself, so a new station cannot be forgotten here.
+    Every one of them is read from the mapping it lives in, so a new station, a
+    new class of setting or a new measured criterion cannot be forgotten here.
     """
     sys.path.insert(0, str(ROOT / "src"))
-    from researchcall.web.render import STATION_TITLES  # noqa: PLC0415
+    from researchcall import effect, pretest  # noqa: PLC0415
+    from researchcall.web.render import EFFECT_LABELS, STATION_TITLES  # noqa: PLC0415
 
-    return set(STATION_TITLES.values())
+    keys = set(STATION_TITLES.values())
+    keys |= set(EFFECT_LABELS.values())
+    # The sentence beside every control: where the setting acts, or why nothing
+    # reads it yet. It is shown to a person, so it needs every language.
+    keys |= {reason for _, reason in effect.EFFECTS.values()}
+    keys |= set(pretest.NOTES.values())
+    keys |= set(pretest.NOT_MEASURABLE_OFFLINE.values())
+    keys.add(pretest.HONEST_NOTE)
+    return keys
 
 
 def used_keys() -> list[str]:
