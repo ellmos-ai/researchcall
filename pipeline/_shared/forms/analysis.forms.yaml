@@ -1,0 +1,100 @@
+# Form definition — Station 7 (analysis)
+
+- field: analysis.keep_raw_alongside_coded
+  station: 07-analysis
+  label: "Rohantwort neben Codierung"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Rohantwort und Deutung bleiben für die Prüfung nebeneinander erhalten."
+  required: true
+  locked: true
+
+- field: analysis.unlisted_answers
+  station: 07-analysis
+  label: "Nicht gelistete Antworten"
+  question: "Wie sollen Antworten behandelt werden, die in keiner vorab definierten Kategorie stehen?"
+  type: choice
+  options:
+    - {value: discard, label: "Verwerfen"}
+    - {value: as_other, label: "Als Sonstiges"}
+    - {value: let_model_map, label: "Vom Modell zuordnen lassen"}
+  default: as_other
+  help: "Die Regel wird vor der Auswertung festgelegt; spätere Änderungen werden begründet protokolliert."
+  required: false
+  locked: false
+
+- field: analysis.free_comments
+  station: 07-analysis
+  label: "Freie Kommentare"
+  question: "Wo sollen freie Kommentare in der Auswertung liegen?"
+  type: choice
+  options:
+    - {value: in_dataset, label: "Im Datensatz"}
+    - {value: separate, label: "Separat"}
+    - {value: discard, label: "Verwerfen"}
+  default: in_dataset
+  help: "Die Ablageentscheidung verändert nicht die vorab festgelegten Antwortkategorien."
+  required: false
+  locked: false
+
+- field: analysis.qualitative.methods
+  station: 07-analysis
+  label: "Qualitative Verfahren"
+  question: "Welche qualitativen Verfahren sollen angewandt werden?"
+  type: multi
+  options:
+    - {value: summary, label: "Zusammenfassung"}
+    - {value: rating, label: "Rating"}
+    - {value: tendency, label: "Tendenzanalyse"}
+    - {value: taa, label: "Argumentationsanalyse"}
+    - {value: metaphor, label: "Metaphernanalyse"}
+  default: [summary, rating, tendency, taa, metaphor]
+  help: "Die ausgewählten Verfahren ergänzen die deskriptive Auswertung; Inferenzstatistik bleibt externen Fachwerkzeugen vorbehalten."
+  required: false
+  locked: false
+
+- field: analysis.qualitative.rating_models
+  station: 07-analysis
+  label: "Modelle je Rating"
+  question: "Wie viele Modelle sollen qualitative Ratings unabhängig vornehmen?"
+  type: number
+  options: []
+  default: 2
+  help: "Mindestens zwei Modelle sind für die Interrater-Reliabilität vorgesehen."
+  required: false
+  locked: false
+
+- field: analysis.report.response_rate
+  station: 07-analysis
+  label: "Ausschöpfungsquote berichten"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Die Ausschöpfungsquote gehört zum methodischen Kernbericht."
+  required: true
+  locked: true
+
+- field: analysis.report.dropout_by_window
+  station: 07-analysis
+  label: "Ausfall nach Zeitfenster berichten"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: NO_ANSWER, DECLINED, BUSY und VOICEMAIL bleiben je Zeitfenster getrennt."
+  required: true
+  locked: true
+
+- field: analysis.report.answers_by_window
+  station: 07-analysis
+  label: "Antworten nach Zeitfenster berichten"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Unterschiede nach zugelostem Zeitfenster bleiben als deskriptiver Befund sichtbar."
+  required: true
+  locked: true

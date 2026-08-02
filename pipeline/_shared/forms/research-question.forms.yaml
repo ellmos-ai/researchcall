@@ -1,0 +1,23 @@
+# Form definition — Station 1 (research question)
+
+- field: question
+  station: 01-research-question
+  label: "Forschungsfrage"
+  question: "Was willst du herausfinden?"
+  type: longtext
+  options: []
+  default: null
+  help: "Ein Satz, der eine beantwortbare Frage formuliert und den Maßstab für alle späteren Items setzt."
+  required: true
+  locked: false
+
+- field: hypotheses
+  station: 01-research-question
+  label: "Hypothesen und Messvorschriften"
+  question: "Was vermutest du, wie wird es gemessen und woran würdest du erkennen, dass es nicht stimmt?"
+  type: table
+  options: []
+  default: []
+  help: "Je Zeile: ID, prüfbare Aussage, Indikator oder Items und Falsifikationskriterium."
+  required: true
+  locked: false

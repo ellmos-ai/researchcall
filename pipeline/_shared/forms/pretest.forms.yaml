@@ -1,0 +1,94 @@
+# Form definition — Station 5 (pretest)
+
+- field: pretest.export_questionnaire
+  station: 05-pretest
+  label: "Fragebogen ausgeben"
+  question: "Soll der Fragebogen vor dem Probelauf als Dokument ausgegeben werden?"
+  type: bool
+  options: []
+  default: true
+  help: "Die Dokumentansicht ist die erste Prüfstufe und macht Wortlaut- und Reihenfolgefehler sichtbar."
+  required: false
+  locked: false
+
+- field: pretest.send_to_reviewers
+  station: 05-pretest
+  label: "Lesereview"
+  question: "Welche Kolleginnen oder Kollegen sollen den Fragebogen vorab lesen?"
+  type: list
+  options: []
+  default: []
+  help: "Die Liste enthält nur die für den Review nötigen Mailadressen."
+  required: false
+  locked: false
+
+- field: pretest.call_reviewers
+  station: 05-pretest
+  label: "Hörtest"
+  question: "Welche eingeweihten Personen sollen den Fragebogen am Telefon hören?"
+  type: list
+  options: []
+  default: []
+  help: "Nur vorab informierte Personen und die dafür nötigen Rufnummern eintragen."
+  required: false
+  locked: false
+
+- field: pretest.self_test_calls
+  station: 05-pretest
+  label: "Selbsttests"
+  question: "Wie viele interne Selbsttest-Anrufe sind vorgesehen?"
+  type: number
+  options: []
+  default: 1
+  help: "Der Selbsttest prüft den vollständigen Gesprächsablauf vor dem Instrumententest."
+  required: false
+  locked: false
+
+- field: pretest.instrument_check.calls
+  station: 05-pretest
+  label: "Instrumententest-Anrufe"
+  question: "Mit wie vielen Anrufen soll die Instrumententreue gemessen werden?"
+  type: number
+  options: []
+  default: 30
+  help: "Die Zahl wird vor dem Test festgelegt; nicht ausgeführte Anrufe dürfen später nicht als Messung erscheinen."
+  required: false
+  locked: false
+
+- field: pretest.instrument_check.syntactic_marker
+  station: 05-pretest
+  label: "Syntaktischer Marker"
+  question: "Welcher bewusst holprige Satz zeigt, ob das Modell den Wortlaut umformuliert?"
+  type: longtext
+  options: []
+  default: null
+  help: "Der Marker muss syntaktisch sein; orthographische Besonderheiten können von der Sprachausgabe normalisiert werden."
+  required: true
+  locked: false
+
+- field: pretest.instrument_check.measure
+  station: 05-pretest
+  label: "Messkriterien der Instrumententreue"
+  question: ""
+  type: multi
+  options:
+    - {value: asked_verbatim, label: "Wortlauttreue"}
+    - {value: spoken_wording, label: "Tatsächlich gesprochener Wortlaut"}
+    - {value: unplanned_follow_ups, label: "Ungeplante Nachfragen"}
+    - {value: order_kept, label: "Eingehaltene Reihenfolge"}
+    - {value: ethics_blocks_complete, label: "Vollständige Ethikbausteine"}
+  default: [asked_verbatim, spoken_wording, unplanned_follow_ups, order_kept, ethics_blocks_complete]
+  help: "Nicht abschaltbar: Der Instrumententest prüft alle im Stations-Skill festgelegten Kriterien."
+  required: true
+  locked: true
+
+- field: pretest.instrument_check.report_result_honestly
+  station: 05-pretest
+  label: "Ergebnis unverfälscht berichten"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Auch mangelnde Wortlauttreue wird als Ergebnis dokumentiert."
+  required: true
+  locked: true

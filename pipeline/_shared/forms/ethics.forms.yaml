@@ -1,0 +1,138 @@
+# Form definition — Station 3 (conversation and ethics frame)
+
+- field: ethics.instruction
+  station: 03-ethics
+  label: "Instruktion"
+  question: "Wer ruft an, was wird untersucht und warum ist das wichtig?"
+  type: longtext
+  options: []
+  default: null
+  help: "Der erste Satz legt die Automatisierung und die auftraggebende Stelle offen."
+  required: true
+  locked: false
+
+- field: ethics.time_estimate
+  station: 03-ethics
+  label: "Zeitschätzung nennen"
+  question: "Soll die erwartete Dauer vor der Teilnahmeentscheidung genannt werden?"
+  type: bool
+  options: []
+  default: true
+  help: "Die genannte Dauer ist ein Versprechen; der Fragebogen muss dazu passen."
+  required: false
+  locked: false
+
+- field: ethics.privacy_text
+  station: 03-ethics
+  label: "Datenschutzhinweis"
+  question: "Welche Daten werden verarbeitet, wird aufgezeichnet oder transkribiert, wie funktioniert die Löschung und wer ist ansprechbar?"
+  type: longtext
+  options: []
+  default: null
+  help: "Der Text nennt Datenarten, Aufzeichnung oder Transkription, Löschweg und Ansprechpartner vollständig."
+  required: true
+  locked: false
+
+- field: ethics.consent_explicit
+  station: 03-ethics
+  label: "Ausdrückliche Einwilligung"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Ohne ausdrückliche Einwilligung beginnt keine Erhebung."
+  required: true
+  locked: true
+
+- field: ethics.right_to_stop
+  station: 03-ethics
+  label: "Widerrufs- und Abbruchrecht"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Die Teilnahme kann jederzeit ohne Begründung beendet werden."
+  required: true
+  locked: true
+
+- field: ethics.number_origin
+  station: 03-ethics
+  label: "Herkunft der Rufnummer"
+  question: "Woher stammt die Rufnummer?"
+  type: text
+  options: []
+  default: null
+  help: "Die Herkunft wird transparent genannt und muss zur Auswahlgrundlage passen."
+  required: true
+  locked: false
+
+- field: ethics.on_refusal.ask_reason
+  station: 03-ethics
+  label: "Ablehnungsgrund erfragen"
+  question: "Soll nach einer Ablehnung freiwillig nach dem Grund gefragt werden?"
+  type: bool
+  options: []
+  default: true
+  help: "Nicht überreden; die Antwort bleibt freiwillig und fließt nur in die Ausfallanalyse ein."
+  required: false
+  locked: false
+
+- field: ethics.on_refusal.offer_callback
+  station: 03-ethics
+  label: "Rückruf anbieten"
+  question: "Soll bei Ablehnung ein späterer Rückruf angeboten werden?"
+  type: bool
+  options: []
+  default: true
+  help: "Nur eine ausdrückliche Rückrufzusage darf in die Kontaktregeln übernommen werden."
+  required: false
+  locked: false
+
+- field: ethics.greeting
+  station: 03-ethics
+  label: "Begrüßung"
+  question: "Welche Begrüßungsbausteine darf der Agent frei formulieren?"
+  type: list
+  options: []
+  default: []
+  help: "Der warme Gesprächseinstieg darf frei formuliert sein, die Offenlegung im ersten Satz bleibt erhalten."
+  required: true
+  locked: false
+
+- field: ethics.closing
+  station: 03-ethics
+  label: "Abschluss"
+  question: "Welche Dank- und Rückfragebausteine gehören an das Gesprächsende?"
+  type: list
+  options: []
+  default: []
+  help: "Der Abschluss enthält Dank und eine Rückfragemöglichkeit."
+  required: true
+  locked: false
+
+- field: ethics.policies
+  station: 03-ethics
+  label: "Zusätzliche Policies"
+  question: "Welche eigenen Policy-Dateien gelten für diese Erhebung?"
+  type: list
+  options: []
+  default: []
+  help: "Nur Verweise auf bereits geltende Policy-Dateien eintragen."
+  required: false
+  locked: false
+
+- field: disclosure_level
+  station: 03-ethics
+  label: "Disclosure-Stufe"
+  question: "Welche Disclosure-Stufe der Pipeline gilt?"
+  type: choice
+  options:
+    - {value: L1, label: "L1"}
+    - {value: L2, label: "L2"}
+    - {value: L3, label: "L3"}
+    - {value: L4, label: "L4"}
+    - {value: L5, label: "L5"}
+  default: L3
+  help: "Die Stufe steuert die KI-Offenlegung in der späteren Publikation."
+  required: false
+  locked: false

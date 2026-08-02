@@ -1,0 +1,81 @@
+# Form definition — Station 6 (fieldwork)
+
+- field: fieldwork.storage
+  station: 06-fieldwork
+  label: "Speicherziel"
+  question: "Wo sollen die Feldphasendaten gespeichert werden?"
+  type: choice
+  options:
+    - {value: database, label: "Datenbank"}
+    - {value: files, label: "Dateien"}
+    - {value: gardener, label: "Gardener"}
+  default: files
+  help: "Nur das für die Erhebung nötige Speicherziel wählen; personenbezogene Zusatzdaten werden nicht mitgeführt."
+  required: false
+  locked: false
+
+- field: fieldwork.path
+  station: 06-fieldwork
+  label: "Ausgabepfad"
+  question: "In welchen Pfad soll die Feldphase schreiben?"
+  type: text
+  options: []
+  default: "./out"
+  help: "Der Pfad gehört zum gewählten Speicherziel und liegt standardmäßig im Projekt."
+  required: false
+  locked: false
+
+- field: fieldwork.keep_raw_answer
+  station: 06-fieldwork
+  label: "Rohantwort neben Deutung behalten"
+  question: ""
+  type: bool
+  options: []
+  default: true
+  help: "Nicht abschaltbar: Ohne Rohantwort ist die vom Dienst gelieferte Kategorie nicht überprüfbar."
+  required: true
+  locked: true
+
+- field: fieldwork.keep_transcript
+  station: 06-fieldwork
+  label: "Transkript behalten"
+  question: "Soll das Transkript gemäß Datenschutz- und Einwilligungsrahmen behalten werden?"
+  type: bool
+  options: []
+  default: true
+  help: "Diese Entscheidung muss mit dem Datenschutzhinweis aus Station 3 übereinstimmen."
+  required: false
+  locked: false
+
+- field: fieldwork.poll_interval_seconds
+  station: 06-fieldwork
+  label: "Polling-Intervall"
+  question: "In welchem Sekundenabstand soll der Fortschritt abgefragt werden?"
+  type: number
+  options: []
+  default: 10
+  help: "Fortschritt kommt aus `activity`; der nichtterminale Dienststatus ist keine Fortschrittsanzeige."
+  required: false
+  locked: false
+
+- field: fieldwork.stop_on_error
+  station: 06-fieldwork
+  label: "Bei Fehler stoppen"
+  question: "Soll die Tagesration beim ersten Fehler beendet werden?"
+  type: bool
+  options: []
+  default: false
+  help: "Jeder beanspruchte Fall behält auch bei Fehler oder Unterbrechung seinen eindeutigen Endstatus."
+  required: false
+  locked: false
+
+- field: fieldwork.resumable
+  station: 06-fieldwork
+  label: "Fortsetzbar"
+  question: "Soll ein späterer Lauf die noch offenen Fälle fortsetzen können?"
+  type: bool
+  options: []
+  default: true
+  help: "Fortsetzen bedeutet offene Fälle weiterbearbeiten, nicht bereits beanspruchte Personen erneut anrufen."
+  required: false
+  locked: false

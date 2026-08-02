@@ -1,0 +1,47 @@
+# Form definition — Station 2 (instrument)
+
+- field: questionnaire.order
+  station: 02-instrument
+  label: "Reihenfolge"
+  question: "Soll die Reihenfolge fest sein oder randomisiert werden?"
+  type: choice
+  options:
+    - {value: fixed, label: "Fest"}
+    - {value: randomised, label: "Randomisiert"}
+  default: randomised
+  help: "Randomisierung verteilt Positions- und Abbrucheffekte, sofern keine feste Reihenfolge methodisch nötig ist."
+  required: false
+  locked: false
+
+- field: questionnaire.parallel_forms
+  station: 02-instrument
+  label: "Parallelformen"
+  question: "Wie viele gleichwertige Formen des Fragebogens soll es geben?"
+  type: number
+  options: []
+  default: 0
+  help: "Parallelformen sind nur sinnvoll, wenn Erinnerungseffekte oder ein Paralleltest vorgesehen sind."
+  required: false
+  locked: false
+
+- field: questionnaire.jump_rules
+  station: 02-instrument
+  label: "Sprungregeln"
+  question: "Welche Antworten sollen welche späteren Items überspringen?"
+  type: table
+  options: []
+  default: []
+  help: "Jede Regel nennt das auslösende Item, den Wert und die zu überspringenden Items; sie wird vor der Feldphase festgelegt."
+  required: false
+  locked: false
+
+- field: items
+  station: 02-instrument
+  label: "Fragebogen-Items"
+  question: "Welche Items messen die Hypothesen — mit welchem Wortlaut, Format, welcher Skala, Nachfragetiefe und Auswertungsregel?"
+  type: table
+  options: []
+  default: []
+  help: "Je Item: ID, Hypothese, Format, exakter Wortlaut, Wortlautbindung, Skala, Nachfragetiefe und vorab festgelegte Auswertungsregel."
+  required: true
+  locked: false
