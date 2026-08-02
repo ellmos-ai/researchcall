@@ -240,15 +240,30 @@ def create_app(
     @app.get("/instrument", response_class=HTMLResponse)
     async def instrument_page(request: Request) -> HTMLResponse:
         translator = translator_of(request)
-        plan = field_phase.planned(load_workspace(), fields, translator.language)
+        workspace = load_workspace()
+        plan = field_phase.planned(workspace, fields, translator.language)
         script = instrument.describe(plan["questionnaire"], translator.language)
-        body = render.instrument_view(plan, script, translator)
+        values = field_phase.values_of(workspace, fields)
+        body = render.instrument_view(
+            plan,
+            script,
+            translator,
+            downloadable=bool(values.get("pretest.export_questionnaire", True)),
+        )
         return shell(request, body, translator.t("The call, as written"), "instrument")
 
     @app.get("/instrument.md", response_class=PlainTextResponse)
     async def instrument_markdown(request: Request) -> PlainTextResponse:
         translator = translator_of(request)
-        plan = field_phase.planned(load_workspace(), fields, translator.language)
+        workspace = load_workspace()
+        values = field_phase.values_of(workspace, fields)
+        if not values.get("pretest.export_questionnaire", True):
+            return PlainTextResponse(
+                "Handing the questionnaire around is switched off in station 5 "
+                "(pretest.export_questionnaire).\n",
+                status_code=404,
+            )
+        plan = field_phase.planned(workspace, fields, translator.language)
         lines = instrument.describe(plan["questionnaire"], translator.language)
         if plan["problems"]:
             lines += ["", "## Lines that could not be read", ""]
@@ -354,7 +369,14 @@ def create_app(
     @app.get("/report", response_class=HTMLResponse)
     async def report_page(request: Request) -> HTMLResponse:
         translator = translator_of(request)
-        body = render.report_view(field_phase.summary(load_workspace()), translator)
+        workspace = load_workspace()
+        summary = field_phase.summary(workspace)
+        if summary.get("ready"):
+            values = field_phase.values_of(workspace, fields)
+            summary["findings_file"] = str(
+                values.get("reporting.findings_file") or "findings.md"
+            )
+        body = render.report_view(summary, translator)
         return shell(request, body, translator.t("Report"), "report")
 
     @app.get("/report.md", response_class=PlainTextResponse)
@@ -389,6 +411,11 @@ def create_app(
     @app.get("/export/codebook.md", response_class=PlainTextResponse)
     async def export_codebook() -> Any:
         return _exported(export.codebook, "text/markdown; charset=utf-8")
+
+    @app.get("/export/findings.md", response_class=PlainTextResponse)
+    async def export_findings() -> Any:
+        """The findings note, started from the numbers and left open for the reading."""
+        return _exported(export.findings, "text/markdown; charset=utf-8")
 
     return app
 

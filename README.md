@@ -1,4 +1,8 @@
+![ResearchCall](banner.png)
+
 # ResearchCall
+
+**English · [Deutsch](README_de.md)**
 
 ResearchCall is a dry-run-first Python tool for standardized scientific telephone surveys. It builds the questionnaire from the answers given in its own stations, draws a random sample, assigns each selected record to a randomized time window at draw time, dials each person once by default, and reports nonresponse without collapsing distinct CALL-E outcomes.
 
@@ -49,7 +53,7 @@ Gating is enforced rather than described: station N+1 opens once N is finished, 
 
 With `questionnaire.order: randomised`, the item order is drawn **per respondent** — seeded by the record, so a rerun is reproducible — and filters survive the shuffle. A single shuffle per study would only remove the researcher's habit; position effects need a fresh order per call.
 
-**A control that changes nothing says so.** Every setting is classified in `src/researchcall/effect.py` by where it takes effect — the call, the run, the analysis, the frame — or as *recorded only*, with the reason. The badge sits on the control itself, and `/config` lists the recorded-only ones together. A form definition that is not classified fails the test suite, so a new setting cannot arrive unlabelled and a setting cannot quietly change groups. Of 59 decisions, 41 act somewhere and 18 are currently recorded without effect.
+**A control that changes nothing says so.** Every setting is classified in `src/researchcall/effect.py` by where it takes effect — the call, the run, the analysis, the frame — or as *recorded only*, with the reason. The badge sits on the control itself, and `/config` lists the recorded-only ones together. A form definition that is not classified fails the test suite, so a new setting cannot arrive unlabelled and a setting cannot quietly change groups. Of 59 decisions, 40 act somewhere and 19 are currently recorded without effect. Writing the register was itself the check: three settings it first called effective turned out not to be, and were either connected or moved to the honest column.
 
 **The data leaves.** `/export/dataset.csv` is one row per person and one column per item, `codebook.md` explains every column, and `free-text.csv` holds the free answers when `analysis.free_comments` keeps them apart. Reversed items are carried twice, as given and recoded — forgetting to turn them back measures the opposite of the scale.
 

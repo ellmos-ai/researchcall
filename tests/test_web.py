@@ -321,6 +321,32 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertEqual(document.status_code, 200)
         self.assertIn("[consent]", document.text)
 
+    def test_switching_the_questionnaire_export_off_withdraws_the_download(self) -> None:
+        """A setting the register calls effective has to change something."""
+        self.finish_all()
+        self.assertEqual(self.client.get("/instrument.md").status_code, 200)
+        body = self.payload("05-pretest", **{"pretest.export_questionnaire": ""})
+        self.client.post(
+            "/station/05-pretest?lang=en", content=body + "&action=save",
+            headers=FORM_ENCODED,
+        )
+        self.assertEqual(self.client.get("/instrument.md").status_code, 404)
+        self.assertNotIn("/instrument.md", self.client.get("/instrument?lang=en").text)
+
+    def test_the_findings_note_is_named_by_station_eight_and_starts_from_the_numbers(
+        self,
+    ) -> None:
+        self.finish_all()
+        self.client.post("/fieldwork/prepare?lang=en")
+        with self.client.stream("GET", "/fieldwork/stream") as stream:
+            list(stream.iter_lines())
+        note = self.client.get("/export/findings.md")
+        self.assertEqual(note.status_code, 200)
+        self.assertIn(ANSWERS["question"], note.text)
+        self.assertIn("Included records: 9", note.text)
+        self.assertIn("## Reading", note.text)
+        self.assertIn("BEFUNDE.md", self.client.get("/report?lang=en").text)
+
     def test_the_instrument_check_runs_and_names_its_own_limits(self) -> None:
         self.finish_all()
         result = self.client.post("/pretest/run?lang=en")
