@@ -30,6 +30,18 @@ REQUIRED_FORM_KEYS = {
     "locked",
 }
 
+# The keys whose text is shown to a human and therefore needs every language.
+TRANSLATED_KEYS = ("label", "question", "help")
+
+# The language the bare keys are written in. A second language lives beside them
+# as "<key>_<language>", so adding a third one is a matter of the YAML files, not
+# of this module. Field text belongs to the field definition; putting it into a
+# separate translation table would create a second source of truth for the same
+# decision — the one thing this module exists to prevent.
+SOURCE_LANGUAGE = "de"
+
+_LOCALIZED = re.compile(r"^(?P<key>label|question|help)_(?P<language>[a-z]{2})$")
+
 
 @dataclasses.dataclass(frozen=True)
 class Field:
@@ -45,6 +57,37 @@ class Field:
     help: str = ""
     required: bool = False
     locked: bool = False           # part of the frame, never an option
+    # "<key>_<language>" -> text, e.g. {"label_en": "Sampling frame"}
+    localized: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    # --- language ----------------------------------------------------------
+
+    def text(self, key: str, language: str = SOURCE_LANGUAGE) -> str:
+        """The text of one key in one language, falling back to the source."""
+        if language != SOURCE_LANGUAGE:
+            translated = self.localized.get(f"{key}_{language}")
+            if translated:
+                return translated
+        return str(getattr(self, key, "") or "")
+
+    def languages(self) -> set[str]:
+        """Every language this field carries text for."""
+        found = {SOURCE_LANGUAGE}
+        for name in self.localized:
+            match = _LOCALIZED.match(name)
+            if match:
+                found.add(match.group("language"))
+        return found
+
+    def options_in(self, language: str = SOURCE_LANGUAGE) -> list[dict[str, str]]:
+        """The options with their labels in one language."""
+        rendered = []
+        for option in self.options:
+            label = option.get("label", "")
+            if language != SOURCE_LANGUAGE:
+                label = option.get(f"label_{language}") or label
+            rendered.append({"value": option.get("value", ""), "label": label})
+        return rendered
 
     # --- the three ways in -------------------------------------------------
 
@@ -52,7 +95,7 @@ class Field:
         """What the config carries."""
         return self.path, self.default
 
-    def as_question(self) -> str | None:
+    def as_question(self, language: str = SOURCE_LANGUAGE) -> str | None:
         """What an agent asks.
 
         Returns None when the agent must not ask: locked settings are not up for
@@ -63,19 +106,23 @@ class Field:
             return None
         if self.default is not None and not self.required:
             return None
-        return self.question or self.label or self.path
+        return (
+            self.text("question", language)
+            or self.text("label", language)
+            or self.path
+        )
 
-    def as_form_field(self) -> dict[str, Any] | None:
+    def as_form_field(self, language: str = SOURCE_LANGUAGE) -> dict[str, Any] | None:
         """What a user interface shows. Locked settings show nothing at all."""
         if self.locked:
             return None
         return {
             "name": self.path,
-            "label": self.label or self.path,
+            "label": self.text("label", language) or self.path,
             "type": self.type,
-            "options": list(self.options),
+            "options": self.options_in(language),
             "value": self.default,
-            "help": self.help,
+            "help": self.text("help", language),
             "required": self.required,
         }
 
@@ -137,9 +184,33 @@ def load_fields(root: pathlib.Path | None = None) -> list[Field]:
                     help=entry["help"],
                     required=bool(entry["required"]),
                     locked=bool(entry["locked"]),
+                    localized={
+                        name: str(value)
+                        for name, value in entry.items()
+                        if _LOCALIZED.match(name) and value is not None
+                    },
                 )
             )
     return fields
+
+
+def untranslated(fields: Iterable[Field], language: str) -> list[tuple[str, str]]:
+    """Which field texts are still missing in one language.
+
+    An empty source text needs no translation — a locked field asks nothing, so
+    its empty question stays empty everywhere.
+    """
+    missing = []
+    for field in fields:
+        for key in TRANSLATED_KEYS:
+            if not getattr(field, key, ""):
+                continue
+            if not field.localized.get(f"{key}_{language}"):
+                missing.append((field.path, f"{key}_{language}"))
+        for option in field.options:
+            if option.get("label") and not option.get(f"label_{language}"):
+                missing.append((field.path, f"option:{option.get('value', '')}"))
+    return missing
 
 
 def _read_entries(path: pathlib.Path) -> Iterable[dict[str, Any]]:
@@ -241,25 +312,33 @@ def config_defaults(fields: Iterable[Field]) -> dict[str, Any]:
     return out
 
 
-def interview(fields: Iterable[Field], station: str | None = None) -> list[str]:
+def interview(
+    fields: Iterable[Field],
+    station: str | None = None,
+    language: str = SOURCE_LANGUAGE,
+) -> list[str]:
     """The questions an agent actually needs to ask — and no others."""
     questions = []
     for field in fields:
         if station and field.station != station:
             continue
-        asked = field.as_question()
+        asked = field.as_question(language)
         if asked:
             questions.append(asked)
     return questions
 
 
-def form(fields: Iterable[Field], station: str | None = None) -> list[dict[str, Any]]:
+def form(
+    fields: Iterable[Field],
+    station: str | None = None,
+    language: str = SOURCE_LANGUAGE,
+) -> list[dict[str, Any]]:
     """The visible fields of a user interface, locked ones removed."""
     rendered = []
     for field in fields:
         if station and field.station != station:
             continue
-        entry = field.as_form_field()
+        entry = field.as_form_field(language)
         if entry:
             rendered.append(entry)
     return rendered

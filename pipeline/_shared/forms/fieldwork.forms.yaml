@@ -3,79 +3,100 @@
 - field: fieldwork.storage
   station: 06-fieldwork
   label: "Speicherziel"
+  label_en: "Storage target"
   question: "Wo sollen die Feldphasendaten gespeichert werden?"
+  question_en: "Where should the fieldwork data be stored?"
   type: choice
   options:
-    - {value: database, label: "Datenbank"}
-    - {value: files, label: "Dateien"}
-    - {value: gardener, label: "Gardener"}
+    - {value: database, label: "Datenbank", label_en: "Database"}
+    - {value: files, label: "Dateien", label_en: "Files"}
+    - {value: gardener, label: "Gardener", label_en: "Gardener"}
   default: files
   help: "Nur das für die Erhebung nötige Speicherziel wählen; personenbezogene Zusatzdaten werden nicht mitgeführt."
+  help_en: "Choose only the storage target the study needs; no additional personal data is carried along."
   required: false
   locked: false
 
 - field: fieldwork.path
   station: 06-fieldwork
   label: "Ausgabepfad"
+  label_en: "Output path"
   question: "In welchen Pfad soll die Feldphase schreiben?"
+  question_en: "Which path should fieldwork write to?"
   type: text
   options: []
   default: "./out"
   help: "Der Pfad gehört zum gewählten Speicherziel und liegt standardmäßig im Projekt."
+  help_en: "The path belongs to the chosen storage target and stays inside the project by default."
   required: false
   locked: false
 
 - field: fieldwork.keep_raw_answer
   station: 06-fieldwork
   label: "Rohantwort neben Deutung behalten"
+  label_en: "Keep the raw answer beside the interpretation"
   question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
   help: "Nicht abschaltbar: Ohne Rohantwort ist die vom Dienst gelieferte Kategorie nicht überprüfbar."
+  help_en: "Not switchable: without the raw answer the category returned by the service cannot be audited."
   required: true
   locked: true
 
 - field: fieldwork.keep_transcript
   station: 06-fieldwork
   label: "Transkript behalten"
+  label_en: "Keep the transcript"
   question: "Soll das Transkript gemäß Datenschutz- und Einwilligungsrahmen behalten werden?"
+  question_en: "Should the transcript be kept within the privacy and consent frame?"
   type: bool
   options: []
   default: true
   help: "Diese Entscheidung muss mit dem Datenschutzhinweis aus Station 3 übereinstimmen."
+  help_en: "This decision has to match the privacy notice from station 3."
   required: false
   locked: false
 
 - field: fieldwork.poll_interval_seconds
   station: 06-fieldwork
   label: "Polling-Intervall"
+  label_en: "Polling interval"
   question: "In welchem Sekundenabstand soll der Fortschritt abgefragt werden?"
+  question_en: "At what interval in seconds should progress be polled?"
   type: number
   options: []
   default: 10
   help: "Fortschritt kommt aus `activity`; der nichtterminale Dienststatus ist keine Fortschrittsanzeige."
+  help_en: "Progress comes from `activity`; the non-terminal service status is not a progress bar."
   required: false
   locked: false
 
 - field: fieldwork.stop_on_error
   station: 06-fieldwork
   label: "Bei Fehler stoppen"
+  label_en: "Stop on error"
   question: "Soll die Tagesration beim ersten Fehler beendet werden?"
+  question_en: "Should the daily quota end at the first error?"
   type: bool
   options: []
   default: false
   help: "Jeder beanspruchte Fall behält auch bei Fehler oder Unterbrechung seinen eindeutigen Endstatus."
+  help_en: "Every claimed record keeps a distinct terminal status, even on error or interruption."
   required: false
   locked: false
 
 - field: fieldwork.resumable
   station: 06-fieldwork
   label: "Fortsetzbar"
+  label_en: "Resumable"
   question: "Soll ein späterer Lauf die noch offenen Fälle fortsetzen können?"
+  question_en: "Should a later run be able to continue the records still open?"
   type: bool
   options: []
   default: true
   help: "Fortsetzen bedeutet offene Fälle weiterbearbeiten, nicht bereits beanspruchte Personen erneut anrufen."
+  help_en: "Resuming means continuing open records, not calling people who were already claimed."
   required: false
   locked: false
