@@ -116,7 +116,6 @@ def create_app(
         workspace = load_workspace()
         visible = len(forms.form(fields))
         asked = len(forms.interview(fields))
-        locked = sum(1 for field in fields if field.locked)
         rows = []
         for index, station in enumerate(STATIONS, start=1):
             station_fields = [f for f in fields if f.station == station]
@@ -126,17 +125,14 @@ def create_app(
                 f'<td><a href="/station/{render.e(station)}?lang={render.e(translator.language)}">'
                 f"{render.e(translator.t(render.STATION_TITLES[station]))}</a></td>"
                 f'<td class="n">{len(forms.form(station_fields, station, translator.language))}</td>'
-                f'<td class="n">{sum(1 for f in station_fields if f.locked)}</td>'
                 f'<td class="n">{len(forms.interview(station_fields, station, translator.language))}</td>'
                 f"<td>{'✓' if station in workspace.completed else ''}</td>"
                 "</tr>"
             )
         headline = (
-            translator.t("{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.")
-            .replace("{total}", str(len(fields)))
+            translator.t("Eight stations contain {visible} visible decisions. An agent asks {asked} of them when no default is available.")
             .replace("{visible}", str(visible))
             .replace("{asked}", str(asked))
-            .replace("{locked}", str(locked))
         )
         body = (
             f'<main><h2>{render.e(translator.t("A research method, not a call script"))}</h2>'
@@ -146,7 +142,6 @@ def create_app(
             '<div class="scroll"><table class="data"><thead><tr>'
             f'<th></th><th>{render.e(translator.t("Station"))}</th>'
             f'<th>{render.e(translator.t("shown"))}</th>'
-            f'<th>{render.e(translator.t("frame"))}</th>'
             f'<th>{render.e(translator.t("asked"))}</th>'
             f'<th>{render.e(translator.t("done"))}</th>'
             f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
@@ -290,14 +285,26 @@ def create_app(
     @app.get("/pretest", response_class=HTMLResponse)
     async def pretest_page(request: Request) -> HTMLResponse:
         translator = translator_of(request)
-        plan = field_phase.planned(load_workspace(), fields, translator.language)
-        body = render.pretest_view(None, plan, translator)
+        workspace = load_workspace()
+        plan = field_phase.planned(workspace, fields, translator.language)
+        problem = ""
+        if not workspace.completed_through("05-pretest"):
+            problem = translator.t(
+                "Finish stations 1 to 5 before running the instrument check."
+            )
+        body = render.pretest_view(None, plan, translator, problem=problem)
         return shell(request, body, translator.t("Instrument check"), "pretest")
 
     @app.post("/pretest/run", response_class=HTMLResponse)
     async def pretest_run(request: Request) -> HTMLResponse:
         translator = translator_of(request)
         workspace = load_workspace()
+        if not workspace.completed_through("05-pretest"):
+            return HTMLResponse(
+                f'<p class="note warn">'
+                f'{render.e(translator.t("Finish stations 1 to 5 before running the instrument check."))}'
+                "</p>"
+            )
         plan = field_phase.planned(workspace, fields, translator.language)
         if plan["problems"] or not plan["questionnaire"]["questions"]:
             return HTMLResponse(
@@ -326,7 +333,11 @@ def create_app(
         workspace = load_workspace()
         plan = field_phase.planned(workspace, fields, translator.language)
         problem = ""
-        if plan["size"] <= 0 and plan["method"] != "census":
+        if not workspace.completed_through("06-fieldwork"):
+            problem = translator.t(
+                "Finish stations 1 to 6 before preparing the field phase."
+            )
+        elif plan["size"] <= 0 and plan["method"] != "census":
             problem = translator.t("Set a sample size in station 4 before the field phase.")
         elif plan["questions"] == 0:
             problem = translator.t("Station 2 carries no items yet, so there is nothing to ask.")
@@ -339,11 +350,18 @@ def create_app(
     async def fieldwork_prepare(request: Request) -> HTMLResponse:
         translator = translator_of(request)
         workspace = load_workspace()
+        if not workspace.completed_through("06-fieldwork"):
+            return HTMLResponse(
+                f'<p class="note warn">'
+                f'{render.e(translator.t("Finish stations 1 to 6 before preparing the field phase."))}'
+                "</p>"
+            )
         try:
             field_phase.prepare(workspace, fields, language=translator.language)
         except (ValueError, OSError) as error:
             return HTMLResponse(
-                f'<p class="note warn">{render.e(str(error))}</p>', status_code=200
+                f'<p class="note warn">{render.e(translator.t(str(error)))}</p>',
+                status_code=200,
             )
         return HTMLResponse(render.monitor_panel(translator))
 

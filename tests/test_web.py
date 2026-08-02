@@ -116,10 +116,23 @@ class WorkbenchTestCase(unittest.TestCase):
         workspace.completed = {station: "now" for station in STATIONS}
         workspace.save()
         for language in ("en", "de"):
-            for station in STATIONS:
-                html = self.client.get(f"/station/{station}?lang={language}").text
+            pages = [
+                self.client.get(f"/?lang={language}").text,
+                self.client.get(f"/config?lang={language}").text,
+                self.client.get(f"/instrument?lang={language}").text,
+                self.client.get(f"/pretest?lang={language}").text,
+                self.client.get(f"/fieldwork?lang={language}").text,
+                self.client.get(f"/report?lang={language}").text,
+            ]
+            pages.extend(
+                self.client.get(f"/station/{station}?lang={language}").text
+                for station in STATIONS
+            )
+            for page_number, html in enumerate(pages, start=1):
                 for path in self.locked:
-                    with self.subTest(language=language, station=station, field=path):
+                    with self.subTest(
+                        language=language, page=page_number, field=path
+                    ):
                         self.assertNotIn(path, html)
                         self.assertNotIn(f'name="{path}"', html)
 
@@ -135,9 +148,13 @@ class WorkbenchTestCase(unittest.TestCase):
 
     def test_the_overview_counts_come_from_the_definitions(self) -> None:
         html = self.client.get("/?lang=en").text
-        self.assertIn(str(len(self.fields)), html)
-        self.assertIn(str(len(forms.form(self.fields))), html)
-        self.assertIn(str(len(self.locked)), html)
+        self.assertIn(
+            f"Eight stations contain {len(forms.form(self.fields))} visible decisions.",
+            html,
+        )
+        self.assertIn(
+            f"An agent asks {len(forms.interview(self.fields))} of them", html
+        )
 
     # --- language ----------------------------------------------------------
 
@@ -187,6 +204,28 @@ class WorkbenchTestCase(unittest.TestCase):
         self.finish(STATIONS[0])
         response = self.client.get("/station/02-instrument?lang=en")
         self.assertEqual(response.url.path, "/station/02-instrument")
+
+    def test_direct_workflow_actions_obey_the_station_gate(self) -> None:
+        pretest = self.client.post("/pretest/run?lang=en")
+        self.assertIn("Finish stations 1 to 5", pretest.text)
+        fieldwork = self.client.post("/fieldwork/prepare?lang=en")
+        self.assertIn("Finish stations 1 to 6", fieldwork.text)
+
+        for station in STATIONS[:5]:
+            self.finish(station)
+        pretest = self.client.post("/pretest/run?lang=en")
+        self.assertNotIn("Finish stations 1 to 5", pretest.text)
+        self.assertIn("Not measurable in a dry run", pretest.text)
+
+        fieldwork = self.client.post("/fieldwork/prepare?lang=en")
+        self.assertIn("Finish stations 1 to 6", fieldwork.text)
+        self.finish("06-fieldwork")
+        fieldwork = self.client.post("/fieldwork/prepare?lang=en")
+        self.assertNotIn("Finish stations 1 to 6", fieldwork.text)
+        self.assertTrue((self.directory / "fieldwork.db").exists())
+        opened = self.client.get("/fieldwork?lang=en")
+        self.assertIn("Continue prepared dry run", opened.text)
+        self.assertNotIn("new EventSource", opened.text)
 
     def test_a_station_will_not_close_while_a_required_answer_is_missing(self) -> None:
         body = self.payload(STATIONS[0], question="") + "&action=complete"
@@ -252,6 +291,43 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertEqual(markdown.status_code, 200)
         self.assertIn("Included records: 9", markdown.text)
         self.assertIn("Attempts recorded: " + str(events[-1]["processed"]), markdown.text)
+        written = self.directory / "report.md"
+        self.assertTrue(written.exists(), "the field phase must really write its report")
+        self.assertEqual(written.read_text(encoding="utf-8"), markdown.text)
+
+    def test_an_existing_field_phase_is_never_silently_replaced(self) -> None:
+        self.finish_all()
+        self.client.post("/fieldwork/prepare?lang=en")
+        database = self.directory / "fieldwork.db"
+        before = database.read_bytes()
+
+        changed = self.payload("04-sampling", **{"sample.size": "10"})
+        self.client.post(
+            "/station/04-sampling?lang=en",
+            content=changed + "&action=save",
+            headers=FORM_ENCODED,
+        )
+        response = self.client.post("/fieldwork/prepare?lang=en")
+        self.assertIn("different instrument or sampling plan", response.text)
+        self.assertEqual(database.read_bytes(), before)
+
+        original_sampling = self.payload("04-sampling", **{"sample.size": "9"})
+        self.client.post(
+            "/station/04-sampling?lang=en",
+            content=original_sampling + "&action=save",
+            headers=FORM_ENCODED,
+        )
+        non_resumable = self.payload(
+            "06-fieldwork", **{"fieldwork.resumable": ""}
+        )
+        self.client.post(
+            "/station/06-fieldwork?lang=en",
+            content=non_resumable + "&action=save",
+            headers=FORM_ENCODED,
+        )
+        response = self.client.post("/fieldwork/prepare?lang=en")
+        self.assertIn("never deletes it", response.text)
+        self.assertEqual(database.read_bytes(), before)
 
     def test_a_person_who_invited_a_later_call_is_dialled_again_and_the_report_says_so(
         self,

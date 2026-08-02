@@ -26,7 +26,7 @@ from typing import Any, Iterator
 
 from .. import forms, instrument
 from ..calls import FixtureCallClient
-from ..database import connect, create_study, get_study, initialize
+from ..database import connect, create_study, get_study, initialize, load_questionnaire
 from ..reporting import build_report, collect
 from ..runner import ContactRules, run_day
 from ..sampling import DEFAULT_WINDOWS, draw_sample, eligible_count, import_frame_rows
@@ -105,6 +105,7 @@ def build(
         "attempts_per_person": rules.attempts_per_person,
         "callback_after_refusal_max": rules.callback_after_refusal_max,
         "spread_attempts": rules.spread_attempts,
+        "stop_on_error": rules.stop_on_error,
     }
     return questionnaire, problems
 
@@ -152,6 +153,18 @@ def exists(workspace: Workspace) -> bool:
     return database_path(workspace).exists()
 
 
+def _persisted_questionnaire(plan: dict[str, Any]) -> dict[str, Any]:
+    """The instrument plus the draw decisions that cannot change on resume."""
+    questionnaire = dict(plan["questionnaire"])
+    questionnaire["fieldwork_plan"] = {
+        "size": plan["size"],
+        "windows": list(plan["windows"]),
+        "method": plan["method"],
+        "assign_randomly": plan["assign_randomly"],
+    }
+    return questionnaire
+
+
 def prepare(
     workspace: Workspace,
     fields: list[forms.Field],
@@ -182,28 +195,37 @@ def prepare(
 
     workspace.path.mkdir(parents=True, exist_ok=True)
     path = database_path(workspace)
+    questionnaire = _persisted_questionnaire(plan)
     if path.exists():
-        if plan["resumable"]:
-            # Resumable means exactly that: an existing run is continued rather
-            # than thrown away, which is also the only way a stopped run does not
-            # cost its records twice.
-            connection = connect(path)
-            try:
-                study = get_study(connection, STUDY_KEY)
-                data = collect(connection, study)
-                return {
-                    "frame": 0,
-                    "drawn": len(data["samples"]),
-                    "resumed": 1,
-                }
-            except (ValueError, sqlite3.Error):
-                pass
-            finally:
-                connection.close()
-        path.unlink()
+        # A browser click must never delete collected data. An existing run is
+        # either resumed unchanged or refused with a precise reason.
+        if not plan["resumable"]:
+            raise ValueError(
+                "A field phase already exists. This interface never deletes it; "
+                "start the changed study in a new workspace directory."
+            )
+        connection = connect(path)
+        try:
+            study = get_study(connection, STUDY_KEY)
+            if load_questionnaire(study) != questionnaire:
+                raise ValueError(
+                    "The saved field phase uses a different instrument or sampling "
+                    "plan. Start the changed study in a new workspace directory."
+                )
+            data = collect(connection, study)
+            return {
+                "frame": 0,
+                "drawn": len(data["samples"]),
+                "resumed": 1,
+            }
+        except sqlite3.Error as error:
+            raise ValueError(
+                "The existing field phase cannot be resumed and was left untouched."
+            ) from error
+        finally:
+            connection.close()
 
     initialize(path)
-    questionnaire = plan["questionnaire"]
     connection = connect(path)
     try:
         study_id = create_study(connection, STUDY_KEY, questionnaire)
@@ -274,6 +296,9 @@ def run(
                     }
             if not worked:
                 break
+        report_path(workspace).write_text(
+            build_report(connection, study), encoding="utf-8"
+        )
         yield {
             "done": True,
             "processed": processed,
@@ -318,6 +343,7 @@ def summary(workspace: Workspace) -> dict[str, Any]:
         "statuses": dict(sorted(statuses.items())),
         "by_window": {name: dict(counts) for name, counts in sorted(by_window.items())},
         "report": report,
+        "report_written": report_path(workspace).exists(),
     }
 
 
