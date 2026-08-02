@@ -550,8 +550,15 @@ problem that only the fixture had.
 - The German strings were written, not reviewed by a second person.
 - Parallel forms, the L1–L5 disclosure catalogue, mail and colleague calls in the
   pretest, storage backends, calling hours and concurrency remain **recorded without
-  effect** — 18 settings, each with its reason in `src/researchcall/effect.py` and shown
+  effect** — 19 settings, each with its reason in `src/researchcall/effect.py` and shown
   beside its own control.
+- Writing the register caught three of my own false claims: `reporting.findings_file`
+  and `pretest.export_questionnaire` were classified as effective while nothing read
+  them, and `fieldwork.keep_transcript` still is nothing but a switch with no wire.
+  The first two were connected (a findings note at `/export/findings.md`, and the
+  download that the export setting now actually governs); the third was moved to the
+  honest column. This is the register working as intended: it is checkable, and it was
+  checked against the code rather than against my memory of it.
 - `sample.method: stratified` is **refused**, not silently drawn at random: the dry-run
   frame carries no stratifying attributes, and a random draw reported as stratified would
   be a method claimed but never run.

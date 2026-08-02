@@ -476,6 +476,8 @@ def build_questionnaire(
     title = str(values.get("question") or "").strip() or UNTITLED.get(language, UNTITLED["en"])
     questionnaire: dict[str, Any] = {
         "title": title[:120],
+        "question": title,
+        "hypotheses": _as_lines(values.get("hypotheses")),
         "language": LOCALES[language],
         "consent_text": consent_text(language),
         "questions": questions,

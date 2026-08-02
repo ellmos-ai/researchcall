@@ -43,9 +43,9 @@
     "en": "Answer distributions are always shown per window.",
     "de": "Antwortverteilungen werden immer je Zeitfenster gezeigt."
   },
-  "Any upload is rehearsed before it happens.": {
-    "en": "Any upload is rehearsed before it happens.",
-    "de": "Jeder Upload wird vorher trocken geprobt."
+  "Any upload is rehearsed first. Nothing here uploads, which is the strictest form the rule can take.": {
+    "en": "Any upload is rehearsed first. Nothing here uploads, which is the strictest form the rule can take.",
+    "de": "Jeder Upload wird zuerst geprobt. Hier lädt nichts hoch, das ist die strengste Form, die die Regel annehmen kann."
   },
   "Applied when a returned answer fits none of the categories.": {
     "en": "Applied when a returned answer fits none of the categories.",
@@ -151,6 +151,10 @@
     "en": "Frame rows created:",
     "de": "Erzeugte Zeilen der Auswahlgrundlage:"
   },
+  "Handing the questionnaire around is switched off in station 5.": {
+    "en": "Handing the questionnaire around is switched off in station 5.",
+    "de": "Das Weiterreichen des Fragebogens ist in Station 5 abgeschaltet."
+  },
   "Heads the codebook and the report.": {
     "en": "Heads the codebook and the report.",
     "de": "Steht über dem Codebuch und dem Bericht."
@@ -191,9 +195,9 @@
     "en": "Named for the record; the dry run draws from a generated fictitious frame.",
     "de": "Für die Akte festgehalten; der Trockenlauf zieht aus einer erzeugten, fiktiven Auswahlgrundlage."
   },
-  "Names the findings document the report offers to write.": {
-    "en": "Names the findings document the report offers to write.",
-    "de": "Benennt das Befunde-Dokument, das der Bericht anzulegen anbietet."
+  "Names the findings note the report offers for download, started from the numbers with the reading left open.": {
+    "en": "Names the findings note the report offers for download, started from the numbers with the reading left open.",
+    "de": "Benennt die Befunde-Notiz, die der Bericht zum Download anbietet — aus den Zahlen begonnen, die Deutung bleibt offen."
   },
   "Needs a scheduler with a clock; this tool has no daemon and no timer.": {
     "en": "Needs a scheduler with a clock; this tool has no daemon and no timer.",
@@ -203,9 +207,9 @@
     "en": "Needs a transcript of a real conversation; the fixture transport has none.",
     "de": "Braucht das Transkript eines echten Gesprächs; der Fixture-Transport hat keines."
   },
-  "No upload without a source check — stated, never switched off.": {
-    "en": "No upload without a source check — stated, never switched off.",
-    "de": "Kein Upload ohne Quellencheck — benannt, nie abschaltbar."
+  "No upload without a source check. This build uploads nowhere at all, so the rule holds by construction rather than by enforcement.": {
+    "en": "No upload without a source check. This build uploads nowhere at all, so the rule holds by construction rather than by enforcement.",
+    "de": "Kein Upload ohne Quellencheck. Dieser Stand lädt nirgendwohin hoch, die Regel gilt also von Bauart wegen und nicht durch Durchsetzung."
   },
   "Not measurable in a dry run": {
     "en": "Not measurable in a dry run",
@@ -223,21 +227,17 @@
     "en": "Off assigns windows in equal blocks instead of by lot.",
     "de": "Aus verteilt die Fenster in gleichen Blöcken statt per Los."
   },
-  "Off keeps the transcript audit only in memory, as the report states.": {
-    "en": "Off keeps the transcript audit only in memory, as the report states.",
-    "de": "Aus hält die Transkriptprüfung nur im Speicher, wie es der Bericht ausweist."
-  },
   "Offers a later call and re-queues whoever accepts, up to the callback limit.": {
     "en": "Offers a later call and re-queues whoever accepts, up to the callback limit.",
     "de": "Bietet einen späteren Anruf an und reiht wieder ein, wer zustimmt — bis zur Rückrufgrenze."
   },
-  "Offers the instrument as a document to read and to pass around.": {
-    "en": "Offers the instrument as a document to read and to pass around.",
-    "de": "Gibt das Instrument als Dokument aus, zum Lesen und Weiterreichen."
-  },
   "On leaves finished records alone so a second run continues where it stopped.": {
     "en": "On leaves finished records alone so a second run continues where it stopped.",
     "de": "An lässt fertige Datensätze unangetastet, damit ein zweiter Lauf dort weitermacht, wo er aufhörte."
+  },
+  "On offers the instrument as a document to read and pass around; off withdraws the download.": {
+    "en": "On offers the instrument as a document to read and pass around; off withdraws the download.",
+    "de": "An gibt das Instrument als Dokument zum Lesen und Weiterreichen aus; aus nimmt den Download zurück."
   },
   "One definition, three ways in": {
     "en": "One definition, three ways in",
@@ -443,6 +443,10 @@
     "en": "The call, as written",
     "de": "Der Anruf, wie er geschrieben steht"
   },
+  "The check reports on exactly these five criteria — and says which two of them a dry run cannot decide instead of scoring them.": {
+    "en": "The check reports on exactly these five criteria — and says which two of them a dry run cannot decide instead of scoring them.",
+    "de": "Der Test berichtet über genau diese fünf Kriterien — und benennt, welche zwei davon ein Trockenlauf nicht entscheiden kann, statt sie zu bewerten."
+  },
   "The dry run is serial by design; the API's concurrency limit is unverified.": {
     "en": "The dry run is serial by design; the API's concurrency limit is unverified.",
     "de": "Der Trockenlauf ist bewusst seriell; die Parallelitätsgrenze der API ist ungeprüft."
@@ -519,6 +523,10 @@
     "en": "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them.",
     "de": "Diese Station trägt außerdem Einstellungen, die zum Gerüst gehören und nicht abschaltbar sind. Sie erscheinen deshalb nicht als Bedienelement; die Konfiguration nennt sie."
   },
+  "Transcripts are never written to disk in this build, so there is nothing here to switch off; the audit already happens in memory only.": {
+    "en": "Transcripts are never written to disk in this build, so there is nothing here to switch off; the audit already happens in memory only.",
+    "de": "Transkripte werden in diesem Stand nie auf die Platte geschrieben, hier gibt es also nichts abzuschalten; die Prüfung findet ohnehin nur im Speicher statt."
+  },
   "Two equivalent forms need paired items; the item grammar has no pairing yet.": {
     "en": "Two equivalent forms need paired items; the item grammar has no pairing yet.",
     "de": "Zwei gleichwertige Formen brauchen gepaarte Items; die Item-Grammatik kennt noch keine Paarung."
@@ -534,10 +542,6 @@
   "What could not be read": {
     "en": "What could not be read",
     "de": "Was nicht gelesen werden konnte"
-  },
-  "What the check reports on.": {
-    "en": "What the check reports on.",
-    "de": "Worüber der Test berichtet."
   },
   "What the pipeline reads. Defaults from the form definitions, your answers on top.": {
     "en": "What the pipeline reads. Defaults from the form definitions, your answers on top.",
