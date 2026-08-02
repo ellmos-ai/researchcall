@@ -1,6 +1,6 @@
 # ResearchCall
 
-ResearchCall is a dry-run-first Python tool for standardized scientific telephone surveys. It draws a random sample, assigns each selected record to a randomized time window at draw time, allows exactly one attempt per selected record, and reports nonresponse without collapsing distinct CALL-E outcomes.
+ResearchCall is a dry-run-first Python tool for standardized scientific telephone surveys. It builds the questionnaire from the answers given in its own stations, draws a random sample, assigns each selected record to a randomized time window at draw time, dials each person once by default, and reports nonresponse without collapsing distinct CALL-E outcomes.
 
 The default path is fully local: no account, credentials, SDK, network connection, or real call is needed. Fixtures exercise the same sampling, attempt, response, withdrawal, and reporting logic used by the gated live adapter.
 
@@ -45,6 +45,16 @@ Of 59 decisions, an interface shows 48, an agent asks 11, and 11 are part of the
 
 Gating is enforced rather than described: station N+1 opens once N is finished, a station will not close while a required answer is missing, and a value changed after its station closed is stored as an amendment and marked *added later* in the interface.
 
+**The answers build the call.** Station 2 carries the items, one line each — `id | hypothesis | format | "wording" | options` — in the formats the method knows: dichotomous, scale, reversed scale, choice, open and creative. A scale says its poles out loud, because "1 to 5" without them is a request for interpretation. Quantitative items are quoted and therefore spoken word for word; open items are left unquoted and may be rephrased, with a bounded number of follow-up probes. Skip rules (`if q1 = no skip q4, q5`) become a filter on the item they skip. Station 3 supplies the conversation frame — greeting, instruction, where the number came from, a duration *computed from the instrument*, the privacy text — and the consent sentence carries the right to stop, because a setting nobody can switch off has to be said rather than merely stored. `/instrument` shows the result as it will be spoken, `/instrument.task.txt` the exact text an agent would receive, and the field phase refuses to start while a line cannot be read.
+
+With `questionnaire.order: randomised`, the item order is drawn **per respondent** — seeded by the record, so a rerun is reproducible — and filters survive the shuffle. A single shuffle per study would only remove the researcher's habit; position effects need a fresh order per call.
+
+**A control that changes nothing says so.** Every setting is classified in `src/researchcall/effect.py` by where it takes effect — the call, the run, the analysis, the frame — or as *recorded only*, with the reason. The badge sits on the control itself, and `/config` lists the recorded-only ones together. A form definition that is not classified fails the test suite, so a new setting cannot arrive unlabelled and a setting cannot quietly change groups. Of 59 decisions, 41 act somewhere and 18 are currently recorded without effect.
+
+**The data leaves.** `/export/dataset.csv` is one row per person and one column per item, `codebook.md` explains every column, and `free-text.csv` holds the free answers when `analysis.free_comments` keeps them apart. Reversed items are carried twice, as given and recoded — forgetting to turn them back measures the opposite of the scale.
+
+**The instrument is tested before the people are.** `/pretest` runs the interview against the fixture transport N times and measures how faithfully it was delivered: verbatim wording item by item, the consent sentence, whether filters were respected, and a deliberately clumsy *syntactic marker* that a language model would want to repair. It also names what a dry run cannot decide — unplanned follow-ups and the order the agent really spoke in need a live transcript — and says plainly that it measures the local harness, not the CALL-E agent.
+
 **The workbench cannot place a call.** No route accepts a live flag and the package never imports the live client; `FixtureCallClient` is the only transport it can reach. The field phase draws a sample of fictitious numbers, processes it one record at a time against fixtures, and streams progress over server-sent events. Placing a real call remains a command-line action behind the five-part gate below. The workbench reads and writes one local workspace directory (`RESEARCHCALL_WORKSPACE`, default `out/workbench`); it opens no network connection of its own, loads no external asset — HTMX is vendored under `src/researchcall/web/static/` — and prints no phone number on any page.
 
 ### Two languages, two places
@@ -57,7 +67,7 @@ Field text lives in the form definition itself: `label`/`question`/`help` carry 
 - Conditional questions are the only preplanned follow-ups. The task explicitly forbids spontaneous probes and paraphrasing.
 - Every interpreted category keeps the participant's raw answer beside it. A category without non-empty raw source text is rejected.
 - Time windows are randomized when the sample is drawn, not chosen after an outcome is known.
-- A database uniqueness constraint permits one attempt per sample record. There is no retry command.
+- **One call per person by default.** `contact_rules.attempts_per_person` raises that bound, and only an availability outcome — `NO_ANSWER`, `BUSY`, `VOICEMAIL` — reopens a record. A refusal never does; only an explicit invitation to call later does, up to `contact_rules.callback_after_refusal_max`. A repeat is sent into a different time window, because dialling the same time of day again measures the same availability twice. The report states how many records were affected, so the shift towards people who are reachable more often is visible instead of folded into the completion rate.
 - `run-day` processes at most the next `N` open records in one assigned time window. Recurrence belongs to the host scheduler; ResearchCall has no daemon or multi-day loop.
 - Every claimed attempt receives `started_at` before the transport is invoked and `ended_at` on terminal, failed, or interrupted completion.
 - `NO_ANSWER`, `DECLINED`, `BUSY`, `VOICEMAIL`, `FAILED`, `CANCELED`/`CANCELLED`, `EXPIRED`, and local `INTERRUPTED` remain distinct.

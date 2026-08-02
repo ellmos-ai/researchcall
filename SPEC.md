@@ -38,6 +38,16 @@ Technisch ist es fast die Idealanwendung der API: `recipients[]` als Batch plus
 > zu Hause sind. Randomisierte Zeitfenster bei genau einem Versuch machen die Tageszeit
 > zu einer kontrollierten Variable statt zu einer stillen Vorauswahl.
 
+> **Nachtrag 2026-08-02 — Retry ist jetzt einstellbar, Default unverändert.** Das
+> Produktkonzept (`_analysis/konzept-researchcall-ui.md`, §11) sieht Wiederholungen zu
+> unterschiedlichen Uhrzeiten und einen Rückruf nach Ablehnung vor. Umgesetzt ist der
+> Vorschlag aus derselben Quelle: **einstellbar mit Default 0 Wiederholungen**, sodass
+> das oben beschriebene Verhalten der Standard bleibt — und **die tatsächliche Zahl
+> steht im Bericht**, damit die Verzerrung sichtbar wird statt versteckt. Nur
+> Erreichbarkeits-Ausgänge (`NO_ANSWER`, `BUSY`, `VOICEMAIL`) öffnen einen Datensatz
+> erneut; eine Ablehnung nie — außer die Person hat einem späteren Anruf ausdrücklich
+> zugestimmt (`contact_rules.callback_after_refusal_max`, Default 3).
+
 ### 3. Tagesration
 - Das Werkzeug kennt nur: **„arbeite die nächsten N offenen ab"**
 - **Kein Daemon, keine Schleife über Tage.** Die Wiederholung stößt der Host an

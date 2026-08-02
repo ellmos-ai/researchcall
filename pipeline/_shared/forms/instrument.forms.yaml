@@ -39,8 +39,14 @@
   type: table
   options: []
   default: []
-  help: "Jede Regel nennt das auslösende Item, den Wert und die zu überspringenden Items; sie wird vor der Feldphase festgelegt."
-  help_en: "Every rule names the triggering item, the value and the items to skip; it is fixed before fieldwork."
+  help: >
+    Eine Zeile je Regel: wenn q1 = nein überspringe q4, q5. Das auslösende Item
+    muss vor den übersprungenen stehen und feste Kategorien haben; die Regel wird
+    vor der Feldphase festgelegt.
+  help_en: >
+    One line per rule: if q1 = no skip q4, q5. The triggering item must come
+    before the ones it skips and must have fixed categories; the rule is fixed
+    before fieldwork.
   required: false
   locked: false
 
@@ -53,7 +59,19 @@
   type: table
   options: []
   default: []
-  help: "Je Item: ID, Hypothese, Format, exakter Wortlaut, Wortlautbindung, Skala, Nachfragetiefe und vorab festgelegte Auswertungsregel."
-  help_en: "Per item: ID, hypothesis, format, exact wording, wording binding, scale, probing depth and the analysis rule fixed in advance."
+  help: >
+    Eine Zeile je Item: ID | Hypothese | Format | "Wortlaut" | Zusatz | Zusatz.
+    Formate: dichotom, skala, skala_umgepolt, auswahl, offen, kreativ.
+    Zusätze: scale=5:sehr unzufrieden..sehr zufrieden · categories=ja,nein ·
+    free (darf umformuliert werden) · verbatim (wörtlich) · probe=2 oder
+    probe=unbegrenzt (nur bei offenen Items) · rule=<Auswertungsregel>.
+    Beispiel: q1 | H1 | dichotom | "Nutzen Sie den Bus?"
+  help_en: >
+    One line per item: id | hypothesis | format | "wording" | option | option.
+    Formats: dichotomous, scale, scale_reversed, choice, open, creative.
+    Options: scale=5:very unsatisfied..very satisfied · categories=yes,no ·
+    free (may be rephrased) · verbatim (word for word) · probe=2 or
+    probe=unlimited (open items only) · rule=<analysis rule>.
+    Example: q1 | H1 | dichotomous | "Do you use the bus?"
   required: true
   locked: false
