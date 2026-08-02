@@ -55,68 +55,71 @@ def e(value: Any) -> str:
 
 STYLE = """
 :root {
-  --paper: #f7f5f0; --card: #fffefb; --ink: #1c1b19; --muted: #6b6862;
-  --line: #ddd8cd; --accent: #2f5d62; --accent-soft: #e4ece9;
-  --warn: #8a5a1e; --warn-soft: #f6ecdc; --ok: #2f6b3a;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #14161a; --card: #1b1e23; --ink: #e8e6e1; --muted: #9a968e;
-    --line: #2e333a; --accent: #7fb3ab; --accent-soft: #1f2a2b;
-    --warn: #d7a75c; --warn-soft: #2a2318; --ok: #7fc08c;
-  }
+  --paper: #eef2f6; --card: #ffffff; --ink: #0f172a; --muted: #64748b;
+  --line: #cbd5e1; --accent: #0369a1; --accent-strong: #0c4a6e;
+  --accent-soft: #e0f2fe; --rail: #0f172a; --rail-card: #1e293b;
+  --rail-ink: #e2e8f0; --focus: #38bdf8; --warn: #9a3412;
+  --warn-soft: #fff7ed; --ok: #15803d;
 }
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--paper); color: var(--ink);
-  font: 16px/1.55 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font: 15px/1.5 "Segoe UI", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 a { color: var(--accent); }
 code, .mono { font-family: "SF Mono", "Cascadia Mono", Consolas, monospace; font-size: .85em; }
 
 header.top {
   display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline;
-  padding: 1rem 1.5rem; border-bottom: 1px solid var(--line); background: var(--card);
+  min-height: 58px; padding: .9rem 1.35rem; border-bottom: 1px solid #334155;
+  background: #0b0f19; color: #f8fafc; position: sticky; top: 0; z-index: 20;
 }
-header.top h1 { font-size: 1.15rem; margin: 0; letter-spacing: .01em; }
-header.top .tag { color: var(--muted); font-size: .8rem; }
+header.top h1 { font-size: 1.05rem; margin: 0; letter-spacing: .02em; }
+header.top .tag { color: #94a3b8; font-size: .78rem; }
 header.top nav { margin-left: auto; display: flex; gap: .75rem; align-items: center; }
 .lang a {
-  text-decoration: none; border: 1px solid var(--line); border-radius: 999px;
-  padding: .15rem .7rem; font-size: .8rem;
+  text-decoration: none; border: 1px solid #475569; border-radius: 3px;
+  padding: .2rem .65rem; font-size: .78rem; color: #e2e8f0;
 }
 
-.shell { display: grid; grid-template-columns: minmax(210px, 260px) 1fr; gap: 0; }
-@media (max-width: 860px) { .shell { grid-template-columns: 1fr; } }
+.shell { display: grid; grid-template-columns: minmax(230px, 270px) 1fr; min-height: calc(100vh - 58px); }
 
-nav.rail { border-right: 1px solid var(--line); padding: 1rem .75rem; }
+nav.rail {
+  border-right: 1px solid #334155; padding: 1rem .75rem; background: var(--rail);
+  color: var(--rail-ink); position: sticky; top: 58px; height: calc(100vh - 58px);
+  overflow-y: auto; align-self: start;
+}
+nav.rail .rail-summary {
+  border-bottom: 1px solid #334155; margin: 0 .35rem .8rem; padding: .1rem .2rem .8rem;
+  color: #94a3b8; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase;
+}
 nav.rail ol { list-style: none; margin: 0; padding: 0; }
 nav.rail li { margin: 0 0 .2rem; }
 nav.rail a, nav.rail span.locked {
-  display: block; padding: .45rem .6rem; border-radius: 6px;
-  text-decoration: none; color: var(--ink); font-size: .9rem;
+  display: block; padding: .48rem .6rem; border-radius: 3px;
+  text-decoration: none; color: var(--rail-ink); font-size: .86rem;
 }
-nav.rail a:hover { background: var(--accent-soft); }
-nav.rail a.current { background: var(--accent-soft); font-weight: 600; }
-nav.rail span.locked { color: var(--muted); cursor: not-allowed; }
-nav.rail .num { color: var(--muted); font-size: .75rem; margin-right: .45rem; }
+nav.rail a:hover { background: var(--rail-card); }
+nav.rail a.current { background: #0c4a6e; color: #f8fafc; box-shadow: inset 3px 0 0 var(--focus); }
+nav.rail span.locked { color: #64748b; cursor: not-allowed; }
+nav.rail .num { color: #94a3b8; font-size: .72rem; margin-right: .45rem; font-variant-numeric: tabular-nums; }
 nav.rail .mark { float: right; font-size: .8rem; }
-nav.rail .done { color: var(--ok); }
-nav.rail .extra { border-top: 1px solid var(--line); margin-top: .8rem; padding-top: .6rem; }
+nav.rail .done { color: #6ee7b7; }
+nav.rail .extra { border-top: 1px solid #334155; margin-top: .85rem; padding-top: .7rem; }
 
-main { padding: 1.5rem 1.75rem 3rem; min-width: 0; }
-h2 { font-size: 1.5rem; margin: 0 0 .2rem; }
-.sub { color: var(--muted); font-size: .85rem; margin: 0 0 1.4rem; }
+main { padding: 1.8rem 2.15rem 3rem; min-width: 0; width: 100%; max-width: 1500px; margin: 0 auto; }
+h2 { font-size: 1.45rem; line-height: 1.25; margin: 0 0 .3rem; letter-spacing: -.01em; }
+.sub { color: var(--muted); font-size: .84rem; margin: 0 0 1.3rem; }
 
-.split { display: grid; grid-template-columns: 1fr minmax(260px, 360px); gap: 1.75rem; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 370px); gap: 1.5rem; align-items: start; }
 @media (max-width: 1100px) { .split { grid-template-columns: 1fr; } }
 
 fieldset { border: none; margin: 0; padding: 0; }
 .field {
-  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
-  padding: .85rem 1rem; margin: 0 0 .8rem;
+  background: var(--card); border: 1px solid var(--line); border-radius: 4px;
+  padding: .78rem .9rem; margin: 0 0 .65rem;
 }
-.field > label.name { display: block; font-weight: 600; margin-bottom: .35rem; }
+.field > label.name { display: block; font-weight: 650; margin-bottom: .35rem; }
 .field .req { color: var(--warn); font-weight: 400; }
 .field .help { color: var(--muted); font-size: .82rem; margin-top: .4rem; }
 .field .path { color: var(--muted); font-size: .72rem; float: right; font-weight: 400; }
@@ -126,24 +129,26 @@ fieldset { border: none; margin: 0; padding: 0; }
   font-size: .7rem; padding: .05rem .45rem; border-radius: 999px; margin-left: .4rem;
 }
 input[type=text], input[type=number], textarea, select {
-  width: 100%; padding: .45rem .55rem; border: 1px solid var(--line); border-radius: 5px;
-  background: var(--paper); color: var(--ink); font: inherit; font-size: .95rem;
+  width: 100%; padding: .44rem .52rem; border: 1px solid #94a3b8; border-radius: 3px;
+  background: #fff; color: var(--ink); font: inherit; font-size: .92rem;
 }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--focus); outline-offset: 1px; border-color: var(--accent); }
 textarea { min-height: 4.5rem; resize: vertical; }
 .choices { display: flex; flex-wrap: wrap; gap: .4rem .9rem; }
 .choices label { font-size: .92rem; display: flex; gap: .35rem; align-items: center; }
 .switch { display: flex; gap: .45rem; align-items: center; font-size: .92rem; }
 
 button, .button {
-  font: inherit; font-size: .92rem; padding: .5rem 1.1rem; border-radius: 6px;
-  border: 1px solid var(--accent); background: var(--accent); color: #fff;
+  font: inherit; font-size: .88rem; font-weight: 600; padding: .48rem .95rem; border-radius: 3px;
+  border: 1px solid var(--accent-strong); background: var(--accent-strong); color: #fff;
   cursor: pointer; text-decoration: none; display: inline-block;
 }
-button.quiet, .button.quiet { background: transparent; color: var(--accent); }
+button:hover, .button:hover { background: var(--accent); }
+button.quiet, .button.quiet { background: transparent; color: var(--accent-strong); }
 .actions { display: flex; gap: .7rem; align-items: center; margin-top: 1.2rem; flex-wrap: wrap; }
 
 aside .panel {
-  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 4px;
   padding: .9rem 1rem; margin-bottom: 1rem;
 }
 aside h3 { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em;
@@ -159,7 +164,7 @@ pre.config {
 
 .note {
   border-left: 3px solid var(--accent); background: var(--accent-soft);
-  padding: .6rem .9rem; border-radius: 0 6px 6px 0; font-size: .88rem; margin: 0 0 1.2rem;
+  padding: .6rem .85rem; border-radius: 0 3px 3px 0; font-size: .84rem; margin: 0 0 1rem;
 }
 .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
 .note.locked-note { border-left-color: var(--muted); background: transparent;
@@ -169,22 +174,22 @@ table.data { border-collapse: collapse; width: 100%; font-size: .88rem; }
 table.data th, table.data td {
   border-bottom: 1px solid var(--line); padding: .35rem .6rem; text-align: left;
 }
-table.data th { color: var(--muted); font-weight: 600; font-size: .78rem;
-  text-transform: uppercase; letter-spacing: .04em; }
+table.data th { color: #475569; background: #f8fafc; font-weight: 650; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .045em; position: sticky; top: 0; z-index: 1; }
 table.data td.n { text-align: right; font-variant-numeric: tabular-nums; }
 .bar { height: .5rem; border-radius: 3px; background: var(--accent); display: block; min-width: 1px; }
 .bar.loss { background: var(--warn); }
 .scroll { overflow-x: auto; }
 
-.counts { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0 0 1.2rem; }
-.counts div { }
-.counts .big { font-size: 1.9rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: .6rem; margin: 0 0 1.2rem; }
+.counts div { background: var(--card); border: 1px solid var(--line); border-radius: 3px; padding: .65rem .75rem; }
+.counts .big { display: block; font-size: 1.55rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .counts .cap { color: var(--muted); font-size: .78rem; }
 .log { font-family: "SF Mono", "Cascadia Mono", Consolas, monospace; font-size: .8rem;
-  background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 3px;
   padding: .7rem .9rem; max-height: 20rem; overflow: auto; }
 .log div { padding: .05rem 0; }
-.log .st { color: var(--muted); }
+.log .st { color: #7dd3fc; }
 
 .eff { display: inline-block; font-size: .68rem; letter-spacing: .03em;
   text-transform: uppercase; padding: .1rem .5rem; border-radius: 999px;
@@ -198,6 +203,16 @@ ul.plain li { margin-bottom: .25rem; }
 pre.script { margin: 0; white-space: pre-wrap; word-break: break-word;
   font-size: .84rem; line-height: 1.5; max-height: 26rem; overflow: auto; }
 .problem { color: var(--warn); font-size: .85rem; }
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; min-height: auto; }
+  nav.rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid #334155; padding: .55rem; overflow-x: auto; }
+  nav.rail .rail-summary { display: none; }
+  nav.rail ol { display: flex; gap: .2rem; min-width: max-content; }
+  nav.rail li { margin: 0; }
+  nav.rail .extra { border-top: 0; border-left: 1px solid #334155; margin: 0 0 0 .35rem; padding: 0 0 0 .55rem; }
+  main { padding: 1.25rem 1rem 2.5rem; }
+  .field .path { float: none; display: block; margin-bottom: .15rem; }
+}
 """
 
 
@@ -253,7 +268,13 @@ def rail(workspace: Workspace, translator: Translator, active: str) -> str:
         f'<li><a class="{"current" if active == "config" else ""}" '
         f'href="/config?lang={e(translator.language)}">{e(translator.t("Configuration"))}</a></li>'
     )
-    return f'<nav class="rail"><ol>{"".join(items)}{extras}</ol></nav>'
+    progress = translator.t("{done} of 8 stations finished").replace(
+        "{done}", str(len(workspace.completed))
+    )
+    return (
+        f'<nav class="rail"><div class="rail-summary">{e(progress)}</div>'
+        f'<ol>{"".join(items)}{extras}</ol></nav>'
+    )
 
 
 # --- one control per field ----------------------------------------------------
@@ -386,11 +407,6 @@ def station_view(
         notes.append(
             f'<p class="note">{e(translator.t("Text in double quotes is spoken word for word. Everything outside the quotes is rephrased by the agent — a behaviour measured in a real call."))}</p>'
         )
-    locked_here = [f for f in fields if f.station == station and f.locked]
-    if locked_here:
-        notes.append(
-            f'<p class="note locked-note">{e(translator.t("This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them."))}</p>'
-        )
     missing = list(missing)
     if missing:
         notes.append(
@@ -416,11 +432,9 @@ def station_view(
     index = STATIONS.index(station) + 1
     title = translator.t(STATION_TITLES[station])
     declared_here = effect.declared_only(fields, station)
-    counts = translator.t("{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked} · {declared} are recorded without effect")
+    counts = translator.t("{visible} settings shown · an agent asks {asked} · {declared} are recorded without effect")
     counts = (
         counts.replace("{visible}", str(len(descriptors)))
-        .replace("{total}", str(sum(1 for f in fields if f.station == station)))
-        .replace("{locked}", str(len(locked_here)))
         .replace("{asked}", str(len(asks)))
         .replace("{declared}", str(len(declared_here)))
     )
@@ -542,7 +556,10 @@ def instrument_view(
 
 
 def pretest_view(
-    result: dict[str, Any] | None, plan: dict[str, Any], translator: Translator
+    result: dict[str, Any] | None,
+    plan: dict[str, Any],
+    translator: Translator,
+    problem: str = "",
 ) -> str:
     """The instrument tested on itself, before a single real person is called."""
     language = translator.language
@@ -551,6 +568,8 @@ def pretest_view(
         f'<p class="sub">{e(translator.t("A small study about the instrument: run the interview against the fixture transport and measure how faithfully it was delivered."))}</p>'
         f'<p class="note">{e(translator.t("This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it."))}</p>'
     )
+    if problem:
+        return intro + f'<p class="note warn">{e(problem)}</p></main>'
     if plan["problems"]:
         return (
             intro
@@ -654,16 +673,23 @@ def fieldwork_view(
             f'{e(translator.t("drawn:"))} {prepared["drawn"]}</p>'
         )
 
+    action_label = (
+        translator.t("Continue prepared dry run")
+        if ready
+        else translator.t("Draw sample and start dry run")
+    )
     start = (
         ""
-        if plan["problems"]
+        if plan["problems"] or problem
         else (
             f'<form hx-post="/fieldwork/prepare?lang={e(language)}" hx-target="#monitor" hx-swap="innerHTML">'
-            f'<button type="submit">{e(translator.t("Draw sample and start dry run"))}</button>'
+            f'<button type="submit">{e(action_label)}</button>'
             "</form>"
         )
     )
-    monitor = monitor_panel(translator) if ready else ""
+    # Merely opening this page is read-only. The EventSource, and therefore the
+    # fixture run, appears only in the response to the explicit button above.
+    monitor = ""
 
     return (
         f'<main><h2>{e(translator.t("Field phase"))}</h2>'
@@ -775,6 +801,11 @@ def report_view(data: dict[str, Any], translator: Translator) -> str:
         + "</tr>"
         for window in window_names
     )
+    report_heading = (
+        "The report as it is written to disk"
+        if data.get("report_written")
+        else "Report preview — no report file exists for this earlier run"
+    )
 
     return (
         f'<main><h2>{e(translator.t("Report"))}</h2>'
@@ -787,7 +818,7 @@ def report_view(data: dict[str, Any], translator: Translator) -> str:
         f'<div class="scroll"><table class="data"><thead><tr>'
         f'<th>{e(translator.t("window"))}</th><th>{e(translator.t("drawn"))}</th>{header}'
         f"</tr></thead><tbody>{window_rows}</tbody></table></div>"
-        f'<h3>{e(translator.t("The report as it is written to disk"))}</h3>'
+        f'<h3>{e(translator.t(report_heading))}</h3>'
         f'<div class="panel" style="background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.9rem 1rem">'
         f'<pre class="config">{e(data["report"])}</pre></div>'
         "</main>"
@@ -801,13 +832,9 @@ def config_view(
 ) -> str:
     import json
 
-    config = workspace.config(fields)
-    locked = [f for f in fields if f.locked]
-    locked_rows = "".join(
-        f'<tr><td class="mono">{e(f.path)}</td><td>{e(f.text("help", translator.language))}</td></tr>'
-        for f in locked
-    )
-    summary = effect.summary(fields)
+    visible_fields = [field for field in fields if not field.locked]
+    config = workspace.config(visible_fields)
+    summary = effect.summary(visible_fields)
     declared = effect.declared_only(fields)
     declared_rows = "".join(
         f'<tr><td class="mono">{e(f.path)}</td>'
@@ -821,13 +848,10 @@ def config_view(
     )
     return (
         f'<main><h2>{e(translator.t("Configuration"))}</h2>'
-        f'<p class="sub">{e(translator.t("What the pipeline reads. Defaults from the form definitions, your answers on top."))}</p>'
+        f'<p class="sub">{e(translator.t("Editable configuration. Defaults from the visible form definitions, your answers on top."))}</p>'
         f'<p class="sub">{e(counts)}</p>'
         f'<div class="split"><section><div class="panel"><pre class="config">{e(json.dumps(config, ensure_ascii=False, indent=2))}</pre></div></section>'
-        f'<aside><div class="panel"><h3>{e(translator.t("Part of the frame"))}</h3>'
-        f'<p class="none">{e(translator.t("These settings appear in no form and in no question. They are stated here so that nothing is hidden, not so that they can be changed."))}</p>'
-        f'<div class="scroll"><table class="data">{locked_rows}</table></div></div>'
-        f'<div class="panel"><h3>{e(translator.t("Recorded, not yet read"))}</h3>'
+        f'<aside><div class="panel"><h3>{e(translator.t("Recorded, not yet read"))}</h3>'
         f'<p class="none">{e(translator.t("These values are kept and exported, but no part of the machinery acts on them yet. The list is generated from the code, so a setting cannot quietly move between the two groups."))}</p>'
         f'<div class="scroll"><table class="data">{declared_rows}</table></div>'
         "</div></aside></div></main>"

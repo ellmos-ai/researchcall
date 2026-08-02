@@ -7,6 +7,10 @@
     "en": "A failed check stays visible; nothing suppresses it.",
     "de": "Ein misslungener Test bleibt sichtbar; nichts unterdrückt ihn."
   },
+  "A field phase already exists. This interface never deletes it; start the changed study in a new workspace directory.": {
+    "en": "A field phase already exists. This interface never deletes it; start the changed study in a new workspace directory.",
+    "de": "Es gibt bereits eine Feldphase. Diese Oberfläche löscht sie nie; starte die geänderte Studie in einem neuen Arbeitsordner."
+  },
   "A filtered item was asked exactly when its condition held.": {
     "en": "A filtered item was asked exactly when its condition held.",
     "de": "Ein gefiltertes Item wurde genau dann gestellt, wenn seine Bedingung galt."
@@ -71,6 +75,10 @@
     "en": "Configuration",
     "de": "Konfiguration"
   },
+  "Continue prepared dry run": {
+    "en": "Continue prepared dry run",
+    "de": "Vorbereiteten Trockenlauf fortsetzen"
+  },
   "Consent is asked before any question.": {
     "en": "Consent is asked before any question.",
     "de": "Die Zustimmung wird vor jeder Frage eingeholt."
@@ -115,6 +123,14 @@
     "en": "Each item names the hypothesis it serves; the codebook groups by it.",
     "de": "Jedes Item nennt die Hypothese, auf die es einzahlt; das Codebuch gruppiert danach."
   },
+  "Editable configuration. Defaults from the visible form definitions, your answers on top.": {
+    "en": "Editable configuration. Defaults from the visible form definitions, your answers on top.",
+    "de": "Bearbeitbare Konfiguration. Vorgaben aus den sichtbaren Formularvorlagen, darüber deine Antworten."
+  },
+  "Eight stations contain {visible} visible decisions. An agent asks {asked} of them when no default is available.": {
+    "en": "Eight stations contain {visible} visible decisions. An agent asks {asked} of them when no default is available.",
+    "de": "Acht Stationen enthalten {visible} sichtbare Entscheidungen. Ein Agent fragt {asked} davon, wenn keine Vorgabe vorliegt."
+  },
   "Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own.": {
     "en": "Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own.",
     "de": "Jedes Bedienelement links stammt aus einer Formularvorlage unter pipeline/_shared/forms/. Dieselbe Vorlage ergibt den Config-Wert und die gesprochene Frage. Die Oberfläche fügt kein eigenes Feld hinzu."
@@ -138,6 +154,14 @@
   "Finish the station before this one first.": {
     "en": "Finish the station before this one first.",
     "de": "Zuerst die vorherige Station abschließen."
+  },
+  "Finish stations 1 to 5 before running the instrument check.": {
+    "en": "Finish stations 1 to 5 before running the instrument check.",
+    "de": "Schließe die Stationen 1 bis 5 ab, bevor du den Instrumententest startest."
+  },
+  "Finish stations 1 to 6 before preparing the field phase.": {
+    "en": "Finish stations 1 to 6 before preparing the field phase.",
+    "de": "Schließe die Stationen 1 bis 6 ab, bevor du die Feldphase vorbereitest."
   },
   "Finished on": {
     "en": "Finished on",
@@ -311,6 +335,10 @@
     "en": "Report",
     "de": "Bericht"
   },
+  "Report preview — no report file exists for this earlier run": {
+    "en": "Report preview — no report file exists for this earlier run",
+    "de": "Berichtsvorschau — für diesen früheren Lauf gibt es keine Berichtsdatei"
+  },
   "Reporting": {
     "en": "Reporting",
     "de": "Bericht und Veröffentlichung"
@@ -471,6 +499,10 @@
     "en": "The report is written in one language; a second version needs a translator.",
     "de": "Der Bericht entsteht in einer Sprache; eine zweite Fassung braucht eine Übersetzung."
   },
+  "The saved field phase uses a different instrument or sampling plan. Start the changed study in a new workspace directory.": {
+    "en": "The saved field phase uses a different instrument or sampling plan. Start the changed study in a new workspace directory.",
+    "de": "Die gespeicherte Feldphase verwendet ein anderes Instrument oder einen anderen Stichprobenplan. Starte die geänderte Studie in einem neuen Arbeitsordner."
+  },
   "The right to stop is stated in every call.": {
     "en": "The right to stop is stated in every call.",
     "de": "Das Abbruchrecht wird in jedem Anruf genannt."
@@ -502,6 +534,10 @@
   "There is nothing to report yet. Run the field phase first.": {
     "en": "There is nothing to report yet. Run the field phase first.",
     "de": "Es gibt noch nichts zu berichten. Zuerst die Feldphase laufen lassen."
+  },
+  "The existing field phase cannot be resumed and was left untouched.": {
+    "en": "The existing field phase cannot be resumed and was left untouched.",
+    "de": "Die vorhandene Feldphase kann nicht fortgesetzt werden und blieb unverändert."
   },
   "These settings appear in no form and in no question. They are stated here so that nothing is hidden, not so that they can be changed.": {
     "en": "These settings appear in no form and in no question. They are stated here so that nothing is hidden, not so that they can be changed.",
@@ -742,6 +778,14 @@
   "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.": {
     "en": "{total} decisions in eight stations. An interface shows {visible}, an agent asks {asked}, and {locked} are part of the frame and appear nowhere.",
     "de": "{total} Entscheidungen in acht Stationen. Eine Oberfläche zeigt {visible}, ein Agent fragt {asked}, und {locked} gehören zum Gerüst und erscheinen nirgends."
+  },
+  "{done} of 8 stations finished": {
+    "en": "{done} of 8 stations finished",
+    "de": "{done} von 8 Stationen abgeschlossen"
+  },
+  "{visible} settings shown · an agent asks {asked} · {declared} are recorded without effect": {
+    "en": "{visible} settings shown · an agent asks {asked} · {declared} are recorded without effect",
+    "de": "{visible} Einstellungen gezeigt · ein Agent fragt {asked} · {declared} sind ohne Wirkung erfasst"
   },
   "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked} · {declared} are recorded without effect": {
     "en": "{visible} of {total} settings shown · {locked} belong to the frame · an agent asks {asked} · {declared} are recorded without effect",

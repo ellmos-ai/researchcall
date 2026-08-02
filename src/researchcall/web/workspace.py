@@ -152,6 +152,16 @@ class Workspace:
             return True
         return STATIONS[index - 1] in self.completed
 
+    def completed_through(self, station: str) -> bool:
+        """Whether every station up to and including ``station`` is finished.
+
+        Auxiliary views such as the instrument check and field-phase monitor are
+        direct URLs. They must obey the same pipeline gate as the station rail;
+        otherwise the navigation only *looks* gated while the actions are open.
+        """
+        end = STATIONS.index(station) + 1
+        return all(name in self.completed for name in STATIONS[:end])
+
     def complete(self, fields: Iterable[forms.Field], station: str) -> list[str]:
         """Close a station. Returns what is still missing instead of closing it."""
         missing = self.missing_required(fields, station)
