@@ -53,6 +53,38 @@ def e(value: Any) -> str:
     return html.escape("" if value is None else str(value), quote=True)
 
 
+# The brand mark: a sheet holding a measured distribution — an instrument, not
+# a chat window. Same shape as logo.svg, banner.png and the video thumbnail,
+# generated from _calle-videos/_assets/logos/logos.py, so the workbench cannot
+# drift away from the artwork. Inline, because the workbench has to render with
+# no network and no build step.
+BRAND_MARK = (
+    '<svg class="brand-mark" xmlns="http://www.w3.org/2000/svg" '
+    'viewBox="0 0 100 100" aria-hidden="true" focusable="false">'
+    '<rect x="12.5" y="7" width="75" height="86" rx="14" fill="none" '
+    'stroke="#38BDF8" stroke-width="8.5"/>'
+    '<rect x="29" y="51" width="10" height="23" rx="5" fill="#38BDF8"/>'
+    '<rect x="45" y="31" width="10" height="43" rx="5" fill="#38BDF8"/>'
+    '<rect x="61" y="43" width="10" height="31" rx="5" fill="#64748B"/>'
+    "</svg>"
+)
+
+# The same mark on the brand plate, as a data URI: a tab icon that costs no
+# request and cannot 404.
+FAVICON = (
+    "data:image/svg+xml,"
+    "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E"
+    "%3Crect width='512' height='512' rx='106' fill='%230B0F19'/%3E"
+    "%3Cg transform='translate(97.28 97.28) scale(3.17)'%3E"
+    "%3Crect x='12.5' y='7' width='75' height='86' rx='14' fill='none' "
+    "stroke='%2338BDF8' stroke-width='8.5'/%3E"
+    "%3Crect x='29' y='51' width='10' height='23' rx='5' fill='%2338BDF8'/%3E"
+    "%3Crect x='45' y='31' width='10' height='43' rx='5' fill='%2338BDF8'/%3E"
+    "%3Crect x='61' y='43' width='10' height='31' rx='5' fill='%2364748B'/%3E"
+    "%3C/g%3E%3C/svg%3E"
+)
+
+
 STYLE = """
 :root {
   --paper: #edf2f7;
@@ -94,6 +126,7 @@ header.top h1 {
   font-size: 1.12rem; margin: 0; letter-spacing: -.01em; font-weight: 700;
   color: #38bdf8; display: flex; align-items: center; gap: .4rem;
 }
+header.top .brand-mark { width: 26px; height: 26px; flex: none; display: block; }
 header.top .brand-icon { font-size: 1.1rem; }
 header.top .tag {
   color: #94a3b8; font-size: .78rem; font-weight: 500;
@@ -295,10 +328,11 @@ def page(title: str, body: str, translator: Translator, active: str = "") -> str
         f'<html lang="{e(translator.language)}"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{e(title)} · ResearchCall</title>"
+        f'<link rel="icon" href="{FAVICON}">'
         f"<style>{STYLE}</style>"
         '<script src="/static/htmx.min.js" defer></script>'
         "</head><body>"
-        '<header class="top"><h1>ResearchCall</h1>'
+        f'<header class="top"><h1>{BRAND_MARK}ResearchCall</h1>'
         f'<span class="tag">{e(translator.t("Survey workbench · dry run · no calls"))}</span>'
         f'<nav><span class="lang">{switch}</span></nav></header>'
         f"{body}"
