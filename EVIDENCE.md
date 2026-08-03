@@ -691,3 +691,33 @@ fatal: Unable to create 'C:/_Local_DEV/repos/researchcall/.git/index.lock': Perm
 
 Nothing was staged and no local commit was created. The concurrent logo/banner files
 were not included, and no push was attempted.
+
+---
+
+# Configuration layout stack — Codex (2026-08-03)
+
+The configuration page now gives its JSON configuration and the recorded-only values
+one full-width row each. Its dedicated `config-stack` grid replaces the shared
+two-column `split` class on this page only; the paper styling and other split layouts
+are unchanged.
+
+## Actual verification
+
+Before the change, `GET http://127.0.0.1:8020/config` returned HTTP 200 and rendered the
+two areas inside `<div class="split">`. The shared CSS assigned the right column a width
+of 290–370 px on viewports wider than 1100 px.
+
+The completed test run used an isolated, subsequently removed directory inside the
+repository because the runner could not write to the system Pytest temp directory:
+
+```text
+python -c "import sys, pytest; sys.path.insert(0, 'src'); raise SystemExit(pytest.main(['-q','-p','no:cacheprovider','--basetemp',sys.argv[1]]))" C:\_Local_DEV\repos\researchcall\.pytest-layout-6d17c5ff-4836-4ec8-bea0-edd52ba63d52
+
+124 passed, 1 warning, 506 subtests passed in 28.53s
+```
+
+## Not executed
+
+- No CALL-E account, credential, real call, `--live` path, webhook, or external network
+  request was used.
+- No push, publication, pull request, upload, release, or external contact was made.

@@ -466,6 +466,11 @@ class WorkbenchTestCase(unittest.TestCase):
                 self.assertIn(badge, html)
                 self.assertIn("contact_rules.calling_hours", declared)
                 config = self.client.get(f"/config?lang={language}").text
+                self.assertIn('<div class="config-stack">', config)
+                self.assertIn(
+                    ".config-stack { display: grid; grid-template-columns: minmax(0, 1fr);",
+                    config,
+                )
                 for path in sorted(declared):
                     self.assertIn(path, config, path)
 
