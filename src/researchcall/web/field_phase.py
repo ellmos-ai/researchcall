@@ -28,8 +28,15 @@ from .. import forms, instrument
 from ..calls import FixtureCallClient
 from ..database import connect, create_study, get_study, initialize, load_questionnaire
 from ..reporting import build_report, collect
-from ..runner import ContactRules, run_day
-from ..sampling import DEFAULT_WINDOWS, draw_sample, eligible_count, import_frame_rows
+from ..review import ReviewDecision, decide as decide_review, open_cases
+from ..runner import ContactRules, run_day, withdraw_external_ref
+from ..sampling import (
+    DEFAULT_WINDOWS,
+    draw_sample,
+    eligible_count,
+    import_frame_rows,
+    read_frame_file,
+)
 from .workspace import Workspace
 
 
@@ -49,6 +56,68 @@ def _fixture(name: str) -> pathlib.Path:
 
 def database_path(workspace: Workspace) -> pathlib.Path:
     return workspace.artifact_directory() / DB_NAME
+
+
+# -- an uploaded frame instead of the fictitious one -----------------------
+
+FRAME_UPLOAD_STEM = "frame-upload"
+FRAME_UPLOAD_SUFFIXES = (".csv", ".xlsx")
+FRAME_ID_COLUMN = "external_ref"
+FRAME_PHONE_COLUMN = "phone"
+FRAME_UPLOAD_LIMIT = 5 * 1024 * 1024
+
+
+def frame_upload_path(workspace: Workspace) -> pathlib.Path | None:
+    """The uploaded frame file of this workspace, if one exists."""
+    directory = workspace.artifact_directory()
+    for suffix in FRAME_UPLOAD_SUFFIXES:
+        candidate = directory / f"{FRAME_UPLOAD_STEM}{suffix}"
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def store_frame_upload(
+    workspace: Workspace, filename: str, content: bytes
+) -> tuple[pathlib.Path, int]:
+    """Keep the uploaded file as the evidence it is, and validate it now.
+
+    Parsing happens at upload time, not at prepare time: the person who chose
+    the file is still looking at the screen and can fix a wrong column name.
+    Failing later, mid-prepare, would blame the wrong step. The raw file stays
+    in the workspace so the frame's origin remains inspectable.
+    """
+    suffix = pathlib.Path(filename or "").suffix.lower()
+    if suffix not in FRAME_UPLOAD_SUFFIXES:
+        raise ValueError("The frame must be a .csv or .xlsx file")
+    if len(content) > FRAME_UPLOAD_LIMIT:
+        raise ValueError("The frame file exceeds 5 MB; that is not a frame, that is a dump")
+    if not content:
+        raise ValueError("The uploaded file is empty")
+    directory = workspace.artifact_directory()
+    directory.mkdir(parents=True, exist_ok=True)
+    for old_suffix in FRAME_UPLOAD_SUFFIXES:     # only ever one upload at a time
+        stale = directory / f"{FRAME_UPLOAD_STEM}{old_suffix}"
+        if stale.exists():
+            stale.unlink()
+    path = directory / f"{FRAME_UPLOAD_STEM}{suffix}"
+    path.write_bytes(content)
+    try:
+        rows = read_frame_file(path, FRAME_ID_COLUMN, FRAME_PHONE_COLUMN)
+    except ValueError:
+        path.unlink()      # a file that cannot be read must not linger as if accepted
+        raise
+    if not rows:
+        path.unlink()
+        raise ValueError("The frame file contains a header but no rows")
+    return path, len(rows)
+
+
+def uploaded_frame_rows(workspace: Workspace) -> list[tuple[str, str]] | None:
+    path = frame_upload_path(workspace)
+    if path is None:
+        return None
+    return read_frame_file(path, FRAME_ID_COLUMN, FRAME_PHONE_COLUMN)
 
 
 def report_path(workspace: Workspace) -> pathlib.Path:
@@ -230,11 +299,14 @@ def prepare(
     try:
         study_id = create_study(connection, STUDY_KEY, questionnaire)
         connection.commit()
-        frame_size = max(MIN_FRAME, max(plan["size"], 1) * FRAME_FACTOR)
-        rows = [
-            (f"fictional-{index:04d}", f"+155500{index:05d}")
-            for index in range(1, frame_size + 1)
-        ]
+        rows = uploaded_frame_rows(workspace)
+        if rows is None:
+            # No upload: the dry run gets its fictitious frame, as before.
+            frame_size = max(MIN_FRAME, max(plan["size"], 1) * FRAME_FACTOR)
+            rows = [
+                (f"fictional-{index:04d}", f"+155500{index:05d}")
+                for index in range(1, frame_size + 1)
+            ]
         imported = import_frame_rows(connection, study_id, rows)
         count = (
             eligible_count(connection, study_id)
@@ -356,3 +428,42 @@ def write_report(workspace: Workspace) -> pathlib.Path:
     target = report_path(workspace)
     target.write_text(text, encoding="utf-8")
     return target
+
+
+# -- per-person anonymisation, from the interface --------------------------
+
+def withdraw(workspace: Workspace, external_ref: str) -> None:
+    """Honour one person's withdrawal: the number goes, the row stays.
+
+    The mechanics live in the runner (`_purge_frame`); this is only the door
+    the interface knocks on. It raises with a precise sentence when the
+    reference does not exist, because a withdrawal that silently did nothing
+    would be worse than an error.
+    """
+    if not exists(workspace):
+        raise ValueError("There is no field phase yet, so there is nobody to withdraw")
+    connection, study = open_database(workspace)
+    try:
+        withdraw_external_ref(connection, int(study["id"]), external_ref.strip())
+    finally:
+        connection.close()
+
+
+# -- the conflict queue, from the interface --------------------------------
+
+def review_cases(workspace: Workspace) -> list[dict]:
+    if not exists(workspace):
+        return []
+    connection, study = open_database(workspace)
+    try:
+        return open_cases(connection, int(study["id"]))
+    finally:
+        connection.close()
+
+
+def decide_case(workspace: Workspace, review_id: int, decision: str, note: str) -> None:
+    connection, _ = open_database(workspace)
+    try:
+        decide_review(connection, review_id, ReviewDecision(decision), note)
+    finally:
+        connection.close()

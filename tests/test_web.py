@@ -518,6 +518,23 @@ class WorkbenchTestCase(unittest.TestCase):
         self.client.post("/fieldwork/prepare?lang=en")
         with self.client.stream("GET", "/fieldwork/stream") as stream:
             list(stream.iter_lines())
+        # The fixture run flags paraphrased calls on purpose; an export over
+        # undecided conflicts is refused. Decide them the way a person would,
+        # through the review page, then export.
+        blocked = self.client.get("/export/findings.md")
+        self.assertEqual(blocked.status_code, 409)
+        for review_id in re.findall(
+            r'name="review_id" value="(\d+)"', self.client.get("/reviews?lang=en").text
+        ):
+            decided = self.client.post(
+                "/reviews/decide?lang=en",
+                content=(
+                    f"review_id={review_id}&decision=gate_passed"
+                    "&note=checked+in+the+test"
+                ),
+                headers=FORM_ENCODED,
+            )
+            self.assertEqual(decided.status_code, 200)
         note = self.client.get("/export/findings.md")
         self.assertEqual(note.status_code, 200)
         self.assertIn(ANSWERS["question"], note.text)

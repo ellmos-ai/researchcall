@@ -11,7 +11,9 @@ from .calls import CallOutcome, TERMINAL_STATUSES
 from .coding import apply_unlisted_policy
 from .database import load_questionnaire, transaction, utc_now
 from .instrument import for_call
+from .phrases import audit_transcript, phrases_from_questionnaire
 from .questionnaire import validate_structured_result, wording_matches
+from .review import open_review, reasons_for_attempt
 from .safety import idempotency_key, validate_e164
 
 
@@ -306,6 +308,17 @@ def _finish_attempt(
             )
     if response_error:
         detail["structured_result_error"] = response_error
+
+    # Gate phrases: literal recognition over whatever the call left to read.
+    # Only run when a transcript exists — a fixture pattern without one has
+    # nothing to recognise in, and inventing a verdict from absence is exactly
+    # what the review queue is there to prevent.
+    if outcome.transcript is not None and structured is not None:
+        gate_findings = audit_transcript(
+            outcome.transcript, phrases_from_questionnaire(questionnaire)
+        )
+        detail.update(gate_findings)
+
     with transaction(connection):
         connection.execute(
             """
@@ -347,6 +360,21 @@ def _finish_attempt(
                         utc_now(),
                     ),
                 )
+        # File a review case if any after-call check was not cleanly green.
+        # Inside the same transaction on purpose: an attempt must never be
+        # recorded without the flag its own checks raised.
+        open_review(
+            connection,
+            int(sample["attempt_id"]),
+            reasons_for_attempt(
+                call_status=outcome.status,
+                detail=detail,
+                wording_matches=(
+                    matches if structured is not None and response_error is None else None
+                ),
+                response_error=response_error,
+            ),
+        )
 
 
 def _mark_local_failure(

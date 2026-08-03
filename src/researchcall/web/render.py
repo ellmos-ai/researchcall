@@ -960,3 +960,89 @@ def config_view(
         f'<div class="scroll"><table class="data">{declared_rows}</table></div>'
         "</div></aside></div></main>"
     )
+
+
+# -- frame upload, withdrawal and the conflict queue -----------------------
+
+def frame_panel(
+    translator: Translator, uploaded_name: str | None, message: str = "", warn: bool = False
+) -> str:
+    """Bring your own frame — or let the dry run invent one."""
+    t = translator.t
+    note = ""
+    if message:
+        css = "note warn" if warn else "note"
+        note = f'<p class="{css}">{e(message)}</p>'
+    current = (
+        f'<p class="sub">{e(t("Current frame:"))} <span class="mono">{e(uploaded_name)}</span> — '
+        f'{e(t("it replaces the fictitious dry-run frame at preparation."))}</p>'
+        if uploaded_name
+        else f'<p class="sub">{e(t("No frame uploaded. The dry run will invent a fictitious one."))}</p>'
+    )
+    return (
+        f'<div class="panel"><h3>{e(t("Sampling frame"))}</h3>'
+        f'<p class="sub">{e(t("A .csv or .xlsx file with the columns external_ref and phone (E.164). This is how a vendor-drawn or self-generated frame enters the study."))}</p>'
+        f"{current}{note}"
+        f'<form method="post" action="/fieldwork/frame" enctype="multipart/form-data">'
+        f'<input type="file" name="frame" accept=".csv,.xlsx" required> '
+        f'<button type="submit">{e(t("Upload frame"))}</button>'
+        f"</form></div>"
+    )
+
+
+def withdraw_panel(translator: Translator, message: str = "", warn: bool = False) -> str:
+    """One person leaves the data; the row stays, unlinked from any number."""
+    t = translator.t
+    note = ""
+    if message:
+        css = "note warn" if warn else "note"
+        note = f'<p class="{css}">{e(message)}</p>'
+    return (
+        f'<div class="panel"><h3>{e(t("Withdrawal"))}</h3>'
+        f'<p class="sub">{e(t("Removes the phone number and the reference for one person. Their remaining data stays as one record that can no longer be linked to a number, and they leave every later denominator."))}</p>'
+        f"{note}"
+        f'<form method="post" action="/fieldwork/withdraw">'
+        f'<input type="text" name="external_ref" placeholder="external_ref" required> '
+        f'<button type="submit">{e(t("Anonymize this person"))}</button>'
+        f"</form></div>"
+    )
+
+
+def reviews_view(
+    cases: list[dict], translator: Translator, message: str = "", warn: bool = False
+) -> str:
+    """The conflict queue: every case a person still has to look at."""
+    t = translator.t
+    note = ""
+    if message:
+        css = "note warn" if warn else "note"
+        note = f'<p class="{css}">{e(message)}</p>'
+    if not cases:
+        body = f'<p class="none">{e(t("No open cases. Every flagged call has been decided."))}</p>'
+    else:
+        blocks = []
+        for case in cases:
+            reasons = ", ".join(case["reasons"])
+            transcript = case.get("transcript") or t("No transcript was recorded for this attempt.")
+            gates_missed = ", ".join(case.get("gates_missed") or []) or "—"
+            blocks.append(
+                f'<div class="panel"><h3>#{case["review_id"]} · {e(t("attempt"))} {case["attempt_no"]} · '
+                f'<span class="mono">{e(case["call_status"])}</span></h3>'
+                f'<p class="sub">{e(t("Flagged:"))} {e(reasons)} · {e(t("opened"))} {e(case["opened_at"][:19])}</p>'
+                f'<p class="sub">{e(t("Gate phrases not seen:"))} <span class="mono">{e(gates_missed)}</span></p>'
+                f'<details><summary>{e(t("Transcript"))}</summary>'
+                f'<pre class="config">{e(transcript)}</pre></details>'
+                f'<form method="post" action="/reviews/decide">'
+                f'<input type="hidden" name="review_id" value="{case["review_id"]}">'
+                f'<input type="text" name="note" placeholder="{e(t("Grounds for the decision (required)"))}" required> '
+                f'<button type="submit" name="decision" value="gate_passed">{e(t("Gate passed"))}</button> '
+                f'<button type="submit" name="decision" value="dropout">{e(t("Dropout"))}</button> '
+                f'<button type="submit" name="decision" value="excluded">{e(t("Exclude"))}</button>'
+                f"</form></div>"
+            )
+        body = "".join(blocks)
+    return (
+        f'<main><h2>{e(t("Conflict review"))}</h2>'
+        f'<p class="sub">{e(t("Calls whose after-call checks were not cleanly green. The recorded attempt is never overwritten; the decision is written beside it, with its grounds. Aggregation waits until this list is empty."))}</p>'
+        f"{note}{body}</main>"
+    )

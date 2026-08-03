@@ -48,6 +48,93 @@ def read_sqlite_frame(
     return [(str(row[0]).strip(), str(row[1]).strip()) for row in rows]
 
 
+def read_xlsx_frame(
+    path: str | Path, id_column: str, phone_column: str
+) -> list[tuple[str, str]]:
+    """Read the first worksheet of an .xlsx file, header row first.
+
+    Researchers get their frames from sampling vendors or their own tools, and
+    those tools speak Excel. The reader is standard-library only (an .xlsx file
+    is a zip of XML), because a parsing dependency for two columns of text
+    would be the tail wagging the dog. Deliberately narrow: first sheet, shared
+    or inline strings, no formulas evaluated — a frame is a list, not a model.
+    """
+    import re as _re
+    import zipfile
+    from xml.etree import ElementTree
+
+    ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    with zipfile.ZipFile(Path(path)) as archive:
+        shared: list[str] = []
+        if "xl/sharedStrings.xml" in archive.namelist():
+            root = ElementTree.fromstring(archive.read("xl/sharedStrings.xml"))
+            for item in root.findall("m:si", ns):
+                shared.append("".join(node.text or "" for node in item.iter() if node.text))
+        sheet_names = sorted(
+            name
+            for name in archive.namelist()
+            if _re.fullmatch(r"xl/worksheets/sheet\d+\.xml", name)
+        )
+        if not sheet_names:
+            raise ValueError("The .xlsx file contains no worksheet")
+        root = ElementTree.fromstring(archive.read(sheet_names[0]))
+
+    def cell_text(cell: ElementTree.Element) -> str:
+        kind = cell.get("t", "")
+        if kind == "s":
+            value = cell.find("m:v", ns)
+            index = int(value.text) if value is not None and value.text else -1
+            return shared[index] if 0 <= index < len(shared) else ""
+        if kind == "inlineStr":
+            return "".join(
+                node.text or "" for node in cell.iter() if node.text
+            ).strip()
+        value = cell.find("m:v", ns)
+        return (value.text or "") if value is not None else ""
+
+    def column_of(reference: str) -> int:
+        letters = "".join(char for char in reference if char.isalpha())
+        index = 0
+        for char in letters:
+            index = index * 26 + (ord(char.upper()) - ord("A") + 1)
+        return index - 1
+
+    table: list[list[str]] = []
+    for row in root.findall(".//m:row", ns):
+        cells: dict[int, str] = {}
+        for cell in row.findall("m:c", ns):
+            cells[column_of(cell.get("r", "A1"))] = cell_text(cell).strip()
+        width = max(cells) + 1 if cells else 0
+        table.append([cells.get(i, "") for i in range(width)])
+
+    if not table or not any(table[0]):
+        raise ValueError("Frame .xlsx needs a header row")
+    header = [value.strip() for value in table[0]]
+    missing = {id_column, phone_column} - set(header)
+    if missing:
+        raise ValueError("Frame .xlsx is missing columns: " + ", ".join(sorted(missing)))
+    id_index = header.index(id_column)
+    phone_index = header.index(phone_column)
+    rows = []
+    for line in table[1:]:
+        if not any(value.strip() for value in line):
+            continue        # a trailing empty row is not a participant
+        ref = line[id_index] if id_index < len(line) else ""
+        phone = line[phone_index] if phone_index < len(line) else ""
+        rows.append((ref.strip(), phone.strip()))
+    return rows
+
+
+def read_frame_file(
+    path: str | Path, id_column: str, phone_column: str
+) -> list[tuple[str, str]]:
+    """CSV or .xlsx, decided by the file itself, not by its name alone."""
+    file_path = Path(path)
+    if file_path.suffix.lower() == ".xlsx":
+        return read_xlsx_frame(file_path, id_column, phone_column)
+    return read_csv_frame(file_path, id_column, phone_column)
+
+
 def import_frame_rows(
     connection: sqlite3.Connection,
     study_id: int,

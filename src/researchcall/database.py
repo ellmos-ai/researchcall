@@ -67,6 +67,29 @@ CREATE TABLE IF NOT EXISTS response (
     received_at TEXT NOT NULL
 );
 
+-- What the transport has actually proven it can do. 'untested' is a state of
+-- its own, not a missing row: a capability nobody has probed must not read
+-- like one that failed.
+CREATE TABLE IF NOT EXISTS capability (
+    name TEXT PRIMARY KEY,
+    status TEXT NOT NULL DEFAULT 'untested',
+    evidence_json TEXT NOT NULL DEFAULT '{}',
+    checked_at TEXT
+);
+
+-- One row per attempt whose after-call checks were not cleanly green. The
+-- decision sits BESIDE the attempt, like a category beside its raw text: the
+-- recorded disposition is never overwritten.
+CREATE TABLE IF NOT EXISTS review (
+    id INTEGER PRIMARY KEY,
+    attempt_id INTEGER NOT NULL UNIQUE REFERENCES attempt(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    opened_at TEXT NOT NULL,
+    decision TEXT,
+    note TEXT,
+    decided_at TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_sample_open
     ON sample(study_id, time_window, excluded_at);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_frame_unique_phone
@@ -74,6 +97,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_frame_unique_phone
     WHERE phone_e164 IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_attempt_status
     ON attempt(call_status);
+CREATE INDEX IF NOT EXISTS idx_review_open
+    ON review(decision) WHERE decision IS NULL;
 """
 
 
@@ -155,6 +180,41 @@ def migrate(connection: sqlite3.Connection) -> list[str]:
             """
         )
         applied.append("attempt.time_window")
+
+    existing_tables = {
+        str(row["name"])
+        for row in connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+    }
+    if "study" in existing_tables and "capability" not in existing_tables:
+        connection.execute(
+            """
+            CREATE TABLE capability (
+                name TEXT PRIMARY KEY,
+                status TEXT NOT NULL DEFAULT 'untested',
+                evidence_json TEXT NOT NULL DEFAULT '{}',
+                checked_at TEXT
+            )
+            """
+        )
+        applied.append("capability")
+    if "study" in existing_tables and "review" not in existing_tables:
+        connection.executescript(
+            """
+            CREATE TABLE review (
+                id INTEGER PRIMARY KEY,
+                attempt_id INTEGER NOT NULL UNIQUE REFERENCES attempt(id) ON DELETE CASCADE,
+                reason TEXT NOT NULL,
+                opened_at TEXT NOT NULL,
+                decision TEXT,
+                note TEXT,
+                decided_at TEXT
+            );
+            CREATE INDEX idx_review_open ON review(decision) WHERE decision IS NULL;
+            """
+        )
+        applied.append("review")
     return applied
 
 
