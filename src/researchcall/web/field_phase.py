@@ -467,3 +467,179 @@ def decide_case(workspace: Workspace, review_id: int, decision: str, note: str) 
         decide_review(connection, review_id, ReviewDecision(decision), note)
     finally:
         connection.close()
+
+
+# -- the data phase, from the interface ------------------------------------
+
+def calls(workspace: Workspace, status: str = "all") -> list[dict]:
+    from ..dataphase import call_list
+
+    if not exists(workspace):
+        return []
+    connection, study = open_database(workspace)
+    try:
+        return call_list(connection, int(study["id"]), status)
+    finally:
+        connection.close()
+
+
+def call(workspace: Workspace, sample_id: int) -> dict:
+    from ..dataphase import call_detail
+
+    connection, study = open_database(workspace)
+    try:
+        return call_detail(connection, int(study["id"]), sample_id)
+    finally:
+        connection.close()
+
+
+def flag_attempt(workspace: Workspace, attempt_id: int, note: str) -> None:
+    from ..review import flag_manually
+
+    connection, _ = open_database(workspace)
+    try:
+        flag_manually(connection, attempt_id, note)
+    finally:
+        connection.close()
+
+
+def decide_open_by_rule(workspace: Workspace, decision: str, note: str) -> int:
+    from ..review import ReviewDecision, decide_all_by_rule
+
+    connection, study = open_database(workspace)
+    try:
+        return decide_all_by_rule(
+            connection, int(study["id"]), ReviewDecision(decision), note
+        )
+    finally:
+        connection.close()
+
+
+def anonymise(workspace: Workspace, external_ref: str, reason: str) -> None:
+    from ..dataphase import anonymise_deliberately
+
+    if not exists(workspace):
+        raise ValueError("There is no field phase yet, so there is nobody to withdraw")
+    connection, study = open_database(workspace)
+    try:
+        anonymise_deliberately(connection, int(study["id"]), external_ref, reason)
+    finally:
+        connection.close()
+
+
+def register(workspace: Workspace) -> tuple[list[dict], dict]:
+    from ..dataphase import dialed_register, reconciliation
+
+    if not exists(workspace):
+        return [], {}
+    connection, study = open_database(workspace)
+    try:
+        study_id = int(study["id"])
+        return dialed_register(connection, study_id), reconciliation(connection, study_id)
+    finally:
+        connection.close()
+
+
+def seal_status(workspace: Workspace) -> bool:
+    from ..dataphase import is_sealed
+
+    if not exists(workspace):
+        return False
+    connection, study = open_database(workspace)
+    try:
+        return is_sealed(connection, int(study["id"]))
+    finally:
+        connection.close()
+
+
+def seal(workspace: Workspace, note: str) -> None:
+    from ..dataphase import seal_dataset
+
+    connection, study = open_database(workspace)
+    try:
+        seal_dataset(connection, int(study["id"]), note)
+    finally:
+        connection.close()
+
+
+def correct(
+    workspace: Workspace, sample_id: int, question_id: str, new_category: str, reason: str
+) -> None:
+    from ..dataphase import correct_answer
+
+    connection, study = open_database(workspace)
+    try:
+        correct_answer(
+            connection,
+            int(study["id"]),
+            sample_id,
+            question_id,
+            new_category if new_category != "" else None,
+            reason,
+        )
+    finally:
+        connection.close()
+
+
+def changes(workspace: Workspace) -> list[dict]:
+    from ..dataphase import change_history
+
+    if not exists(workspace):
+        return []
+    connection, study = open_database(workspace)
+    try:
+        return change_history(connection, int(study["id"]))
+    finally:
+        connection.close()
+
+
+def run_t_test(workspace: Workspace, numeric_question: str, group_question: str) -> dict:
+    """Welch t-test of one numeric item across the two groups of another item.
+
+    Answers are category strings; an item only counts as numeric when every
+    answered value parses as a number. Anything else is refused with the
+    sentence that explains it -- silently coercing categories to numbers is
+    how nonsense gets significance stars.
+    """
+    from ..stats import welch_t_test
+
+    connection, study = open_database(workspace)
+    try:
+        rows = connection.execute(
+            """
+            SELECT r.structured_json FROM response r
+            JOIN sample s ON s.id = r.sample_id
+            WHERE s.study_id = ? AND s.excluded_at IS NULL
+            """,
+            (int(study["id"]),),
+        ).fetchall()
+    finally:
+        connection.close()
+
+    import json as _json
+
+    groups: dict[str, list[float]] = {}
+    for row in rows:
+        structured = _json.loads(str(row["structured_json"]))
+        answers = structured.get("answers", {})
+        group = answers.get(group_question)
+        value = answers.get(numeric_question)
+        if group is None or value is None:
+            continue
+        try:
+            number = float(str(value))
+        except ValueError:
+            raise ValueError(
+                f"'{numeric_question}' has the answer '{value}', which is not a "
+                f"number; a t-test over coerced categories would be nonsense"
+            )
+        groups.setdefault(str(group), []).append(number)
+
+    if len(groups) != 2:
+        raise ValueError(
+            f"'{group_question}' has {len(groups)} answered group(s); a t-test "
+            f"compares exactly two"
+        )
+    (label_a, values_a), (label_b, values_b) = sorted(groups.items())
+    result = welch_t_test(values_a, values_b, label_a, label_b)
+    return result.to_dict()

@@ -550,6 +550,70 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertIn("unplanned_follow_ups", result.text)
         self.assertIn("not the CALL-E agent", result.text)
 
+    def test_the_data_phase_end_to_end_through_the_interface(self) -> None:
+        """Call list, mask, manual flag, rule run, seal, exports, project zip."""
+        self.finish_all()
+        self.client.post("/fieldwork/prepare?lang=en")
+        with self.client.stream("GET", "/fieldwork/stream") as stream:
+            list(stream.iter_lines())
+
+        # The call list renders and the conflict filter finds the flagged runs.
+        calls = self.client.get("/calls?lang=en")
+        self.assertEqual(calls.status_code, 200)
+        conflicts = self.client.get("/calls?status=conflict&lang=en")
+        sample_ids = re.findall(r'href="/calls/(\d+)\?lang=en"', conflicts.text)
+        self.assertTrue(sample_ids, "the fixture run flags paraphrased calls")
+
+        # The mask shows the suggestion, and the decision lands beside the case.
+        mask = self.client.get(f"/calls/{sample_ids[0]}?lang=en")
+        self.assertIn("Suggestion", mask.text)
+        review_id = re.findall(r'name="review_id" value="(\d+)"', mask.text)[0]
+        decided = self.client.post(
+            f"/calls/{sample_ids[0]}/decide?lang=en",
+            content=f"review_id={review_id}&decision=gate_passed&note=transcript+held",
+            headers=FORM_ENCODED,
+        )
+        self.assertIn("gate_passed", decided.text)
+
+        # A green call can be flagged manually, with grounds shown on reopening.
+        successful = self.client.get("/calls?status=successful&lang=en")
+        green_ids = re.findall(r'href="/calls/(\d+)\?lang=en"', successful.text)
+        green_mask = self.client.get(f"/calls/{green_ids[0]}?lang=en")
+        attempt_id = re.findall(r'name="attempt_id" value="(\d+)"', green_mask.text)[0]
+        flagged = self.client.post(
+            f"/calls/{green_ids[0]}/flag?lang=en",
+            content=f"attempt_id={attempt_id}&note=reads+coached",
+            headers=FORM_ENCODED,
+        )
+        self.assertIn("reads coached", flagged.text)
+
+        # The rule closes everything still open, marked as a rule ruling.
+        ruled = self.client.post(
+            "/reviews/rule?lang=en",
+            content="decision=dropout&note=default+policy+for+this+study",
+            headers=FORM_ENCODED,
+        )
+        self.assertIn("decided by rule", ruled.text)
+        self.assertNotIn('name="review_id"', self.client.get("/reviews?lang=en").text)
+
+        # Exports open now that no case is open -- each in its real format.
+        xlsx = self.client.get("/export/dataset.xlsx")
+        self.assertEqual(xlsx.status_code, 200)
+        self.assertTrue(xlsx.content.startswith(b"PK"), "an .xlsx is a zip")
+        self.assertIn("GET DATA", self.client.get("/export/import.sps").text)
+        self.assertIn("read.csv", self.client.get("/export/analysis.R").text)
+        project = self.client.get("/project/export.zip")
+        self.assertEqual(project.status_code, 200)
+        self.assertTrue(project.content.startswith(b"PK"))
+
+        # Sealing works once and needs grounds; afterwards the panel says so.
+        sealed = self.client.post(
+            "/dataphase/seal?lang=en",
+            content="note=fieldwork+finished",
+            headers=FORM_ENCODED,
+        )
+        self.assertIn("sealed", sealed.text.lower())
+
     def test_the_report_says_so_when_no_field_phase_has_run(self) -> None:
         self.assertIn("nothing to report", self.client.get("/report?lang=en").text)
         self.assertEqual(self.client.get("/report.md").status_code, 404)

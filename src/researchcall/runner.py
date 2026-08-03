@@ -187,6 +187,7 @@ def _claim_next(
             "attempt_id": attempt_id,
             "attempt_no": attempt_no,
             "frame_id": int(chosen["frame_id"]),
+            "study_id": int(study["id"]),
             "time_window": time_window,
             "phone_e164": phone,
             "idempotency_key": key,
@@ -206,6 +207,18 @@ def _purge_frame(
             "SELECT id FROM sample WHERE frame_id = ?", (frame_id,)
         ).fetchall()
     ]
+    # A withdrawal keeps the NUMBER in the dialed register, marked do-not-call:
+    # the person asked to be left alone, and forgetting the number would make
+    # a follow-up round dial it again. Only the edge to their answers falls.
+    frame_row = connection.execute(
+        "SELECT study_id, phone_e164 FROM frame WHERE id = ?", (frame_id,)
+    ).fetchone()
+    if frame_row is not None and frame_row["phone_e164"] and reason == "WITHDRAWN":
+        from .dataphase import mark_do_not_call
+
+        mark_do_not_call(
+            connection, int(frame_row["study_id"]), str(frame_row["phone_e164"])
+        )
     connection.execute(
         """
         UPDATE frame
@@ -360,6 +373,17 @@ def _finish_attempt(
                         utc_now(),
                     ),
                 )
+        # The dialed register: the number was called, and that fact survives
+        # everything -- including a later anonymisation of the person.
+        if sample.get("phone_e164") and sample.get("study_id"):
+            from .dataphase import record_dialed
+
+            record_dialed(
+                connection,
+                int(sample["study_id"]),
+                str(sample["phone_e164"]),
+                outcome.status,
+            )
         # File a review case if any after-call check was not cleanly green.
         # Inside the same transaction on purpose: an attempt must never be
         # recorded without the flag its own checks raised.

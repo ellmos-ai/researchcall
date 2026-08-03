@@ -3,6 +3,14 @@
     "de": "Eine .csv- oder .xlsx-Datei mit den Spalten external_ref und phone (E.164). So kommt ein von einem Anbieter gezogener oder selbst erzeugter Rahmen in die Studie.",
     "en": "A .csv or .xlsx file with the columns external_ref and phone (E.164). This is how a vendor-drawn or self-generated frame enters the study."
   },
+  "A correction requires a reason": {
+    "de": "Eine Korrektur braucht eine Begründung",
+    "en": "A correction requires a reason"
+  },
+  "A default rule can only drop out or exclude; passing a gate is a decision a person takes while looking at the case": {
+    "de": "Eine Standardregel kann nur Dropout oder Ausschluss; ein Gate zu bestehen ist eine Entscheidung, die ein Mensch beim Blick auf den Fall trifft",
+    "en": "A default rule can only drop out or exclude; passing a gate is a decision a person takes while looking at the case"
+  },
   "A deliberately clumsy sentence. Smoothing it out is the tell.": {
     "de": "Ein absichtlich holpriger Satz. Wird er geglättet, ist das der Beleg.",
     "en": "A deliberately clumsy sentence. Smoothing it out is the tell."
@@ -27,6 +35,10 @@
     "de": "Eine Prüfentscheidung braucht eine Begründung",
     "en": "A review decision requires a note explaining it"
   },
+  "A rule run requires a note explaining why it applies": {
+    "de": "Ein Regellauf braucht eine Begründung, warum die Regel gilt",
+    "en": "A rule run requires a note explaining why it applies"
+  },
   "A small study about the instrument: run the interview against the fixture transport and measure how faithfully it was delivered.": {
     "de": "Eine kleine Studie über das Instrument: das Interview gegen den Fixture-Transport laufen lassen und messen, wie treu es ausgeliefert wurde.",
     "en": "A small study about the instrument: run the interview against the fixture transport and measure how faithfully it was delivered."
@@ -43,9 +55,21 @@
     "de": "Ergänzt die Frage nach dem Ablehnungsgrund und ein Schemafeld, das die Antwort speichert.",
     "en": "Adds the refusal question and a schema field that stores the answer."
   },
+  "All": {
+    "de": "Alle",
+    "en": "All"
+  },
   "All eight stations are open. Ethical locked settings stay hidden. Network disabled · fixture transport · no real calls.": {
     "de": "Alle acht Stationen sind geöffnet. Die ethisch gesperrten Einstellungen bleiben verborgen. Netzwerk deaktiviert · Fixture-Transport · keine echten Anrufe.",
     "en": "All eight stations are open. Ethical locked settings stay hidden. Network disabled · fixture transport · no real calls."
+  },
+  "All open: dropout": {
+    "de": "Alle offenen: Dropout",
+    "en": "All open: dropout"
+  },
+  "All open: exclude": {
+    "de": "Alle offenen: ausschließen",
+    "en": "All open: exclude"
   },
   "Analysis": {
     "de": "Auswertung",
@@ -55,6 +79,10 @@
     "de": "Auswertungsregeln werden beim Instrument festgelegt, nicht wenn die Ergebnisse da sind.",
     "en": "Analysis rules are fixed at the instrument, not after the results are in."
   },
+  "Anonymisation requires a reason. A follow-up study may still need this link; whoever cuts it says why.": {
+    "de": "Anonymisierung braucht eine Begründung. Eine Follow-up-Studie könnte diese Verknüpfung noch brauchen; wer sie kappt, sagt warum.",
+    "en": "Anonymisation requires a reason. A follow-up study may still need this link; whoever cuts it says why."
+  },
   "Anonymize this person": {
     "de": "Diese Person anonymisieren",
     "en": "Anonymize this person"
@@ -62,6 +90,10 @@
   "Answer distributions are always shown per window.": {
     "de": "Antwortverteilungen werden immer je Zeitfenster gezeigt.",
     "en": "Answer distributions are always shown per window."
+  },
+  "Answers": {
+    "de": "Antworten",
+    "en": "Answers"
   },
   "Any upload is rehearsed first. Nothing here uploads, which is the strictest form the rule can take.": {
     "de": "Jeder Upload wird zuerst geprobt. Hier lädt nichts hoch, das ist die strengste Form, die die Regel annehmen kann.",
@@ -71,6 +103,18 @@
     "de": "Greift, wenn eine zurückgegebene Antwort in keine Kategorie passt.",
     "en": "Applied when a returned answer fits none of the categories."
   },
+  "Apply one conservative ruling to every open case. There is no rule that passes a gate: passing is a decision somebody takes while looking at one case.": {
+    "de": "Wendet eine konservative Entscheidung auf alle offenen Fälle an. Eine Regel, die ein Gate besteht, gibt es nicht: Bestehen ist eine Entscheidung, die jemand beim Blick auf den Einzelfall trifft.",
+    "en": "Apply one conservative ruling to every open case. There is no rule that passes a gate: passing is a decision somebody takes while looking at one case."
+  },
+  "Attempts": {
+    "de": "Versuche",
+    "en": "Attempts"
+  },
+  "Back to the call list": {
+    "de": "Zurück zur Anrufliste",
+    "en": "Back to the call list"
+  },
   "Becomes the questionnaire the dry run actually asks.": {
     "de": "Wird zu dem Fragebogen, den der Trockenlauf tatsächlich stellt.",
     "en": "Becomes the questionnaire the dry run actually asks."
@@ -79,13 +123,29 @@
     "de": "Gebaut aus den Stationen 1 bis 4. Zitierte Zeilen werden wörtlich gesprochen; alles andere formuliert der Agent selbst — ein Unterschied, der am echten Dienst gemessen und nicht angenommen wurde.",
     "en": "Built from stations 1 to 4. Quoted lines are spoken word for word; everything else the agent phrases itself — a difference measured against the real service, not assumed."
   },
+  "Call record": {
+    "de": "Anrufakte",
+    "en": "Call record"
+  },
   "Calling a colleague is a real call, which this interface cannot place.": {
     "de": "Einen Kollegen anzurufen ist ein echter Anruf, den diese Oberfläche nicht auslösen kann.",
     "en": "Calling a colleague is a real call, which this interface cannot place."
   },
+  "Calls": {
+    "de": "Anrufe",
+    "en": "Calls"
+  },
   "Calls whose after-call checks were not cleanly green. The recorded attempt is never overwritten; the decision is written beside it, with its grounds. Aggregation waits until this list is empty.": {
     "de": "Anrufe, deren Nachprüfung nicht sauber grün war. Der aufgezeichnete Versuch wird nie überschrieben; die Entscheidung steht daneben, mit Begründung. Die Aggregation wartet, bis diese Liste leer ist.",
     "en": "Calls whose after-call checks were not cleanly green. The recorded attempt is never overwritten; the decision is written beside it, with its grounds. Aggregation waits until this list is empty."
+  },
+  "Change log for this record:": {
+    "de": "Änderungsprotokoll dieses Eintrags:",
+    "en": "Change log for this record:"
+  },
+  "Coded": {
+    "de": "Kodiert",
+    "en": "Coded"
   },
   "Compiled into a filter condition on every skipped item.": {
     "de": "Wird in eine Filterbedingung an jedem übersprungenen Item übersetzt.",
@@ -94,6 +154,10 @@
   "Configuration": {
     "de": "Konfiguration",
     "en": "Configuration"
+  },
+  "Conflict": {
+    "de": "Konfliktfall",
+    "en": "Conflict"
   },
   "Conflict review": {
     "de": "Konfliktprüfung",
@@ -115,6 +179,14 @@
     "de": "Gesprächsrahmen und Ethik",
     "en": "Conversation and ethics frame"
   },
+  "Correct": {
+    "de": "Korrigieren",
+    "en": "Correct"
+  },
+  "Corrections so far:": {
+    "de": "Bisherige Korrekturen:",
+    "en": "Corrections so far:"
+  },
   "Counting is done; metaphor, framing and worldview analysis need a model this dry-run build does not call.": {
     "de": "Auszählen ist umgesetzt; Metaphern-, Framing- und Weltbildanalyse brauchen ein Modell, das dieser Trockenlauf nicht aufruft.",
     "en": "Counting is done; metaphor, framing and worldview analysis need a model this dry-run build does not call."
@@ -122,6 +194,14 @@
   "Current frame:": {
     "de": "Aktueller Rahmen:",
     "en": "Current frame:"
+  },
+  "Data phase": {
+    "de": "Datenphase",
+    "en": "Data phase"
+  },
+  "Decided:": {
+    "de": "Entschieden:",
+    "en": "Decided:"
   },
   "Decides whether free text enters the dataset, a second file, or neither.": {
     "de": "Entscheidet, ob Freitext in den Datensatz, in eine zweite Datei oder nirgendwohin geht.",
@@ -131,13 +211,25 @@
     "de": "Entscheidung festgehalten.",
     "en": "Decision recorded."
   },
+  "Default rule": {
+    "de": "Standardregel",
+    "en": "Default rule"
+  },
   "Descriptive. Differences between windows are shown, not declared significant.": {
     "de": "Deskriptiv. Unterschiede zwischen den Fenstern werden gezeigt, nicht für signifikant erklärt.",
     "en": "Descriptive. Differences between windows are shown, not declared significant."
   },
+  "Dialed": {
+    "de": "Angerufen",
+    "en": "Dialed"
+  },
   "Distinct item orders the instrument produced across the test calls.": {
     "de": "Verschiedene Item-Reihenfolgen, die das Instrument über die Testanrufe erzeugt hat.",
     "en": "Distinct item orders the instrument produced across the test calls."
+  },
+  "Do not call": {
+    "de": "Nicht mehr anrufen",
+    "en": "Do not call"
   },
   "Download as a document": {
     "de": "Als Dokument herunterladen",
@@ -179,6 +271,10 @@
     "de": "Jedes Bedienelement links stammt aus einer Formularvorlage unter pipeline/_shared/forms/. Dieselbe Vorlage ergibt den Config-Wert und die gesprochene Frage. Die Oberfläche fügt kein eigenes Feld hinzu.",
     "en": "Every control on the left is rendered from a form definition under pipeline/_shared/forms/. The same definition produces the config value and the spoken question. The interface adds no field of its own."
   },
+  "Every drawn person, their latest attempt, and the state of the paperwork about it. Click a row for the full record.": {
+    "de": "Jede gezogene Person, ihr letzter Versuch und der Stand der Akte dazu. Klick auf eine Zeile öffnet den vollständigen Eintrag.",
+    "en": "Every drawn person, their latest attempt, and the state of the paperwork about it. Click a row for the full record."
+  },
   "Every number on this page is counted from the form definitions at request time.": {
     "de": "Jede Zahl auf dieser Seite wird beim Aufruf aus den Formularvorlagen gezählt.",
     "en": "Every number on this page is counted from the form definitions at request time."
@@ -219,9 +315,17 @@
     "de": "Erster gesprochener Baustein, wörtlich zitiert.",
     "en": "First spoken block, quoted word for word."
   },
+  "Flag as conflict": {
+    "de": "Als Konflikt markieren",
+    "en": "Flag as conflict"
+  },
   "Flagged:": {
     "de": "Markiert:",
     "en": "Flagged:"
+  },
+  "Flagging a call as a conflict requires grounds": {
+    "de": "Einen Anruf als Konflikt zu markieren braucht eine Begründung",
+    "en": "Flagging a call as a conflict requires grounds"
   },
   "Frame accepted:": {
     "de": "Rahmen angenommen:",
@@ -231,6 +335,10 @@
     "de": "Erzeugte Zeilen der Auswahlgrundlage:",
     "en": "Frame rows created:"
   },
+  "Frame total": {
+    "de": "Rahmen gesamt",
+    "en": "Frame total"
+  },
   "Gate passed": {
     "de": "Gate bestanden",
     "en": "Gate passed"
@@ -239,9 +347,33 @@
     "de": "Nicht gesehene Gate-Formeln:",
     "en": "Gate phrases not seen:"
   },
+  "Gate phrases:": {
+    "de": "Gate-Formeln:",
+    "en": "Gate phrases:"
+  },
+  "Grounds (required)": {
+    "de": "Begründung (Pflicht)",
+    "en": "Grounds (required)"
+  },
+  "Grounds for the correction (required)": {
+    "de": "Begründung der Korrektur (Pflicht)",
+    "en": "Grounds for the correction (required)"
+  },
   "Grounds for the decision (required)": {
     "de": "Begründung der Entscheidung (Pflicht)",
     "en": "Grounds for the decision (required)"
+  },
+  "Grounds for the objection (required)": {
+    "de": "Begründung des Einwands (Pflicht)",
+    "en": "Grounds for the objection (required)"
+  },
+  "Grounds recorded so far:": {
+    "de": "Bisher festgehaltene Begründung:",
+    "en": "Grounds recorded so far:"
+  },
+  "Grounds:": {
+    "de": "Begründung:",
+    "en": "Grounds:"
   },
   "Handing the questionnaire around is switched off in station 5.": {
     "de": "Das Weiterreichen des Fragebogens ist in Station 5 abgeschaltet.",
@@ -270,6 +402,14 @@
   "Inter-rater reliability needs two models rating the same answers.": {
     "de": "Interrater-Reliabilität braucht zwei Modelle, die dieselben Antworten raten.",
     "en": "Inter-rater reliability needs two models rating the same answers."
+  },
+  "Item": {
+    "de": "Frage",
+    "en": "Item"
+  },
+  "Last status": {
+    "de": "Letzter Status",
+    "en": "Last status"
   },
   "Leave test mode": {
     "de": "Testmodus verlassen",
@@ -303,9 +443,21 @@
     "de": "Braucht das Transkript eines echten Gesprächs; der Fixture-Transport hat keines.",
     "en": "Needs a transcript of a real conversation; the fixture transport has none."
   },
+  "New category (empty = uncode)": {
+    "de": "Neue Kategorie (leer = Kodierung entfernen)",
+    "en": "New category (empty = uncode)"
+  },
   "No active frame row matches that external reference": {
     "de": "Keine aktive Rahmenzeile passt zu dieser Referenz",
     "en": "No active frame row matches that external reference"
+  },
+  "No attempts yet.": {
+    "de": "Noch keine Versuche.",
+    "en": "No attempts yet."
+  },
+  "No calls match this filter.": {
+    "de": "Kein Anruf passt zu diesem Filter.",
+    "en": "No calls match this filter."
   },
   "No file arrived": {
     "de": "Es kam keine Datei an",
@@ -319,6 +471,10 @@
     "de": "Keine offenen Fälle. Jeder markierte Anruf ist entschieden.",
     "en": "No open cases. Every flagged call has been decided."
   },
+  "No response is recorded for this sample": {
+    "de": "Für diesen Fall ist keine Antwort erfasst",
+    "en": "No response is recorded for this sample"
+  },
   "No review case with that id": {
     "de": "Kein Prüffall mit dieser Nummer",
     "en": "No review case with that id"
@@ -331,9 +487,17 @@
     "de": "Kein Upload ohne Quellencheck. Dieser Stand lädt nirgendwohin hoch, die Regel gilt also von Bauart wegen und nicht durch Durchsetzung.",
     "en": "No upload without a source check. This build uploads nowhere at all, so the rule holds by construction rather than by enforcement."
   },
+  "Not attempted": {
+    "de": "Nicht durchgeführt",
+    "en": "Not attempted"
+  },
   "Not measurable in a dry run": {
     "de": "Im Trockenlauf nicht messbar",
     "en": "Not measurable in a dry run"
+  },
+  "Not yet dialed": {
+    "de": "Noch nicht angerufen",
+    "en": "Not yet dialed"
   },
   "Nothing reads this value yet:": {
     "de": "Diesen Wert liest bislang nichts:",
@@ -367,6 +531,10 @@
     "de": "Nur der Live-Transport pollt, und den erreicht diese Oberfläche nicht.",
     "en": "Only the live transport polls, and this interface cannot reach it."
   },
+  "Open conflict:": {
+    "de": "Offener Konflikt:",
+    "en": "Open conflict:"
+  },
   "Open review cases:": {
     "de": "Offene Prüffälle:",
     "en": "Open review cases:"
@@ -387,6 +555,10 @@
     "de": "Teil des Gerüsts",
     "en": "Part of the frame"
   },
+  "Person": {
+    "de": "Person",
+    "en": "Person"
+  },
   "Policy files are named but not read; there is no policy reader yet.": {
     "de": "Policy-Dateien werden benannt, aber nicht gelesen; einen Policy-Leser gibt es noch nicht.",
     "en": "Policy files are named but not read; there is no policy reader yet."
@@ -403,6 +575,10 @@
     "de": "Randomisiert zieht je Befragtem eine neue Item-Reihenfolge, Filter bleiben gewahrt.",
     "en": "Randomised draws a fresh item order per respondent, filters respected."
   },
+  "Raw": {
+    "de": "Wörtlich",
+    "en": "Raw"
+  },
   "Raw answer and interpretation stay side by side.": {
     "de": "Rohantwort und Deutung bleiben nebeneinander stehen.",
     "en": "Raw answer and interpretation stay side by side."
@@ -418,6 +594,10 @@
   "Recorded, not yet read": {
     "de": "Erfasst, noch nicht gelesen",
     "en": "Recorded, not yet read"
+  },
+  "Recorded.": {
+    "de": "Festgehalten.",
+    "en": "Recorded."
   },
   "Records": {
     "de": "Fälle",
@@ -491,6 +671,22 @@
     "de": "Gespeichert. Änderungen an einer abgeschlossenen Station werden als nachträglich gekennzeichnet.",
     "en": "Saved. Changes to a finished station are marked as later additions."
   },
+  "Schema:": {
+    "de": "Schema:",
+    "en": "Schema:"
+  },
+  "Seal dataset": {
+    "de": "Datensatz versiegeln",
+    "en": "Seal dataset"
+  },
+  "Sealed. Every change from here on is logged.": {
+    "de": "Versiegelt. Jede Änderung ab jetzt wird protokolliert.",
+    "en": "Sealed. Every change from here on is logged."
+  },
+  "Sealing requires a note: why is the dataset complete now?": {
+    "de": "Versiegeln braucht eine Begründung: Warum ist der Datensatz jetzt vollständig?",
+    "en": "Sealing requires a note: why is the dataset complete now?"
+  },
   "Sending mail is a connector this build does not carry.": {
     "de": "Mailversand ist ein Konnektor, den dieser Stand nicht mitbringt.",
     "en": "Sending mail is a connector this build does not carry."
@@ -527,6 +723,10 @@
     "de": "Gesprochene Begrüßung, vom Agenten frei formuliert.",
     "en": "Spoken opening, phrased freely by the agent."
   },
+  "State": {
+    "de": "Stand",
+    "en": "State"
+  },
   "State is SQLite in the workspace; a file-per-record backend is not built.": {
     "de": "Der Zustand liegt als SQLite im Arbeitsordner; ein Backend mit einer Datei je Datensatz ist nicht gebaut.",
     "en": "State is SQLite in the workspace; a file-per-record backend is not built."
@@ -554,6 +754,14 @@
   "Stops the run at the first failed record.": {
     "de": "Hält den Lauf beim ersten fehlgeschlagenen Datensatz an.",
     "en": "Stops the run at the first failed record."
+  },
+  "Successful": {
+    "de": "Erfolgreich",
+    "en": "Successful"
+  },
+  "Suggestion (a proposal, not a decision):": {
+    "de": "Vorschlag (ein Vorschlag, keine Entscheidung):",
+    "en": "Suggestion (a proposal, not a decision):"
   },
   "Survey workbench · dry run · no calls": {
     "de": "Erhebungs-Werkbank · Trockenlauf · keine Anrufe",
@@ -595,6 +803,10 @@
     "de": "Der Test berichtet über genau diese fünf Kriterien — und benennt, welche zwei davon ein Trockenlauf nicht entscheiden kann, statt sie zu bewerten.",
     "en": "The check reports on exactly these five criteria — and says which two of them a dry run cannot decide instead of scoring them."
   },
+  "The correction changes nothing": {
+    "de": "Die Korrektur ändert nichts",
+    "en": "The correction changes nothing"
+  },
   "The dry run is serial by design; the API's concurrency limit is unverified.": {
     "de": "Der Trockenlauf ist bewusst seriell; die Parallelitätsgrenze der API ist ungeprüft.",
     "en": "The dry run is serial by design; the API's concurrency limit is unverified."
@@ -618,6 +830,10 @@
   "The instrument so far": {
     "de": "Das Instrument bis hierher",
     "en": "The instrument so far"
+  },
+  "The number itself stays in the dialed register, unlinked. This step is deliberate: a follow-up study may still need the link, so it asks for grounds and cannot be undone.": {
+    "de": "Die Nummer selbst bleibt im Anrufregister, ohne Zuordnung. Dieser Schritt ist bewusst: Eine Follow-up-Studie könnte die Verknüpfung noch brauchen, deshalb verlangt er eine Begründung und ist nicht umkehrbar.",
+    "en": "The number itself stays in the dialed register, unlinked. This step is deliberate: a follow-up study may still need the link, so it asks for grounds and cannot be undone."
   },
   "The pipeline's L1-L5 catalogue is not in this repository, and inventing its wording would be worse than leaving it unused.": {
     "de": "Der L1-L5-Katalog der Pipeline liegt nicht in diesem Repository, und seinen Wortlaut zu erfinden wäre schlimmer, als ihn ungenutzt zu lassen.",
@@ -687,9 +903,21 @@
     "de": "Diese Werte werden gespeichert und exportiert, aber kein Teil der Mechanik handelt danach. Die Liste entsteht aus dem Code, damit keine Einstellung unbemerkt die Gruppe wechselt.",
     "en": "These values are kept and exported, but no part of the machinery acts on them yet. The list is generated from the code, so a setting cannot quietly move between the two groups."
   },
+  "This attempt already carries a decided case; decisions are not reopened": {
+    "de": "Dieser Versuch trägt bereits einen entschiedenen Fall; Entscheidungen werden nicht wieder geöffnet",
+    "en": "This attempt already carries a decided case; decisions are not reopened"
+  },
   "This case is already decided; decisions are not rewritten": {
     "de": "Dieser Fall ist bereits entschieden; Entscheidungen werden nicht umgeschrieben",
     "en": "This case is already decided; decisions are not rewritten"
+  },
+  "This dataset is already sealed; a seal is not renewed": {
+    "de": "Dieser Datensatz ist bereits versiegelt; ein Siegel wird nicht erneuert",
+    "en": "This dataset is already sealed; a seal is not renewed"
+  },
+  "This dataset is sealed. Every change from here on is logged with its grounds.": {
+    "de": "Dieser Datensatz ist versiegelt. Jede Änderung ab jetzt wird mit Begründung protokolliert.",
+    "en": "This dataset is sealed. Every change from here on is logged with its grounds."
   },
   "This interface cannot place a real call. Only the command line can, and only after the intent is typed out in full.": {
     "de": "Diese Oberfläche kann keinen echten Anruf auslösen. Das kann nur die Kommandozeile, und auch dort erst, wenn die Absicht vollständig ausgeschrieben wird.",
@@ -698,6 +926,10 @@
   "This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it.": {
     "de": "Gemessen wird der lokale Prüfstand, nicht der CALL-E-Agent. Ein Trockenlauf kann zeigen, dass das Instrument durchgesetzt und geprüft wird; ob der Agent es auch spricht, zeigt nur ein echter Anruf.",
     "en": "This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it."
+  },
+  "This person is anonymized. The record stays; the number link is gone.": {
+    "de": "Diese Person ist anonymisiert. Der Eintrag bleibt; die Nummernzuordnung ist weg.",
+    "en": "This person is anonymized. The record stays; the number link is gone."
   },
   "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them.": {
     "de": "Diese Station trägt außerdem Einstellungen, die zum Gerüst gehören und nicht abschaltbar sind. Sie erscheinen deshalb nicht als Bedienelement; die Konfiguration nennt sie.",
@@ -714,6 +946,10 @@
   "Two equivalent forms need paired items; the item grammar has no pairing yet.": {
     "de": "Zwei gleichwertige Formen brauchen gepaarte Items; die Item-Grammatik kennt noch keine Paarung.",
     "en": "Two equivalent forms need paired items; the item grammar has no pairing yet."
+  },
+  "Unsuccessful": {
+    "de": "Erfolglos",
+    "en": "Unsuccessful"
   },
   "Upload frame": {
     "de": "Rahmen hochladen",
@@ -735,6 +971,14 @@
     "de": "Was die Pipeline liest. Vorgaben aus den Formularvorlagen, darüber deine Antworten.",
     "en": "What the pipeline reads. Defaults from the form definitions, your answers on top."
   },
+  "Why does this rule apply to all of them? (required)": {
+    "de": "Warum gilt diese Regel für alle? (Pflicht)",
+    "en": "Why does this rule apply to all of them? (required)"
+  },
+  "Why is the dataset complete now? (required)": {
+    "de": "Warum ist der Datensatz jetzt vollständig? (Pflicht)",
+    "en": "Why is the dataset complete now? (required)"
+  },
   "Withdrawal": {
     "de": "Widerruf",
     "en": "Withdrawal"
@@ -742,6 +986,10 @@
   "Withdrawn. The number and the reference are gone; the record stays, unlinked.": {
     "de": "Widerrufen. Nummer und Referenz sind entfernt; der Eintrag bleibt, ohne Zuordnung.",
     "en": "Withdrawn. The number and the reference are gone; the record stays, unlinked."
+  },
+  "Wording check:": {
+    "de": "Wortlautprüfung:",
+    "en": "Wording check:"
   },
   "added later": {
     "de": "nachträglich",
@@ -775,6 +1023,10 @@
     "de": "getätigte Anrufe",
     "en": "calls placed"
   },
+  "case(s) decided by rule. The report tells rule rulings apart from looked-at ones.": {
+    "de": "Fälle per Regel entschieden. Der Bericht unterscheidet Regel-Entscheidungen von angesehenen.",
+    "en": "case(s) decided by rule. The report tells rule rulings apart from looked-at ones."
+  },
   "categories": {
     "de": "Kategorien",
     "en": "categories"
@@ -794,6 +1046,14 @@
   "daily quota": {
     "de": "Tagesration",
     "en": "daily quota"
+  },
+  "decide": {
+    "de": "entscheiden",
+    "en": "decide"
+  },
+  "decided:": {
+    "de": "entschieden:",
+    "en": "decided:"
   },
   "dialled more than once": {
     "de": "mehr als einmal angerufen",
@@ -867,6 +1127,10 @@
     "de": "Minuten",
     "en": "minutes"
   },
+  "not measurable": {
+    "de": "nicht messbar",
+    "en": "not measurable"
+  },
   "open": {
     "de": "offen",
     "en": "open"
@@ -878,6 +1142,10 @@
   "part of the frame": {
     "de": "Teil des Rahmens",
     "en": "part of the frame"
+  },
+  "project as zip": {
+    "de": "Projekt als ZIP",
+    "en": "project as zip"
   },
   "recorded only": {
     "de": "nur erfasst",

@@ -307,3 +307,124 @@ def codebook(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+# -- taking the dataset where researchers actually work --------------------
+#
+# The .sav binary is proprietary; the documented interchange route is a CSV
+# plus an import syntax file, and PSPP reads exactly that. R gets the same
+# CSV with a reading script. Excel gets a real .xlsx, written with the
+# standard library -- the file is a zip of XML, and a writing dependency for
+# one sheet of text would be the tail wagging the dog.
+
+def _csv_table(connection: sqlite3.Connection, study: sqlite3.Row) -> list[list[str]]:
+    text = dataset_csv(connection, study)
+    return [row for row in csv.reader(io.StringIO(text))]
+
+
+def dataset_xlsx(connection: sqlite3.Connection, study: sqlite3.Row) -> bytes:
+    """The dataset as a one-sheet .xlsx with inline strings."""
+    import re as _re
+    import zipfile
+
+    table = _csv_table(connection, study)
+
+    def column_name(index: int) -> str:
+        name = ""
+        index += 1
+        while index:
+            index, remainder = divmod(index - 1, 26)
+            name = chr(ord("A") + remainder) + name
+        return name
+
+    def escape(value: str) -> str:
+        value = _re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", value)
+        return (
+            value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        )
+
+    rows_xml = []
+    for row_index, row in enumerate(table, start=1):
+        cells = "".join(
+            f'<c r="{column_name(col)}{row_index}" t="inlineStr">'
+            f"<is><t xml:space=\"preserve\">{escape(value)}</t></is></c>"
+            for col, value in enumerate(row)
+        )
+        rows_xml.append(f'<row r="{row_index}">{cells}</row>')
+
+    sheet = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        f"<sheetData>{''.join(rows_xml)}</sheetData></worksheet>"
+    )
+    workbook = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        '<sheets><sheet name="dataset" sheetId="1" r:id="rId1"/></sheets></workbook>'
+    )
+    content_types = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+        '<Default Extension="xml" ContentType="application/xml"/>'
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        "</Types>"
+    )
+    root_rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+        "</Relationships>"
+    )
+    workbook_rels = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+        "</Relationships>"
+    )
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("[Content_Types].xml", content_types)
+        archive.writestr("_rels/.rels", root_rels)
+        archive.writestr("xl/workbook.xml", workbook)
+        archive.writestr("xl/_rels/workbook.xml.rels", workbook_rels)
+        archive.writestr("xl/worksheets/sheet1.xml", sheet)
+    return buffer.getvalue()
+
+
+def spss_syntax(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
+    """An .sps file that reads dataset.csv -- for SPSS and PSPP alike."""
+    table = _csv_table(connection, study)
+    header = table[0] if table else []
+    numeric = {"record", "attempts", "asked_verbatim_reported", "wording_matched"}
+    variables = "\n".join(
+        f"  {name} {'F8.0' if name in numeric else 'A120'}" for name in header
+    )
+    return (
+        "* ResearchCall dataset import for SPSS / PSPP.\n"
+        "* Place dataset.csv next to this file, then run.\n"
+        "GET DATA\n"
+        "  /TYPE=TXT\n"
+        "  /FILE='dataset.csv'\n"
+        "  /DELIMITERS=','\n"
+        "  /QUALIFIER='\"'\n"
+        "  /FIRSTCASE=2\n"
+        "  /VARIABLES=\n"
+        f"{variables}.\n"
+        "EXECUTE.\n"
+    )
+
+
+def r_script(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
+    """An .R file that reads dataset.csv and shows the first honest numbers."""
+    del connection, study
+    return (
+        "# ResearchCall dataset import for R.\n"
+        "# Place dataset.csv next to this script, then source it.\n"
+        'dataset <- read.csv("dataset.csv", stringsAsFactors = FALSE)\n'
+        "str(dataset)\n"
+        "# Dispositions -- the loss structure comes first, not the means:\n"
+        "table(dataset$status)\n"
+    )
