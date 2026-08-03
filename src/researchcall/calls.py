@@ -204,6 +204,38 @@ class FixtureCallClient:
             detail={"transport": "fixture", "pattern": (int(sample["sample_id"]) - 1) % len(self.patterns)},
         )
 
+    def call_batch(
+        self,
+        samples: list[dict[str, Any]],
+        questionnaire: dict[str, Any],
+        idempotency_key: str,
+    ) -> list[CallOutcome]:
+        """The batch path of the offline transport.
+
+        It exists so the dispatch machinery can be exercised end to end without
+        a network. The live client deliberately has no counterpart yet: batch
+        dispatch over the wire is documented but unproven here, and a method
+        that pretends otherwise would let ``resolve_dispatch`` select a path
+        nobody has seen work. Each outcome is marked with the shared batch key
+        so the record shows these calls travelled in one request.
+        """
+        outcomes = []
+        for index, sample in enumerate(samples):
+            outcome = self.call(sample, questionnaire, f"{idempotency_key}:{index}")
+            detail = dict(outcome.detail)
+            detail["batch_key"] = idempotency_key
+            detail["batch_position"] = index
+            outcomes.append(
+                CallOutcome(
+                    status=outcome.status,
+                    run_id=outcome.run_id,
+                    structured_result=outcome.structured_result,
+                    detail=detail,
+                    transcript=outcome.transcript,
+                )
+            )
+        return outcomes
+
 
 class LiveCallClient:
     """Minimal, deliberately serial CALL-E Developer API adapter.

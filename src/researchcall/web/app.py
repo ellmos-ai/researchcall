@@ -377,10 +377,92 @@ def create_app(
             problem = translator.t("Set a sample size in station 4 before the field phase.")
         elif plan["questions"] == 0:
             problem = translator.t("Station 2 carries no items yet, so there is nothing to ask.")
+        upload = field_phase.frame_upload_path(workspace)
         body = render.fieldwork_view(
             plan, None, translator, field_phase.exists(workspace), problem
         )
+        body += render.frame_panel(translator, upload.name if upload else None)
+        body += render.withdraw_panel(translator)
+        open_count = len(field_phase.review_cases(workspace))
+        if open_count:
+            body += (
+                f'<p class="note warn"><a href="/reviews?lang={translator.language}">'
+                f"{render.e(translator.t('Open review cases:'))} {open_count}</a></p>"
+            )
         return shell(request, body, translator.t("Field phase"), "fieldwork")
+
+    @app.post("/fieldwork/frame", response_class=HTMLResponse)
+    async def fieldwork_frame(request: Request) -> Any:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        form = await request.form()
+        upload = form.get("frame")
+        try:
+            if upload is None or isinstance(upload, str):
+                raise ValueError("No file arrived")
+            content = await upload.read()
+            _, rows = field_phase.store_frame_upload(
+                workspace, upload.filename or "", content
+            )
+            message, warn = (
+                f"{translator.t('Frame accepted:')} {rows} {translator.t('rows.')}",
+                False,
+            )
+        except ValueError as error:
+            message, warn = translator.t(str(error)), True
+        current = field_phase.frame_upload_path(workspace)
+        body = render.frame_panel(
+            translator, current.name if current else None, message, warn
+        )
+        return shell(request, body, translator.t("Field phase"), "fieldwork")
+
+    @app.post("/fieldwork/withdraw", response_class=HTMLResponse)
+    async def fieldwork_withdraw(request: Request) -> Any:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        form = await request.form()
+        reference = str(form.get("external_ref", "")).strip()
+        try:
+            field_phase.withdraw(workspace, reference)
+            message, warn = (
+                translator.t(
+                    "Withdrawn. The number and the reference are gone; the record stays, unlinked."
+                ),
+                False,
+            )
+        except ValueError as error:
+            message, warn = translator.t(str(error)), True
+        body = render.withdraw_panel(translator, message, warn)
+        return shell(request, body, translator.t("Field phase"), "fieldwork")
+
+    # --- conflict review ----------------------------------------------------
+
+    @app.get("/reviews", response_class=HTMLResponse)
+    async def reviews_page(request: Request) -> HTMLResponse:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        body = render.reviews_view(field_phase.review_cases(workspace), translator)
+        return shell(request, body, translator.t("Conflict review"), "fieldwork")
+
+    @app.post("/reviews/decide", response_class=HTMLResponse)
+    async def reviews_decide(request: Request) -> Any:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        form = await request.form()
+        message, warn = translator.t("Decision recorded."), False
+        try:
+            field_phase.decide_case(
+                workspace,
+                int(str(form.get("review_id", "0"))),
+                str(form.get("decision", "")),
+                str(form.get("note", "")),
+            )
+        except (ValueError, KeyError) as error:
+            message, warn = translator.t(str(error)), True
+        body = render.reviews_view(
+            field_phase.review_cases(workspace), translator, message, warn
+        )
+        return shell(request, body, translator.t("Conflict review"), "fieldwork")
 
     @app.post("/fieldwork/prepare", response_class=HTMLResponse)
     async def fieldwork_prepare(request: Request) -> HTMLResponse:
@@ -431,6 +513,14 @@ def create_app(
                 values.get("reporting.findings_file") or "findings.md"
             )
         body = render.report_view(summary, translator)
+        open_count = len(field_phase.review_cases(workspace))
+        if open_count:
+            body = (
+                f'<p class="note warn"><a href="/reviews?lang={translator.language}">'
+                f"{render.e(translator.t('Open review cases:'))} {open_count} — "
+                f"{render.e(translator.t('the figures below are provisional until every case is decided.'))}"
+                "</a></p>"
+            ) + body
         # The report is what a researcher takes away; the browser can write it
         # as a file into the folder they picked, without the host being asked.
         body += huckepack_web.receipt_script_tag(
@@ -469,6 +559,17 @@ def create_app(
         workspace = load_workspace()
         if not field_phase.exists(workspace):
             return PlainTextResponse("No field phase has run yet.\n", status_code=404)
+        # Looking at a provisional report is allowed (it says so); exporting a
+        # dataset over undecided conflicts is not. An export leaves the room,
+        # and the caveat does not travel with a CSV.
+        open_count = len(field_phase.review_cases(workspace))
+        if open_count:
+            return PlainTextResponse(
+                f"{open_count} review case(s) are still open. Decide them under "
+                f"/reviews before exporting; an exported dataset carries no "
+                f"'provisional' banner.\n",
+                status_code=409,
+            )
         connection, study = field_phase.open_database(workspace)
         try:
             text = builder(connection, study)
