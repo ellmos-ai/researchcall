@@ -129,7 +129,14 @@ Wortlaut-Befund). Es fehlt der Ort. Entwurf:
   Kategorie neben dem Rohtext. Aggregation zählt erst, wenn keine offenen Reviews
   mehr existieren, oder weist offene Fälle als eigene Spalte aus.
 
-## 7. Bauliste in Priorität
+## 7. Bauliste in Priorität — Stand 2026-08-04: 1–5 gebaut
+
+Alle fünf Baupunkte sind umgesetzt und getestet (164 Tests, Suite grün, Commits
+`b53a5b5` + `9cbbc08`). Dazu kam die Dispatch-Frage des Nutzers: **mono/multi nach
+Verfügbarkeit** — mono ist Default und der belegte Pfad; multi wird nur gewährt, wenn ein
+protokollierter Probe-Lauf es verifiziert hat UND der Transport einen Batch-Pfad besitzt.
+Jede Rückstufung schreibt ihren Grund in den Versuchsdatensatz (`dispatch.py`).
+Offen bleibt Punkt 6 (Video v5) — nach dem Muster: Video folgt der App.
 
 1. **Frame-Upload im Web** (CSV sofort, .xlsx dazu) — Station „Stichprobe" bekommt
    Upload + Spaltenwahl; Kern `read_csv_frame` bleibt unverändert.
