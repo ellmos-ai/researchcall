@@ -177,6 +177,7 @@ h2 { font-size: 1.48rem; font-weight: 700; line-height: 1.25; margin: 0 0 .35rem
 .sub { color: var(--muted); font-size: .85rem; margin: 0 0 1.25rem; line-height: 1.45; }
 
 .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 370px); gap: 1.6rem; align-items: start; }
+.config-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.6rem; align-items: start; }
 @media (max-width: 1100px) { .split { grid-template-columns: 1fr; } }
 
 fieldset { border: none; margin: 0; padding: 0; }
@@ -953,7 +954,7 @@ def config_view(
         f'<main><h2>{e(translator.t("Configuration"))}</h2>'
         f'<p class="sub">{e(translator.t("Editable configuration. Defaults from the visible form definitions, your answers on top."))}</p>'
         f'<p class="sub">{e(counts)}</p>'
-        f'<div class="split"><section><div class="panel"><pre class="config">{e(json.dumps(config, ensure_ascii=False, indent=2))}</pre></div></section>'
+        f'<div class="config-stack"><section><div class="panel"><pre class="config">{e(json.dumps(config, ensure_ascii=False, indent=2))}</pre></div></section>'
         f'<aside><div class="panel"><h3>{e(translator.t("Recorded, not yet read"))}</h3>'
         f'<p class="none">{e(translator.t("These values are kept and exported, but no part of the machinery acts on them yet. The list is generated from the code, so a setting cannot quietly move between the two groups."))}</p>'
         f'<div class="scroll"><table class="data">{declared_rows}</table></div>'
