@@ -19,6 +19,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import (
     HTMLResponse,
+    JSONResponse,
     PlainTextResponse,
     RedirectResponse,
     StreamingResponse,
@@ -383,6 +384,13 @@ def create_app(
         )
         body += render.frame_panel(translator, upload.name if upload else None)
         body += render.withdraw_panel(translator)
+        _, reconciliation = field_phase.register(workspace)
+        body += render.data_phase_panel(
+            reconciliation,
+            field_phase.seal_status(workspace),
+            translator,
+            translator.language,
+        )
         open_count = len(field_phase.review_cases(workspace))
         if open_count:
             body += (
@@ -422,8 +430,9 @@ def create_app(
         workspace = load_workspace()
         form = await request.form()
         reference = str(form.get("external_ref", "")).strip()
+        reason = str(form.get("reason", "")).strip()
         try:
-            field_phase.withdraw(workspace, reference)
+            field_phase.anonymise(workspace, reference, reason)
             message, warn = (
                 translator.t(
                     "Withdrawn. The number and the reference are gone; the record stays, unlinked."
@@ -435,6 +444,181 @@ def create_app(
         body = render.withdraw_panel(translator, message, warn)
         return shell(request, body, translator.t("Field phase"), "fieldwork")
 
+    # --- the call list and its mask -----------------------------------------
+
+    @app.get("/calls", response_class=HTMLResponse)
+    async def calls_page(request: Request) -> HTMLResponse:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        status = str(request.query_params.get("status", "all"))
+        try:
+            entries = field_phase.calls(workspace, status)
+        except ValueError:
+            entries, status = field_phase.calls(workspace, "all"), "all"
+        body = render.calls_view(entries, status, translator, translator.language)
+        return shell(request, body, translator.t("Calls"), "fieldwork")
+
+    @app.get("/calls/{sample_id}", response_class=HTMLResponse)
+    async def call_page(request: Request, sample_id: int) -> Any:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        try:
+            detail = field_phase.call(workspace, sample_id)
+        except ValueError:
+            return RedirectResponse(f"/calls?lang={translator.language}", status_code=303)
+        body = render.call_mask(detail, translator, translator.language)
+        return shell(request, body, translator.t("Call record"), "fieldwork")
+
+    async def _call_mask_after(request: Request, sample_id: int, action) -> Any:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        form = await request.form()
+        try:
+            action(workspace, form)
+            message, warn = translator.t("Recorded."), False
+        except (ValueError, KeyError) as error:
+            message, warn = translator.t(str(error)), True
+        detail = field_phase.call(workspace, sample_id)
+        body = render.call_mask(detail, translator, translator.language, message, warn)
+        return shell(request, body, translator.t("Call record"), "fieldwork")
+
+    @app.post("/calls/{sample_id}/decide", response_class=HTMLResponse)
+    async def call_decide(request: Request, sample_id: int) -> Any:
+        return await _call_mask_after(
+            request,
+            sample_id,
+            lambda workspace, form: field_phase.decide_case(
+                workspace,
+                int(str(form.get("review_id", "0"))),
+                str(form.get("decision", "")),
+                str(form.get("note", "")),
+            ),
+        )
+
+    @app.post("/calls/{sample_id}/flag", response_class=HTMLResponse)
+    async def call_flag(request: Request, sample_id: int) -> Any:
+        return await _call_mask_after(
+            request,
+            sample_id,
+            lambda workspace, form: field_phase.flag_attempt(
+                workspace,
+                int(str(form.get("attempt_id", "0"))),
+                str(form.get("note", "")),
+            ),
+        )
+
+    @app.post("/calls/{sample_id}/correct", response_class=HTMLResponse)
+    async def call_correct(request: Request, sample_id: int) -> Any:
+        return await _call_mask_after(
+            request,
+            sample_id,
+            lambda workspace, form: field_phase.correct(
+                workspace,
+                sample_id,
+                str(form.get("question_id", "")).strip(),
+                str(form.get("new_category", "")).strip(),
+                str(form.get("reason", "")),
+            ),
+        )
+
+    # --- the data phase: seal, exports, project zip -------------------------
+
+    @app.post("/dataphase/seal", response_class=HTMLResponse)
+    async def dataphase_seal(request: Request) -> Any:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        form = await request.form()
+        try:
+            field_phase.seal(workspace, str(form.get("note", "")))
+            message, warn = translator.t("Sealed. Every change from here on is logged."), False
+        except ValueError as error:
+            message, warn = translator.t(str(error)), True
+        register, reconciliation = field_phase.register(workspace)
+        del register
+        body = render.data_phase_panel(
+            reconciliation,
+            field_phase.seal_status(workspace),
+            translator,
+            translator.language,
+            message,
+            warn,
+        )
+        return shell(request, body, translator.t("Data phase"), "fieldwork")
+
+    @app.get("/export/dataset.xlsx")
+    async def export_xlsx() -> Any:
+        from ..export import dataset_xlsx
+
+        workspace = load_workspace()
+        if not field_phase.exists(workspace):
+            return PlainTextResponse("No field phase has run yet.\n", status_code=404)
+        open_count = len(field_phase.review_cases(workspace))
+        if open_count:
+            return PlainTextResponse(
+                f"{open_count} review case(s) are still open; decide them first.\n",
+                status_code=409,
+            )
+        connection, study = field_phase.open_database(workspace)
+        try:
+            payload = dataset_xlsx(connection, study)
+        finally:
+            connection.close()
+        from fastapi import Response
+
+        return Response(
+            content=payload,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": 'attachment; filename="dataset.xlsx"'},
+        )
+
+    @app.get("/export/import.sps", response_class=PlainTextResponse)
+    async def export_sps() -> Any:
+        from ..export import spss_syntax
+
+        return _exported(spss_syntax, "text/plain; charset=utf-8")
+
+    @app.get("/export/analysis.R", response_class=PlainTextResponse)
+    async def export_r() -> Any:
+        from ..export import r_script
+
+        return _exported(r_script, "text/plain; charset=utf-8")
+
+    @app.get("/stats/t-test")
+    async def stats_t_test(request: Request) -> Any:
+        workspace = load_workspace()
+        numeric = str(request.query_params.get("numeric", "")).strip()
+        group = str(request.query_params.get("group", "")).strip()
+        if not numeric or not group:
+            return PlainTextResponse(
+                "Usage: /stats/t-test?numeric=<item>&group=<item with two categories>\n",
+                status_code=400,
+            )
+        try:
+            result = field_phase.run_t_test(workspace, numeric, group)
+        except ValueError as error:
+            return PlainTextResponse(f"refused: {error}\n", status_code=400)
+        return JSONResponse(result)
+
+    @app.get("/project/export.zip")
+    async def project_export() -> Any:
+        import io as _io
+        import zipfile
+
+        workspace = load_workspace()
+        root = workspace.path
+        buffer = _io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            for path in sorted(root.rglob("*")):
+                if path.is_file():
+                    archive.write(path, path.relative_to(root).as_posix())
+        from fastapi import Response
+
+        return Response(
+            content=buffer.getvalue(),
+            media_type="application/zip",
+            headers={"Content-Disposition": 'attachment; filename="researchcall-project.zip"'},
+        )
+
     # --- conflict review ----------------------------------------------------
 
     @app.get("/reviews", response_class=HTMLResponse)
@@ -442,6 +626,26 @@ def create_app(
         translator = translator_of(request)
         workspace = load_workspace()
         body = render.reviews_view(field_phase.review_cases(workspace), translator)
+        return shell(request, body, translator.t("Conflict review"), "fieldwork")
+
+    @app.post("/reviews/rule", response_class=HTMLResponse)
+    async def reviews_rule(request: Request) -> Any:
+        translator = translator_of(request)
+        workspace = load_workspace()
+        form = await request.form()
+        try:
+            closed = field_phase.decide_open_by_rule(
+                workspace, str(form.get("decision", "")), str(form.get("note", ""))
+            )
+            message, warn = (
+                f"{closed} {translator.t('case(s) decided by rule. The report tells rule rulings apart from looked-at ones.')}",
+                False,
+            )
+        except (ValueError, KeyError) as error:
+            message, warn = translator.t(str(error)), True
+        body = render.reviews_view(
+            field_phase.review_cases(workspace), translator, message, warn
+        )
         return shell(request, body, translator.t("Conflict review"), "fieldwork")
 
     @app.post("/reviews/decide", response_class=HTMLResponse)

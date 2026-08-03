@@ -87,7 +87,44 @@ CREATE TABLE IF NOT EXISTS review (
     opened_at TEXT NOT NULL,
     decision TEXT,
     note TEXT,
-    decided_at TEXT
+    decided_at TEXT,
+    decided_by TEXT NOT NULL DEFAULT 'manual'
+);
+
+-- Every number that was ever dialled, as its own truth. This list survives
+-- anonymisation: cutting the person-number edge must not erase the fact that
+-- the number was called -- follow-up planning and do-not-call depend on it.
+CREATE TABLE IF NOT EXISTS dialed (
+    id INTEGER PRIMARY KEY,
+    study_id INTEGER NOT NULL REFERENCES study(id) ON DELETE CASCADE,
+    phone_e164 TEXT NOT NULL,
+    first_dialed_at TEXT NOT NULL,
+    last_dialed_at TEXT NOT NULL,
+    last_status TEXT NOT NULL,
+    do_not_call INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(study_id, phone_e164)
+);
+
+-- The seal: one deliberate cut. Before it, the dataset is being collected;
+-- after it, every change is a documented event.
+CREATE TABLE IF NOT EXISTS seal (
+    study_id INTEGER PRIMARY KEY REFERENCES study(id) ON DELETE CASCADE,
+    sealed_at TEXT NOT NULL,
+    note TEXT NOT NULL
+);
+
+-- What changed after it mattered. Old and new value side by side, with the
+-- grounds -- fitting the data quietly is the one thing this table prevents.
+CREATE TABLE IF NOT EXISTS change_log (
+    id INTEGER PRIMARY KEY,
+    study_id INTEGER NOT NULL REFERENCES study(id) ON DELETE CASCADE,
+    at TEXT NOT NULL,
+    target TEXT NOT NULL,
+    field TEXT NOT NULL,
+    old_value TEXT,
+    new_value TEXT,
+    reason TEXT NOT NULL,
+    via TEXT NOT NULL DEFAULT 'web'
 );
 
 CREATE INDEX IF NOT EXISTS idx_sample_open
@@ -215,6 +252,50 @@ def migrate(connection: sqlite3.Connection) -> list[str]:
             """
         )
         applied.append("review")
+    review_columns = _columns(connection, "review")
+    if review_columns and "decided_by" not in review_columns:
+        connection.execute(
+            "ALTER TABLE review ADD COLUMN decided_by TEXT NOT NULL DEFAULT 'manual'"
+        )
+        applied.append("review.decided_by")
+    if "study" in existing_tables and "dialed" not in existing_tables:
+        connection.executescript(
+            """
+            CREATE TABLE dialed (
+                id INTEGER PRIMARY KEY,
+                study_id INTEGER NOT NULL REFERENCES study(id) ON DELETE CASCADE,
+                phone_e164 TEXT NOT NULL,
+                first_dialed_at TEXT NOT NULL,
+                last_dialed_at TEXT NOT NULL,
+                last_status TEXT NOT NULL,
+                do_not_call INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(study_id, phone_e164)
+            );
+            """
+        )
+        applied.append("dialed")
+    if "study" in existing_tables and "seal" not in existing_tables:
+        connection.executescript(
+            """
+            CREATE TABLE seal (
+                study_id INTEGER PRIMARY KEY REFERENCES study(id) ON DELETE CASCADE,
+                sealed_at TEXT NOT NULL,
+                note TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS change_log (
+                id INTEGER PRIMARY KEY,
+                study_id INTEGER NOT NULL REFERENCES study(id) ON DELETE CASCADE,
+                at TEXT NOT NULL,
+                target TEXT NOT NULL,
+                field TEXT NOT NULL,
+                old_value TEXT,
+                new_value TEXT,
+                reason TEXT NOT NULL,
+                via TEXT NOT NULL DEFAULT 'web'
+            );
+            """
+        )
+        applied.append("seal+change_log")
     return applied
 
 

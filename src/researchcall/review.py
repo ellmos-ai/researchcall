@@ -34,6 +34,7 @@ class ReviewReason(str, Enum):
     SCHEMA_ERROR = "schema_error"
     UNCLEAR_CONSENT = "unclear_consent"
     GATE_MISSED = "gate_missed"
+    MANUAL_FLAG = "manual_flag"
 
 
 class ReviewDecision(str, Enum):
@@ -157,12 +158,14 @@ def decide(
     review_id: int,
     decision: ReviewDecision,
     note: str,
+    decided_by: str = "manual",
 ) -> None:
     """Close a case. The note is mandatory: a ruling without grounds is a shrug.
 
     ``dropout`` and ``excluded`` also mark the sample, so the reporting
     denominators see the ruling — but the attempt row itself stays exactly as
-    the call left it.
+    the call left it. ``decided_by`` records whether a person looked or a rule
+    ran; the report tells the two apart.
     """
     if not note.strip():
         raise ValueError("A review decision requires a note explaining it")
@@ -180,8 +183,9 @@ def decide(
         if row["decision"] is not None:
             raise ValueError("This case is already decided; decisions are not rewritten")
         connection.execute(
-            "UPDATE review SET decision = ?, note = ?, decided_at = ? WHERE id = ?",
-            (decision.value, note.strip(), utc_now(), review_id),
+            "UPDATE review SET decision = ?, note = ?, decided_at = ?, decided_by = ? "
+            "WHERE id = ?",
+            (decision.value, note.strip(), utc_now(), decided_by, review_id),
         )
         if decision in (ReviewDecision.DROPOUT, ReviewDecision.EXCLUDED):
             connection.execute(
@@ -191,6 +195,66 @@ def decide(
                 """,
                 (utc_now(), f"review:{decision.value}", int(row["sample_id"])),
             )
+
+
+RULE_DECISIONS = (ReviewDecision.DROPOUT, ReviewDecision.EXCLUDED)
+
+
+def decide_all_by_rule(
+    connection: sqlite3.Connection,
+    study_id: int,
+    decision: ReviewDecision,
+    note: str,
+) -> int:
+    """Apply one default rule to every open case of a study.
+
+    Only the conservative rulings exist as rules. A rule that passes every
+    conflict would make the queue decorative — 'gate_passed' stays a decision
+    somebody takes while looking at one case. Each closure is recorded with
+    ``decided_by='rule'`` so the report can say how many conflicts a person
+    actually looked at.
+    """
+    if decision not in RULE_DECISIONS:
+        raise ValueError(
+            "A default rule can only drop out or exclude; passing a gate is a "
+            "decision a person takes while looking at the case"
+        )
+    if not note.strip():
+        raise ValueError("A rule run requires a note explaining why it applies")
+    closed = 0
+    for case in open_cases(connection, study_id):
+        decide(connection, int(case["review_id"]), decision, note, decided_by="rule")
+        closed += 1
+    return closed
+
+
+def flag_manually(
+    connection: sqlite3.Connection, attempt_id: int, note: str
+) -> None:
+    """Turn a green call into a conflict, on grounds.
+
+    The automatic checks can only see what they measure. A person reading the
+    transcript may see more — and their objection enters the same queue as
+    every automatic one, with the grounds stored and shown again on reopening.
+    """
+    if not note.strip():
+        raise ValueError("Flagging a call as a conflict requires grounds")
+    with transaction(connection):
+        existing = connection.execute(
+            "SELECT id, decision, note FROM review WHERE attempt_id = ?", (attempt_id,)
+        ).fetchone()
+        if existing is not None and existing["decision"] is not None:
+            raise ValueError(
+                "This attempt already carries a decided case; decisions are not reopened"
+            )
+        open_review(connection, attempt_id, [ReviewReason.MANUAL_FLAG])
+        row = connection.execute(
+            "SELECT id, note FROM review WHERE attempt_id = ?", (attempt_id,)
+        ).fetchone()
+        merged = (str(row["note"]) + "\n" if row["note"] else "") + note.strip()
+        connection.execute(
+            "UPDATE review SET note = ? WHERE id = ?", (merged, int(row["id"]))
+        )
 
 
 def guard_aggregation(connection: sqlite3.Connection, study_id: int) -> None:

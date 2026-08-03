@@ -1000,9 +1000,11 @@ def withdraw_panel(translator: Translator, message: str = "", warn: bool = False
     return (
         f'<div class="panel"><h3>{e(t("Withdrawal"))}</h3>'
         f'<p class="sub">{e(t("Removes the phone number and the reference for one person. Their remaining data stays as one record that can no longer be linked to a number, and they leave every later denominator."))}</p>'
+        f'<p class="sub">{e(t("The number itself stays in the dialed register, unlinked. This step is deliberate: a follow-up study may still need the link, so it asks for grounds and cannot be undone."))}</p>'
         f"{note}"
         f'<form method="post" action="/fieldwork/withdraw">'
         f'<input type="text" name="external_ref" placeholder="external_ref" required> '
+        f'<input type="text" name="reason" placeholder="{e(t("Grounds (required)"))}" required> '
         f'<button type="submit">{e(t("Anonymize this person"))}</button>'
         f"</form></div>"
     )
@@ -1041,8 +1043,264 @@ def reviews_view(
                 f"</form></div>"
             )
         body = "".join(blocks)
+    rule_block = ""
+    if cases:
+        rule_block = (
+            f'<div class="panel"><h3>{e(t("Default rule"))}</h3>'
+            f'<p class="sub">{e(t("Apply one conservative ruling to every open case. There is no rule that passes a gate: passing is a decision somebody takes while looking at one case."))}</p>'
+            f'<form method="post" action="/reviews/rule">'
+            f'<input type="text" name="note" placeholder="{e(t("Why does this rule apply to all of them? (required)"))}" required> '
+            f'<button type="submit" name="decision" value="dropout">{e(t("All open: dropout"))}</button> '
+            f'<button type="submit" name="decision" value="excluded">{e(t("All open: exclude"))}</button>'
+            f"</form></div>"
+        )
     return (
         f'<main><h2>{e(t("Conflict review"))}</h2>'
         f'<p class="sub">{e(t("Calls whose after-call checks were not cleanly green. The recorded attempt is never overwritten; the decision is written beside it, with its grounds. Aggregation waits until this list is empty."))}</p>'
-        f"{note}{body}</main>"
+        f"{note}{body}{rule_block}</main>"
+    )
+
+
+# -- the call list and its mask --------------------------------------------
+
+CALL_FILTER_LABELS = {
+    "all": "All",
+    "not_attempted": "Not attempted",
+    "successful": "Successful",
+    "unsuccessful": "Unsuccessful",
+    "conflict": "Conflict",
+}
+
+
+def calls_view(entries, active_filter, translator, lang):
+    t = translator.t
+    tabs = " | ".join(
+        (
+            f"<strong>{e(t(label))}</strong>"
+            if key == active_filter
+            else f'<a href="/calls?status={key}&lang={lang}">{e(t(label))}</a>'
+        )
+        for key, label in CALL_FILTER_LABELS.items()
+    )
+    if not entries:
+        table = f'<p class="none">{e(t("No calls match this filter."))}</p>'
+    else:
+        rows = []
+        for entry in entries:
+            badge = entry["derived_status"]
+            marker = ""
+            if badge == "conflict":
+                marker = (
+                    f' <a href="/calls/{entry["sample_id"]}?lang={lang}">'
+                    + e(t("decide"))
+                    + "</a>"
+                )
+            decided = ""
+            if entry["review_decision"]:
+                decided = (
+                    " - " + e(t("decided:")) + " " + e(entry["review_decision"])
+                    + " (" + e(entry["review_decided_by"] or "manual") + ")"
+                )
+            rows.append(
+                f'<tr><td><a href="/calls/{entry["sample_id"]}?lang={lang}" class="mono">'
+                + e(entry["external_ref"]) + "</a></td>"
+                + "<td>" + e(str(entry["attempt_no"] or "-")) + "</td>"
+                + '<td class="mono">' + e(entry["call_status"] or "-") + "</td>"
+                + "<td>" + e(t(CALL_FILTER_LABELS.get(badge, badge))) + marker + decided
+                + "</td></tr>"
+            )
+        table = (
+            '<div class="panel"><table class="data">'
+            + "<tr><th>" + e(t("Person")) + "</th><th>" + e(t("Attempts")) + "</th>"
+            + "<th>" + e(t("Last status")) + "</th><th>" + e(t("State")) + "</th></tr>"
+            + "".join(rows)
+            + "</table></div>"
+        )
+    return (
+        "<main><h2>" + e(t("Calls")) + "</h2>"
+        + '<p class="sub">'
+        + e(t("Every drawn person, their latest attempt, and the state of the paperwork about it. Click a row for the full record."))
+        + "</p>"
+        + '<p class="sub">' + tabs + "</p>" + table + "</main>"
+    )
+
+
+def call_mask(detail, translator, lang, message="", warn=False):
+    from ..dataphase import suggest_decision
+
+    t = translator.t
+    note = ""
+    if message:
+        css = "note warn" if warn else "note"
+        note = f'<p class="{css}">{e(message)}</p>'
+
+    blocks = []
+    for attempt in detail["attempts"]:
+        checks = []
+        wording = attempt["wording_matches"]
+        checks.append(
+            e(t("Wording check:")) + " "
+            + (e(t("not measurable")) if wording is None else ("OK" if wording else "FAILED"))
+        )
+        checks.append(
+            e(t("Schema:")) + " "
+            + (("FAILED " + e(str(attempt["schema_error"]))) if attempt["schema_error"] else "OK")
+        )
+        gates_missed = attempt["gates_missed"]
+        checks.append(
+            e(t("Gate phrases:")) + " "
+            + (("MISSED " + e(", ".join(gates_missed))) if gates_missed else "OK")
+        )
+        if attempt["review_id"] is not None:
+            if attempt["review_decision"] is None:
+                suggestion, grounds = suggest_decision(
+                    (attempt["review_reason"] or "").split(",")
+                )
+                grounds_so_far = ""
+                if attempt["review_note"]:
+                    grounds_so_far = (
+                        "<br>" + e(t("Grounds recorded so far:")) + " "
+                        + e(attempt["review_note"])
+                    )
+                review_block = (
+                    '<p class="note warn">' + e(t("Open conflict:")) + " "
+                    + e(attempt["review_reason"] or "") + grounds_so_far + "<br>"
+                    + e(t("Suggestion (a proposal, not a decision):"))
+                    + " <strong>" + e(suggestion) + "</strong> - " + e(t(grounds)) + "</p>"
+                    + f'<form method="post" action="/calls/{detail["sample_id"]}/decide">'
+                    + f'<input type="hidden" name="review_id" value="{attempt["review_id"]}">'
+                    + '<input type="text" name="note" placeholder="'
+                    + e(t("Grounds for the decision (required)")) + '" required> '
+                    + '<button type="submit" name="decision" value="gate_passed">'
+                    + e(t("Gate passed")) + "</button> "
+                    + '<button type="submit" name="decision" value="dropout">'
+                    + e(t("Dropout")) + "</button> "
+                    + '<button type="submit" name="decision" value="excluded">'
+                    + e(t("Exclude")) + "</button></form>"
+                )
+            else:
+                review_block = (
+                    '<p class="note">' + e(t("Decided:")) + " <strong>"
+                    + e(attempt["review_decision"]) + "</strong> ("
+                    + e(attempt["review_decided_by"] or "manual") + ")<br>"
+                    + e(t("Grounds:")) + " " + e(attempt["review_note"] or "") + "</p>"
+                )
+        else:
+            review_block = (
+                f'<form method="post" action="/calls/{detail["sample_id"]}/flag">'
+                + f'<input type="hidden" name="attempt_id" value="{attempt["attempt_id"]}">'
+                + '<input type="text" name="note" placeholder="'
+                + e(t("Grounds for the objection (required)")) + '" required> '
+                + "<button type=\"submit\">" + e(t("Flag as conflict")) + "</button></form>"
+            )
+        transcript = attempt["transcript"] or t("No transcript was recorded for this attempt.")
+        blocks.append(
+            "<div class=\"panel\"><h3>" + e(t("attempt")) + " "
+            + str(attempt["attempt_no"]) + ' - <span class="mono">'
+            + e(attempt["call_status"]) + "</span></h3>"
+            + '<p class="sub">' + " - ".join(checks) + "</p>"
+            + "<details><summary>" + e(t("Transcript")) + "</summary>"
+            + '<pre class="config">' + e(transcript) + "</pre></details>"
+            + review_block + "</div>"
+        )
+
+    answers_block = ""
+    if detail["answers"]:
+        rows = []
+        for question_id, value in detail["answers"].items():
+            raw = (detail["raw_answers"] or {}).get(question_id) or ""
+            rows.append(
+                '<tr><td class="mono">' + e(question_id) + "</td><td>"
+                + e(str(value) if value is not None else "-") + "</td><td>"
+                + e(raw) + "</td></tr>"
+            )
+        corrections = ""
+        if detail["corrections"]:
+            lines = "".join(
+                "<li>" + e(item["question"]) + ": " + e(str(item["from"])) + " -> "
+                + e(str(item["to"])) + " (" + e(item["at"][:19]) + ")</li>"
+                for item in detail["corrections"]
+            )
+            corrections = '<p class="sub">' + e(t("Corrections so far:")) + "</p><ul>" + lines + "</ul>"
+        change_lines = ""
+        if detail["changes"]:
+            lines = "".join(
+                "<li>" + e(item["at"][:19]) + " - " + e(item["field"]) + ": "
+                + e(item["old_value"] or "") + " -> " + e(item["new_value"] or "")
+                + " - " + e(item["reason"]) + "</li>"
+                for item in detail["changes"]
+            )
+            change_lines = '<p class="sub">' + e(t("Change log for this record:")) + "</p><ul>" + lines + "</ul>"
+        answers_block = (
+            '<div class="panel"><h3>' + e(t("Answers")) + "</h3>"
+            + '<table class="data"><tr><th>' + e(t("Item")) + "</th><th>"
+            + e(t("Coded")) + "</th><th>" + e(t("Raw")) + "</th></tr>"
+            + "".join(rows) + "</table>"
+            + corrections + change_lines
+            + f'<form method="post" action="/calls/{detail["sample_id"]}/correct">'
+            + '<input type="text" name="question_id" placeholder="' + e(t("Item")) + '" required> '
+            + '<input type="text" name="new_category" placeholder="'
+            + e(t("New category (empty = uncode)")) + '"> '
+            + '<input type="text" name="reason" placeholder="'
+            + e(t("Grounds for the correction (required)")) + '" required> '
+            + "<button type=\"submit\">" + e(t("Correct")) + "</button></form></div>"
+        )
+
+    withdrawn = ""
+    if detail["withdrawn"]:
+        withdrawn = (
+            '<p class="note warn">'
+            + e(t("This person is anonymized. The record stays; the number link is gone."))
+            + "</p>"
+        )
+    empty = '<p class="none">' + e(t("No attempts yet.")) + "</p>"
+    return (
+        "<main><h2>" + e(t("Call record")) + ' <span class="mono">'
+        + e(detail["external_ref"]) + "</span></h2>"
+        + note + withdrawn + ("".join(blocks) or empty) + answers_block
+        + '<p class="sub"><a href="/calls?lang=' + lang + '">'
+        + e(t("Back to the call list")) + "</a></p></main>"
+    )
+
+
+def data_phase_panel(reconciliation, sealed, translator, lang, message="", warn=False):
+    """Register counts, the seal, and the exports -- the data phase at a glance."""
+    t = translator.t
+    note = ""
+    if message:
+        css = "note warn" if warn else "note"
+        note = f'<p class="{css}">{e(message)}</p>'
+    counts = ""
+    if reconciliation:
+        counts = (
+            '<table class="data">'
+            + "<tr><td>" + e(t("Frame total")) + "</td><td>" + str(reconciliation["frame_total"]) + "</td></tr>"
+            + "<tr><td>" + e(t("Dialed")) + "</td><td>" + str(reconciliation["dialed"]) + "</td></tr>"
+            + "<tr><td>" + e(t("Not yet dialed")) + "</td><td>" + str(reconciliation["not_yet_dialed"]) + "</td></tr>"
+            + "<tr><td>" + e(t("Successful")) + "</td><td>" + str(reconciliation["successful"]) + "</td></tr>"
+            + "<tr><td>" + e(t("Unsuccessful")) + "</td><td>" + str(reconciliation["unsuccessful"]) + "</td></tr>"
+            + "<tr><td>" + e(t("Do not call")) + "</td><td>" + str(reconciliation["do_not_call"]) + "</td></tr>"
+            + "</table>"
+        )
+    if sealed:
+        seal_block = '<p class="note">' + e(t("This dataset is sealed. Every change from here on is logged with its grounds.")) + "</p>"
+    else:
+        seal_block = (
+            '<form method="post" action="/dataphase/seal">'
+            + '<input type="text" name="note" placeholder="'
+            + e(t("Why is the dataset complete now? (required)")) + '" required> '
+            + "<button type=\"submit\">" + e(t("Seal dataset")) + "</button></form>"
+        )
+    exports = (
+        '<p class="sub">'
+        + f'<a href="/export/dataset.xlsx">dataset.xlsx</a> | '
+        + f'<a href="/export/import.sps">import.sps</a> | '
+        + f'<a href="/export/analysis.R">analysis.R</a> | '
+        + f'<a href="/project/export.zip">{e(t("project as zip"))}</a>'
+        + "</p>"
+    )
+    return (
+        '<div class="panel"><h3>' + e(t("Data phase")) + "</h3>"
+        + note + counts + seal_block + exports
+        + '<p class="sub"><a href="/calls?lang=' + lang + '">' + e(t("Calls")) + "</a></p></div>"
     )
