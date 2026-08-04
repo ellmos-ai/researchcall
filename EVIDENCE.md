@@ -739,3 +739,50 @@ The only warning is the pre-existing Starlette `TestClient` / `httpx` deprecatio
 warning. No live call, network request, push, publication, upload or DevPost action was
 performed. ResearchCall video v5 remained a local, unapproved composition during this
 readback.
+
+---
+
+# Data-phase content-column repair — Terra + Codex (2026-08-04)
+
+The fieldwork route now renders its frame, withdrawal, review, and data-phase
+fragments inside the route's single `<main>` element. Previously those fragments
+were direct children of the two-column shell grid and the data-phase panel was
+placed beneath the 265 px navigation rail at `x=0`.
+
+## Actual verification
+
+```text
+python -m pytest -q
+191 passed, 1 warning, 506 subtests passed in 19.03s
+exit=0
+
+git diff --check
+exit=0
+```
+
+The warning is the pre-existing Starlette `TestClient` / `httpx` deprecation
+warning. A new regression locates the data-phase heading between the opening and
+closing tags of the sole fieldwork `<main>`.
+
+The operator also started the fixed workbench on isolated local port 8022 against
+the fixture-only video workspace and read the real route back in Chromium:
+
+```text
+GET /fieldwork?lang=de = 200
+main_count=1
+data_panel_inside_main=true
+main_x=382.5
+data_panel_x=417.6875
+data_panel_width=1349.625
+```
+
+The screenshot is retained at
+`C:/_Local_DEV/_calle-videos/researchcall/shots/v5-07-data-panel-fixed.png`.
+It visibly shows the German data-phase table in the content column to the right
+of the rail. The isolated server was stopped after the readback.
+
+## Not executed
+
+- No CALL-E credential, real call, live transport, webhook, or external network
+  request was used.
+- No push, publication, upload, release, or DevPost action was performed.
