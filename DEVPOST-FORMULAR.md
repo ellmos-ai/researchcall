@@ -3,8 +3,8 @@
 > **Copy-and-paste sheet.** Every heading below is a field of the DevPost submission
 > form. The text under it is finished and goes into that field unchanged.
 >
-> **Nothing here has been submitted.** Submitting, publishing the repository and
-> uploading the video are the user's steps.
+> **Nothing here has been submitted.** Submitting and uploading the video are the
+> user's steps.
 >
 > **No Markdown tables anywhere below.** The DevPost editor does not render them, so
 > everything comparative is written as a list on purpose.
@@ -181,7 +181,8 @@ Measured against the real service, and several of these contradict the documenta
   route contains a phone number.
 - Withdrawal actually removes the person from every denominator, rather than marking them
   and leaving the arithmetic alone.
-- 83 tests and 365 subtests, all green, all offline — measured 2026-08-02.
+- 190 tests and 506 subtests, all green, all offline — measured in the current local
+  evidence run.
 - The limits are written down at the same volume as the results. `EVIDENCE.md` records the
   literal commands and output, and a separate section states what remains unverified.
 
@@ -230,29 +231,22 @@ pytest
 
 ## Try it out links
 
-<!-- ATTRAPPE: the repository is private. Replace with the real URL once the user
-     publishes it, or delete the line if the repository stays private. -->
-
-```
-https://www.youtube.de/coming-soon
-```
-
-Intended content once available:
-
-- Repository: the public GitHub URL of this repository.
-- Pull request to `CALLE-AI/awesome-phone-call-agents`: the PR URL.
+- Repository: https://github.com/lukisch/researchcall
+- Pull request to `CALLE-AI/awesome-phone-call-agents`:
+  https://github.com/CALLE-AI/awesome-phone-call-agents/pull/78
+  Known status: open. Before submission, verify the pushed commit and mergeability in
+  GitHub; this form makes no conflict-status claim.
 
 ---
 
 ## Video demo link
 
-<!-- ATTRAPPE: nothing has been uploaded, and unlike the sister projects the video is
-     not finished either — the composition exists at
-     C:\_Local_DEV\_calle-videos\researchcall\ but no render has been approved.
+<!-- ATTRAPPE: user gate — nothing has been uploaded and no render has been approved.
+     The current v5 composition exists at C:\_Local_DEV\_calle-videos\researchcall\.
      Replace with the real YouTube URL after upload. -->
 
 ```
-https://www.youtube.de/coming-soon
+<the user inserts the public video URL directly in DevPost>
 ```
 
 Requirements to check at upload time: under three minutes, publicly visible, English
@@ -262,11 +256,8 @@ narration or English subtitles, and it must show the project functioning.
 
 ## Repository link
 
-<!-- ATTRAPPE: the repository is private; the URL only exists after the user publishes
-     it. Replace with the real GitHub URL. -->
-
 ```
-https://www.youtube.de/coming-soon
+https://github.com/lukisch/researchcall
 ```
 
 ---
@@ -275,17 +266,17 @@ https://www.youtube.de/coming-soon
 
 *(Hackathon-specific required field: the PR to `CALLE-AI/awesome-phone-call-agents`.)*
 
-<!-- ATTRAPPE: no pull request has been opened. Opening it is a user step. -->
+```
+https://github.com/CALLE-AI/awesome-phone-call-agents/pull/78
+```
 
-```
-https://www.youtube.de/coming-soon
-```
+Known status: open. Verify the pushed commit and mergeability in GitHub before submitting.
 
 ---
 
 ## CALL-E account e-mail
 
-<!-- ATTRAPPE: the user supplies this at submission time. It is deliberately never
+<!-- ATTRAPPE: user gate — the user supplies this at submission time. It is deliberately never
      written into the repository. -->
 
 ```
@@ -319,18 +310,11 @@ The repository banner (1200x300) is `banner.png` in the repository root.
 
 ## Checklist of every ATTRAPPE in this file
 
-Replace all of these before submitting:
+The repository and pull-request URLs are filled in. The remaining user gates are:
 
-1. **Try it out links** — placeholder `https://www.youtube.de/coming-soon`; needs the
-   public repository URL and the pull-request URL.
-2. **Video demo link** — placeholder `https://www.youtube.de/coming-soon`; needs the real
-   YouTube URL after upload. Unlike the other two projects, the video itself is not
-   finished yet.
-3. **Repository link** — placeholder `https://www.youtube.de/coming-soon`; needs the
-   public GitHub URL after the repository is made public.
-4. **Pull request URL** — placeholder `https://www.youtube.de/coming-soon`; needs the real
-   PR URL after it is opened.
-5. **CALL-E account e-mail** — the user types it into the form directly; it is not stored
+1. **Video demo link** — needs an approved v5 render and the real YouTube URL after the
+   user uploads it.
+2. **CALL-E account e-mail** — the user types it into the form directly; it is not stored
    here.
 
 ---
@@ -339,10 +323,9 @@ Replace all of these before submitting:
 
 - Paste the sections as plain text. There is no Markdown table anywhere in this file
   because the DevPost editor will not render one.
-- Do not add a number that is not in this file. The demo figures and the test counts were
-  measured by running them on 2026-08-02; `EVIDENCE.md` is the record of everything else.
+- Do not add a number that is not in this file. The demo figures and test counts are
+  recorded in `EVIDENCE.md`.
 - The wording-fidelity claim is deliberately hedged in the story text above. Do not
   "tighten" it into a proof when filling the form in — the underlying evidence note was
   explicitly retracted once for exactly that overstatement.
-- The five items in the checklist above are the only things blocking the form, and every
-  one of them is an action that belongs to the user.
+- The two remaining items in the checklist above are user gates.

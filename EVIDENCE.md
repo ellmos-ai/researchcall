@@ -721,3 +721,21 @@ python -c "import sys, pytest; sys.path.insert(0, 'src'); raise SystemExit(pytes
 - No CALL-E account, credential, real call, `--live` path, webhook, or external network
   request was used.
 - No push, publication, pull request, upload, release, or external contact was made.
+
+---
+
+# Current offline suite readback for DevPost — Codex (2026-08-04)
+
+The operator re-ran the complete suite after the data-phase build and before updating
+the active DevPost form:
+
+```text
+python -m pytest -q
+190 passed, 1 warning, 506 subtests passed in 39.19s
+exit=0
+```
+
+The only warning is the pre-existing Starlette `TestClient` / `httpx` deprecation
+warning. No live call, network request, push, publication, upload or DevPost action was
+performed. ResearchCall video v5 remained a local, unapproved composition during this
+readback.
