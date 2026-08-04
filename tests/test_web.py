@@ -614,6 +614,23 @@ class WorkbenchTestCase(unittest.TestCase):
         )
         self.assertIn("sealed", sealed.text.lower())
 
+    def test_data_phase_panel_stays_in_the_fieldwork_content_area(self) -> None:
+        """Supplemental fieldwork panels must not become shell-grid siblings.
+
+        The rail owns the first column of ``.shell``.  If the data-phase card
+        sits outside the fieldwork ``main``, CSS grid places it beneath that
+        rail at x=0 instead of in the content column.
+        """
+        self.finish_all()
+        page = self.client.get("/fieldwork?lang=en").text
+        data_panel = page.index("<h3>Data phase</h3>")
+        content_start = page.index("<main>")
+        content_end = page.index("</main>", content_start)
+
+        self.assertLess(content_start, data_panel)
+        self.assertLess(data_panel, content_end)
+        self.assertEqual(page.count("<main>"), 1)
+
     def test_the_report_says_so_when_no_field_phase_has_run(self) -> None:
         self.assertIn("nothing to report", self.client.get("/report?lang=en").text)
         self.assertEqual(self.client.get("/report.md").status_code, 404)

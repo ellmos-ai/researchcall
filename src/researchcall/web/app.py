@@ -379,13 +379,10 @@ def create_app(
         elif plan["questions"] == 0:
             problem = translator.t("Station 2 carries no items yet, so there is nothing to ask.")
         upload = field_phase.frame_upload_path(workspace)
-        body = render.fieldwork_view(
-            plan, None, translator, field_phase.exists(workspace), problem
-        )
-        body += render.frame_panel(translator, upload.name if upload else None)
-        body += render.withdraw_panel(translator)
         _, reconciliation = field_phase.register(workspace)
-        body += render.data_phase_panel(
+        supplemental = render.frame_panel(translator, upload.name if upload else None)
+        supplemental += render.withdraw_panel(translator)
+        supplemental += render.data_phase_panel(
             reconciliation,
             field_phase.seal_status(workspace),
             translator,
@@ -393,10 +390,18 @@ def create_app(
         )
         open_count = len(field_phase.review_cases(workspace))
         if open_count:
-            body += (
+            supplemental += (
                 f'<p class="note warn"><a href="/reviews?lang={translator.language}">'
                 f"{render.e(translator.t('Open review cases:'))} {open_count}</a></p>"
             )
+        body = render.fieldwork_view(
+            plan,
+            None,
+            translator,
+            field_phase.exists(workspace),
+            problem,
+            supplemental=supplemental,
+        )
         return shell(request, body, translator.t("Field phase"), "fieldwork")
 
     @app.post("/fieldwork/frame", response_class=HTMLResponse)
@@ -535,14 +540,14 @@ def create_app(
             message, warn = translator.t(str(error)), True
         register, reconciliation = field_phase.register(workspace)
         del register
-        body = render.data_phase_panel(
+        body = "<main>" + render.data_phase_panel(
             reconciliation,
             field_phase.seal_status(workspace),
             translator,
             translator.language,
             message,
             warn,
-        )
+        ) + "</main>"
         return shell(request, body, translator.t("Data phase"), "fieldwork")
 
     @app.get("/export/dataset.xlsx")

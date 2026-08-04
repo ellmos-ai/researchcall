@@ -742,6 +742,7 @@ def fieldwork_view(
     translator: Translator,
     ready: bool,
     problem: str = "",
+    supplemental: str = "",
 ) -> str:
     """Prepare and watch. There is no control here that could ring a telephone."""
     language = translator.language
@@ -800,7 +801,7 @@ def fieldwork_view(
         f'<p class="sub">{e(translator.t("Dry run against fixtures. No network, no account, no call."))}</p>'
         f'<p class="note warn">{e(translator.t("This interface cannot place a real call. Only the command line can, and only after the intent is typed out in full."))}</p>'
         f"{note}{facts}{drawn}{start}"
-        f'<div id="monitor">{monitor}</div></main>'
+        f'<div id="monitor">{monitor}</div>{supplemental}</main>'
     )
 
 

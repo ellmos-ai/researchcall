@@ -181,7 +181,7 @@ Measured against the real service, and several of these contradict the documenta
   route contains a phone number.
 - Withdrawal actually removes the person from every denominator, rather than marking them
   and leaving the arithmetic alone.
-- 190 tests and 506 subtests, all green, all offline — measured in the current local
+- 191 tests and 506 subtests, all green, all offline — measured in the current local
   evidence run.
 - The limits are written down at the same volume as the results. `EVIDENCE.md` records the
   literal commands and output, and a separate section states what remains unverified.
