@@ -1,5 +1,10 @@
 ![ResearchCall](banner.png)
 
+## Demo video
+
+[![Watch the demo video](youtube-play-thumb.png)](https://youtu.be/YGRLpDwrTq4)
+
+
 # ResearchCall
 
 **English · [Deutsch](README_de.md)**
