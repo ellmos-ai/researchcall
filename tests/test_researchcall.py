@@ -605,11 +605,18 @@ class ResearchCallTestCase(unittest.TestCase):
         name the language the conversation is held in.
         """
         task = build_task(self.questionnaire)
-        self.assertIn("German", task)
-        self.assertIn("every sentence spoken aloud", task)
+        self.assertIn("GESPRÄCHSSPRACHE", task)
+        self.assertIn("jeder laut gesprochene Satz muss deutsch sein", task)
 
-        english = dict(self.questionnaire, language="en")
-        self.assertIn("English", build_task(english))
+        english = build_task(dict(self.questionnaire, language="en"))
+        self.assertIn("CONVERSATION LANGUAGE", english)
+        self.assertIn("every sentence spoken aloud must be English", english)
+
+        # A language the tables do not carry still gets a directive, in English,
+        # naming the language: saying nothing is what the measurement rules out.
+        french = build_task(dict(self.questionnaire, language="fr"))
+        self.assertIn("CONVERSATION LANGUAGE", french)
+        self.assertIn("the language with the code fr", french)
 
     # --- Schema shapes the API accepts (upstream issue #120) ------------------
 

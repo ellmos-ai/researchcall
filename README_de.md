@@ -275,6 +275,10 @@ Ohne **alle** fünf Bedingungen ist kein echter Anruf möglich:
 Der Schlüssel wird nur aus `CALLE_API_KEY` gelesen, nie ausgegeben oder gespeichert und nicht
 über ein geratenes Präfix validiert.
 
+### Gesprächssprache
+
+Ein Sprach-Agent spricht einen zitierten Satz in der Sprache, in der er zitiert wurde — unabhängig vom `locale`-Feld (gemessen im Schwesterprojekt, festgehalten in `FINDINGS.md`). Alle zitierten Sätze hier stammen aus dem Instrument des Forschers und sind damit in der Studiensprache. Was ResearchCall drumherum beisteuert — Skalen-Ansage, Recht zu beenden, Einwilligungsfrage, Dauer, Herkunft der Nummer — liegt je Sprache vor, und der Auftrag trägt eine Sprachdirektive, geschrieben in eben dieser Sprache. Deutsch und Englisch sind gleichwertige Wege; eine Studiensprache ohne eigene Fassung bekommt eine englische Direktive, die die Sprache benennt, statt gar keiner. Wo ein Satz App-Teil und Freitext des Forschers mischt, verantwortet der Forscher den Freitext: das Werkzeug garantiert nur seine eigenen Teile.
+
 ### Feldversuch: mehrere gespielte Befragte, eine eingeweihte Leitung
 
 Eine begleitete Probe des Live-Wegs braucht mehrere Befragte — eine Verweigerung, ein

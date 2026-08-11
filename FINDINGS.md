@@ -221,9 +221,25 @@ und heißt: Der Agent übernimmt die Sprache des zitierten Satzes, nicht die des
 Fragen, Follow-ups) stammen ohnehin aus dem Instrument des Forschers und sind damit
 in der Studiensprache. Gefährlich ist das **englische Rahmenwerk** um sie herum: Der
 Auftragstext ist englisch, und was der Agent selbst formuliert (Begrüßung, Überleitung,
-Verabschiedung), folgt keiner Vorgabe. Deshalb sagt der Auftrag jetzt ausdrücklich,
-in welcher Sprache das Gespräch geführt wird — mit ausgeschriebenem Sprachnamen, nicht
-mit dem Code, sonst stünde dort „conduct the call in de".
+Verabschiedung), folgt keiner Vorgabe. Deshalb sagt der Auftrag jetzt ausdrücklich, in
+welcher Sprache das Gespräch geführt wird — **in dieser Sprache selbst**, deutsch für
+eine deutsche Studie, englisch für eine englische; beide Fassungen sind gleichwertig,
+keine ist die Übersetzung der anderen. Für eine Sprache ohne eigene Fassung wird die
+Direktive englisch erzeugt und die Sprache benannt; gar nichts zu sagen ist der einzige
+Ausgang, den die Messung ausschließt.
+
+**Nachgeprüft (2026-08-11, offline):** Die vom Werkzeug selbst beigesteuerten Sätze —
+Skalen-Ansage, Recht zu beenden, Einwilligungsfrage, Dauer, Herkunft der Nummer — sind
+in `instrument.py` schon immer je Sprache hinterlegt und liefern für `de` und `en`
+sauber getrennte Fassungen; ein Test hält das jetzt fest. Die **Offenlegung** hat
+bewusst keinen Vorgabetext (`ethics.instruction`, `default: null`) — sie schreibt der
+Forscher, in seiner Studiensprache.
+
+**Grenze, die im Code nicht auflösbar ist:** Wo ein Satz aus App-Teil und Freitext des
+Forschers zusammengesetzt wird (`number_origin`: „Where your number came from: " +
+eigener Text), ist er zweisprachig, wenn der Forscher in einer anderen Sprache schreibt
+als die Studie führt. Das Werkzeug kann nur seine eigenen Teile garantieren; eine
+automatische Spracherkennung über Freitext wäre geraten, nicht gemessen.
 
 **Ungeprüft:** Ob die Direktive genügt oder ob auch die englischen Rahmenanweisungen
 übersetzt werden müssen. Das zeigt erst der erste Live-Anruf.
