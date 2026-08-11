@@ -491,6 +491,18 @@ class EffectRegisterTestCase(unittest.TestCase):
     def test_the_register_names_no_setting_that_no_longer_exists(self) -> None:
         self.assertEqual(effect.stale(self.fields), [])
 
+    def test_transcript_retention_is_no_longer_a_switch_without_a_wire(self) -> None:
+        """User decision of 2026-08-11: transcripts are kept, so the switch works.
+
+        While the register called this field `declared`, the interface told the
+        researcher that nothing reads it. Keeping that sentence after wiring the
+        switch would be the exact failure this register exists to prevent.
+        """
+        field = next(
+            item for item in self.fields if item.path == "fieldwork.keep_transcript"
+        )
+        self.assertTrue(effect.is_effective(field))
+
     def test_a_setting_that_cannot_be_switched_off_must_actually_do_something(self) -> None:
         """A locked setting nothing reads would be a lie about the frame."""
         for field in self.fields:

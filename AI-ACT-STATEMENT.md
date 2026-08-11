@@ -43,7 +43,7 @@ Surveying employees about workplace satisfaction or students about teaching qual
 - A privacy notice is required, and the explicit participation decision cannot be disabled (`pipeline/_shared/forms/ethics.forms.yaml:31-57`).
 - Introduction and privacy blocks are inserted verbatim into the task (`src/researchcall/instrument.py:425-442`; `src/researchcall/questionnaire.py:206-218`).
 - The CLI will not start a live run without the quota-bound confirmation and `--consent-attested` (`src/researchcall/cli.py:169-188`). This is an operator attestation, not evidence of each recipient's prior consent.
-- Returned evidence checks whether the consent sentence and standardised questions appear in bot transcript lines (`src/researchcall/runner.py:277-306`). The code records that the full transcript is not persisted locally.
+- Returned evidence checks whether the consent sentence and standardised questions appear in bot transcript lines (`src/researchcall/runner.py:304-356`). Since the user decision of 2026-08-11 the transcript is stored with the attempt so a person can review the conversation; retention is switchable per study (`fieldwork.keep_transcript`), dialable numbers are removed before storing (`src/researchcall/safety.py:52-72`), and withdrawal or deliberate anonymisation erases the stored text with the record.
 
 ### Open Article 50 gaps
 

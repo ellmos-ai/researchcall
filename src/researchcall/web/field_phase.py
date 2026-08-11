@@ -175,6 +175,9 @@ def build(
         "callback_after_refusal_max": rules.callback_after_refusal_max,
         "spread_attempts": rules.spread_attempts,
         "stop_on_error": rules.stop_on_error,
+        # Rides with the study so the run knows it: the answer given in station 6
+        # decides whether the spoken words are kept beside the coded answer.
+        "keep_transcript": bool(values.get("fieldwork.keep_transcript", True)),
     }
     return questionnaire, problems
 

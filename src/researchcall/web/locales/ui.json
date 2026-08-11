@@ -523,6 +523,10 @@
     "de": "An gibt das Instrument als Dokument zum Lesen und Weiterreichen aus; aus nimmt den Download zurück.",
     "en": "On offers the instrument as a document to read and pass around; off withdraws the download."
   },
+  "On, the verbatim transcript is stored with the attempt and shown beside the answer in the review; off, only the audit flags remain. Numbers are removed either way, and a withdrawal erases the text with the record.": {
+    "de": "An wird das wörtliche Transkript beim Versuch gespeichert und in der Prüfung neben der Antwort gezeigt; aus bleiben nur die Prüfmerkmale. Nummern werden in beiden Fällen entfernt, und ein Widerruf löscht den Text mit dem Datensatz.",
+    "en": "On, the verbatim transcript is stored with the attempt and shown beside the answer in the review; off, only the audit flags remain. Numbers are removed either way, and a withdrawal erases the text with the record."
+  },
   "One definition, three ways in": {
     "de": "Eine Vorlage, drei Zugänge",
     "en": "One definition, three ways in"
@@ -938,10 +942,6 @@
   "Transcript": {
     "de": "Transkript",
     "en": "Transcript"
-  },
-  "Transcripts are never written to disk in this build, so there is nothing here to switch off; the audit already happens in memory only.": {
-    "de": "Transkripte werden in diesem Stand nie auf die Platte geschrieben, hier gibt es also nichts abzuschalten; die Prüfung findet ohnehin nur im Speicher statt.",
-    "en": "Transcripts are never written to disk in this build, so there is nothing here to switch off; the audit already happens in memory only."
   },
   "Two equivalent forms need paired items; the item grammar has no pairing yet.": {
     "de": "Zwei gleichwertige Formen brauchen gepaarte Items; die Item-Grammatik kennt noch keine Paarung.",

@@ -14,6 +14,11 @@ leaves the denominators, like an ineligible). The decision is written WITH a
 note, and the attempt's own record is never overwritten — the ruling sits
 beside the evidence, the way a category sits beside its raw text.
 
+The transcript is really there to read: since the user decision of 2026-08-11 it
+is stored with the attempt, and ``fieldwork.keep_transcript`` decides it per
+study. Switched off, the case still opens — the reviewer then judges the flags
+without the spoken words, which is a weaker position and a deliberate one.
+
 Aggregation refuses to run while cases are open. A report over undecided
 conflicts would present exactly the numbers the review exists to protect.
 """

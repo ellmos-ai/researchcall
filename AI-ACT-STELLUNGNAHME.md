@@ -43,7 +43,7 @@ Eine Befragung von Beschäftigten über Arbeitszufriedenheit oder von Lernenden 
 - Ein vollständiger Datenschutzhinweis ist Pflicht, und die ausdrückliche Teilnahmeentscheidung ist nicht abschaltbar (`pipeline/_shared/forms/ethics.forms.yaml:31-57`).
 - Die Einleitung und Datenschutzblöcke werden wortwörtlich in die Aufgabe übernommen (`src/researchcall/instrument.py:425-442`; `src/researchcall/questionnaire.py:206-218`).
 - Ohne passende Live-Quotenbestätigung und `--consent-attested` startet die CLI keinen Live-Lauf (`src/researchcall/cli.py:169-188`). Das ist eine Operatorattestierung, kein Nachweis einer vorherigen Einwilligung jeder angerufenen Person.
-- Das System prüft im Rücklauf, ob Einwilligungssatz und standardisierte Fragen im Bot-Transkript vorkommen (`src/researchcall/runner.py:277-306`). Das vollständige Transkript wird dabei laut Code nicht lokal persistiert.
+- Das System prüft im Rücklauf, ob Einwilligungssatz und standardisierte Fragen im Bot-Transkript vorkommen (`src/researchcall/runner.py:304-356`). Seit der Nutzerentscheidung vom 2026-08-11 wird das Transkript beim Versuch gespeichert, damit eine Person das Gespräch prüfen kann; die Aufbewahrung ist je Studie abschaltbar (`fieldwork.keep_transcript`), wählbare Nummern werden vorher entfernt (`src/researchcall/safety.py:52-72`), und Widerruf oder bewusste Anonymisierung löschen den gespeicherten Text mit dem Datensatz.
 
 ### Offene Lücken nach Art. 50
 

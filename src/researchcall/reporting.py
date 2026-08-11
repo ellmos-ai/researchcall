@@ -416,7 +416,7 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
         )
     if live_observed:
         lines.append(
-            "Live API results are present. Schema wording fields are agent-reported; the separate transcript audit reads the turns the recipient's attempt recorded (`transcript_turns`), or the `result.transcript` string where the API returns one, and renders them as `[mm:ss] SPEAKER: Text` lines. Each attempt records which of the two it used. Full transcripts are not persisted."
+            "Live API results are present. Schema wording fields are agent-reported; the separate transcript audit reads the turns the recipient's attempt recorded (`transcript_turns`), or the `result.transcript` string where the API returns one, and renders them as `[mm:ss] SPEAKER: Text` lines. Each attempt records which of the two it used. Unless `fieldwork.keep_transcript` is switched off, the verbatim transcript is stored with its attempt so a reviewer can read it beside the coded answer; dialable numbers are removed before storing, this report prints no transcript text, and a withdrawal erases the stored text with the rest of the record."
         )
     else:
         lines.append(
