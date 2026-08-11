@@ -29,6 +29,12 @@ REQUIRED_RESULT_FIELDS = {
 #: for them (station 3) and are absent when it does not.
 OPTIONAL_RESULT_FIELDS = {"refusal_reason", "callback_wanted"}
 
+#: What the wire schema can demand unconditionally. ``spoken_consent_wording`` is
+#: not among them: it is absent exactly when consent was never asked, and a
+#: schema without unions cannot express that condition. The rule lives in
+#: :func:`validate_structured_result` instead, where the consent value is known.
+SCHEMA_REQUIRED_RESULT_FIELDS = REQUIRED_RESULT_FIELDS - {"spoken_consent_wording"}
+
 #: What an answer becomes when it fits none of the fixed categories and the
 #: analysis rule says to keep it as "other". It is deliberately not a category of
 #: the instrument: the instrument stays as it was written, and the report can
@@ -117,67 +123,70 @@ def validate_questionnaire(questionnaire: dict[str, Any]) -> None:
 
 
 def result_schema(questionnaire: dict[str, Any]) -> dict[str, Any]:
+    """The result the voice agent has to fill in — in the shape the API accepts.
+
+    No field is declared as "string or null". Upstream issue #120 records that
+    ``{"type": ["string", "null"]}`` makes ``POST /v1/calls`` fail with
+    ``result_schema_invalid``, so a schema written that way never gets as far as
+    a call. Absence takes over what null carried: an entry that was not asked or
+    not answered is simply left out. Nothing is lost by that — a null entry said
+    "no value here", and so does a missing one — but it has to be said in the
+    task text too, and read as equivalent everywhere the result is checked.
+    """
     answer_properties: dict[str, Any] = {}
     raw_answer_properties: dict[str, Any] = {}
     wording_properties: dict[str, Any] = {}
-    question_ids: list[str] = []
     for question in questionnaire["questions"]:
         question_id = question["id"]
-        question_ids.append(question_id)
-        if is_open_question(question):
-            # The words themselves are the datum. Coding happens in station 7,
-            # against the raw text, by a rule that was fixed in advance.
+        if not is_open_question(question):
+            # An open item carries no entry here at all: the words themselves
+            # are the datum, and coding happens in station 7 against the raw
+            # text. With no property of its own, `additionalProperties: false`
+            # refuses a category for it outright — a stronger statement than
+            # the "must be null" this used to declare.
             answer_properties[question_id] = {
-                "type": "null",
-                "description": "Open question: leave null, the answer belongs in raw_answers.",
+                "type": "string",
+                "enum": list(question["categories"]),
             }
-        else:
-            answer_properties[question_id] = {
-                "type": ["string", "null"],
-                "enum": [*question["categories"], None],
-            }
-        raw_answer_properties[question_id] = {"type": ["string", "null"]}
-        wording_properties[question_id] = {"type": ["string", "null"]}
+        raw_answer_properties[question_id] = {"type": "string"}
+        wording_properties[question_id] = {"type": "string"}
 
     properties: dict[str, Any] = {
         "consent": {"type": "string", "enum": sorted(CONSENT_VALUES)},
         "withdrawal_requested": {"type": "boolean"},
         "asked_verbatim": {"type": "boolean"},
-        "spoken_consent_wording": {"type": ["string", "null"]},
+        "spoken_consent_wording": {"type": "string"},
         "spoken_wording": {
             "type": "object",
             "additionalProperties": False,
-            "required": question_ids,
             "properties": wording_properties,
         },
         "answers": {
             "type": "object",
             "additionalProperties": False,
-            "required": question_ids,
             "properties": answer_properties,
         },
         "raw_answers": {
             "type": "object",
             "additionalProperties": False,
-            "required": question_ids,
             "properties": raw_answer_properties,
         },
     }
     on_refusal = questionnaire.get("on_refusal") or {}
     if on_refusal.get("ask_reason"):
         properties["refusal_reason"] = {
-            "type": ["string", "null"],
-            "description": "Why the person declined, in their own words; null if not given.",
+            "type": "string",
+            "description": "Why the person declined, in their own words; omit if not given.",
         }
     if on_refusal.get("offer_callback"):
         properties["callback_wanted"] = {
-            "type": ["boolean", "null"],
+            "type": "boolean",
             "description": "True only if the person said a call at another time is welcome.",
         }
     return {
         "type": "object",
         "additionalProperties": False,
-        "required": sorted(REQUIRED_RESULT_FIELDS),
+        "required": sorted(SCHEMA_REQUIRED_RESULT_FIELDS),
         "properties": properties,
     }
 
@@ -243,8 +252,8 @@ def build_task(questionnaire: dict[str, Any]) -> str:
             else:
                 lines.append(f'- {prefix} (open question, your own words): {question["wording"]}')
             lines.append(
-                "  Record the answer as spoken in raw_answers; leave the entry in answers null. "
-                "Do not categorize it yourself."
+                "  Record the answer as spoken in raw_answers; do not add an entry for this "
+                "question in answers at all. Do not categorize it yourself."
             )
             probes = int(question.get("max_follow_ups", 0) or 0)
             if probes > 0:
@@ -278,32 +287,62 @@ def build_task(questionnaire: dict[str, Any]) -> str:
         [
             "Do not request names, addresses, background history, or any data not required by this questionnaire.",
             "If the person withdraws consent, stop immediately and set withdrawal_requested=true.",
-            "For every question, return the actual words spoken in spoken_wording; use null when it was not asked.",
-            "For every question, preserve the participant's raw words in raw_answers before interpreting them into answers; do not correct or paraphrase the raw words, and use null only when no answer was given.",
+            "For every question you asked, return the actual words spoken in spoken_wording; omit the entry entirely for a question you did not ask.",
+            "For every question, preserve the participant's raw words in raw_answers before interpreting them into answers; do not correct or paraphrase the raw words, and omit the entry entirely when no answer was given.",
+            "Never send an empty value: an entry you would have nothing to put in is left out.",
             "Set asked_verbatim=true only if every spoken consent/question sentence exactly matched the required wording.",
         ]
     )
     return "\n".join(lines)
 
 
+def normalize_structured_result(
+    questionnaire: dict[str, Any], result: dict[str, Any]
+) -> dict[str, Any]:
+    """Fill in as null what the API-compatible schema leaves out.
+
+    Absence is the wire form (see :func:`result_schema`); ``null`` stays the
+    stored form. Filling the gaps once, at the point the result arrives, keeps
+    every later reader — coding rule, report, export, review — looking at the
+    shape it has always seen, and keeps records written before this change
+    comparable with records written after it.
+    """
+    filled = dict(result)
+    for field in ("spoken_wording", "answers", "raw_answers"):
+        entries = filled.get(field)
+        entries = dict(entries) if isinstance(entries, dict) else {}
+        for question in questionnaire["questions"]:
+            entries.setdefault(question["id"], None)
+        filled[field] = entries
+    filled.setdefault("spoken_consent_wording", None)
+    return filled
+
+
 def validate_structured_result(
     questionnaire: dict[str, Any], result: dict[str, Any]
 ) -> None:
     present = set(result)
-    if not REQUIRED_RESULT_FIELDS <= present:
+    if not SCHEMA_REQUIRED_RESULT_FIELDS <= present:
         raise ValueError("Structured result fields do not match the recipient schema")
     if present - REQUIRED_RESULT_FIELDS - OPTIONAL_RESULT_FIELDS:
         raise ValueError("Structured result fields do not match the recipient schema")
     if result["consent"] not in CONSENT_VALUES:
         raise ValueError("Structured result has an invalid consent value")
+    # The one field whose absence carries meaning: it is missing exactly when
+    # the consent sentence was never spoken. Anywhere else a missing sentence
+    # would look like a wording deviation, which is a different finding.
+    if "spoken_consent_wording" not in present and result["consent"] != "not_obtained":
+        raise ValueError(
+            "spoken_consent_wording may only be missing when consent was not obtained"
+        )
     if not isinstance(result["withdrawal_requested"], bool):
         raise ValueError("withdrawal_requested must be boolean")
     if not isinstance(result["asked_verbatim"], bool):
         raise ValueError("asked_verbatim must be boolean")
-    if result["spoken_consent_wording"] is not None and not isinstance(
+    if result.get("spoken_consent_wording") is not None and not isinstance(
         result["spoken_consent_wording"], str
     ):
-        raise ValueError("spoken_consent_wording must be a string or null")
+        raise ValueError("spoken_consent_wording must be a string when present")
     if not all(
         isinstance(result[field], dict)
         for field in ("spoken_wording", "answers", "raw_answers")
@@ -318,21 +357,24 @@ def validate_structured_result(
     ):
         raise ValueError("callback_wanted must be a boolean or null")
 
+    # An entry may be missing — that is how the schema expresses "no value here"
+    # now — but an entry for a question this questionnaire does not have is still
+    # a mismatch between instrument and result.
     expected_ids = {question["id"] for question in questionnaire["questions"]}
     if any(
-        set(result[field]) != expected_ids
+        not set(result[field]) <= expected_ids
         for field in ("spoken_wording", "answers", "raw_answers")
     ):
         raise ValueError("Structured result question ids do not match the questionnaire")
     for question in questionnaire["questions"]:
         question_id = question["id"]
-        wording = result["spoken_wording"][question_id]
-        answer = result["answers"][question_id]
-        raw_answer = result["raw_answers"][question_id]
+        wording = result["spoken_wording"].get(question_id)
+        answer = result["answers"].get(question_id)
+        raw_answer = result["raw_answers"].get(question_id)
         if wording is not None and not isinstance(wording, str):
-            raise ValueError(f"Spoken wording for {question_id} must be a string or null")
+            raise ValueError(f"Spoken wording for {question_id} must be a string when present")
         if raw_answer is not None and not isinstance(raw_answer, str):
-            raise ValueError(f"Raw answer for {question_id} must be a string or null")
+            raise ValueError(f"Raw answer for {question_id} must be a string when present")
         if is_open_question(question):
             if answer is not None:
                 raise ValueError(
@@ -358,7 +400,7 @@ def wording_matches(questionnaire: dict[str, Any], result: dict[str, Any]) -> bo
     """
     observed = result["consent"] != "not_obtained"
     if result["consent"] != "not_obtained":
-        if result["spoken_consent_wording"] != questionnaire["consent_text"]:
+        if result.get("spoken_consent_wording") != questionnaire["consent_text"]:
             return False
     binding = {
         question["id"]: question["wording"]

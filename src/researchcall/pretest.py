@@ -29,7 +29,7 @@ from typing import Any
 
 from .calls import FixtureCallClient
 from .instrument import for_call
-from .questionnaire import validate_structured_result
+from .questionnaire import normalize_structured_result, validate_structured_result
 
 
 MARKER_ID = "marker"
@@ -127,6 +127,7 @@ def check(
         result = outcome.structured_result
         if result is None:
             continue
+        result = normalize_structured_result(tested, result)
         try:
             validate_structured_result(tested, result)
         except ValueError:

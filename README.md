@@ -166,7 +166,7 @@ researchcall --db survey.db report --study mobility-2026 --output out/report.md
 
 An operator-provided real CALL-E test on 2026-08-01 confirmed the critical mechanism: text enclosed in straight double quotes in `task` was spoken character-for-character, including an intentional typo. The same measured run showed that framing instructions outside quotes were paraphrased and that the planner added behavioral instructions of its own.
 
-ResearchCall therefore places the consent sentence, every question, and every preplanned follow-up in double quotes. Filter logic, answer categories, privacy limits, and other framing instructions remain outside the quotes. Its `recipient_result_schema` requires:
+ResearchCall therefore places the consent sentence, every question, and every preplanned follow-up in double quotes. Filter logic, answer categories, privacy limits, and other framing instructions remain outside the quotes. Its `recipient_result_schema` asks for:
 
 - `asked_verbatim`
 - `spoken_consent_wording`
@@ -174,6 +174,8 @@ ResearchCall therefore places the consent sentence, every question, and every pr
 - the participant's uncorrected `raw_answers` for every question
 - separately interpreted `answers` constrained to the fixed categories
 - consent and withdrawal state
+
+An entry that has no value is left out rather than sent as `null`: the API rejects a schema declaring `{"type": ["string", "null"]}` and refuses to create the call at all (upstream issue #120). Absence therefore means what null meant, the task text asks for exactly that, and results are normalized back to explicit nulls before anything reads them. `spoken_consent_wording` may only be missing when consent was never asked; anywhere else its absence would hide a wording deviation.
 
 The real test positively answers the specification's open feasibility question for the measured service behavior. It is not treated as a permanent guarantee for every future call. For each live result, ResearchCall still compares schema-reported wording and checks the final nested transcript for every expected quoted sentence. A mismatch remains visible instead of being counted as standardized.
 
