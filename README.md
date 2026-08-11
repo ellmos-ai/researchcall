@@ -234,7 +234,7 @@ Three sentences are not the researcher's to leave out, and since 2026-08-11 they
 5. **Deletion on request:** if the person wants the answers so far deleted, saying so is enough. Deliberately not "if you stop" — hanging up leaves partial answers, only a withdrawal purges them, and a sentence must not promise more than the code does.
 6. **The withdrawal route**, at the end of the interview: whom to contact to pull the answers back.
 
-Disclosure, right to stop and the data statement are gate phrases alongside the consent sentence: a transcript without them opens a review case. The duration is not — a missing duration is a discourtesy, not a breach, and every added gate buys false alarms. The withdrawal route is not either: a call that breaks off early never reaches it.
+Disclosure, right to stop and the data statement are gate phrases alongside the consent sentence: a transcript without them opens a review case. The remaining three — scope, deletion and the withdrawal route — are checked too, but against how far the call actually got: a sentence counts as skipped only when a later one was spoken, and the withdrawal route only when the interview ran to the end. A hole in that sequence opens a `floor_missed` case, distinct from a missing gate. Making all six unconditional gates would have filled the queue with hang-ups instead of findings. The duration is not — a missing duration is a discourtesy, not a breach, and every added gate buys false alarms. The withdrawal route is not either: a call that breaks off early never reaches it.
 
 The consent sentence is the *question*, nothing more. It used to carry the right to stop as well, which made the same promise twice in two wordings — measured live on 2026-08-11.
 

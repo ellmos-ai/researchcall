@@ -178,6 +178,89 @@ class PhraseMonitor:
         }
 
 
+#: The floor, in the order it is spoken. The order is what makes the check
+#: possible without judging the conversation: anything before a sentence that
+#: WAS spoken must have been spoken too.
+FLOOR_SEQUENCE = ("disclosure", "scope", "data", "stop", "deletion")
+
+
+def floor_sentences(questionnaire: dict[str, Any]) -> dict[str, str]:
+    """Every sentence the floor owes this call, keyed by its place in the order."""
+    from .questionnaire import (
+        ai_disclosure_sentence,
+        deletion_sentence,
+        privacy_sentence,
+        scope_sentence,
+        stop_right_sentence,
+        withdrawal_route_sentence,
+    )
+
+    return {
+        "disclosure": ai_disclosure_sentence(questionnaire),
+        "scope": scope_sentence(questionnaire),
+        "data": privacy_sentence(questionnaire),
+        "stop": stop_right_sentence(questionnaire.get("language", "")),
+        "deletion": deletion_sentence(questionnaire),
+        "withdrawal": withdrawal_route_sentence(questionnaire),
+    }
+
+
+def audit_floor(
+    transcript: str, questionnaire: dict[str, Any], completed: bool = False
+) -> dict[str, Any]:
+    """Which owed sentences were skipped — and which the call never reached.
+
+    Three of the floor's sentences are not gate phrases: scope, deletion and the
+    withdrawal route. Until now nothing checked them at all, because the wording
+    audit builds its expectations from consent and questions only. A promise
+    nobody verifies is the same class of claim that went wrong once already.
+
+    Making them gates would have been the lazy fix and a wrong one: a call that
+    breaks off during the opening never owed the later sentences, and flagging
+    it would bury the review queue in hang-ups. So the debt is derived from how
+    far the conversation actually got, by a rule that judges nothing:
+
+    * a sentence is **missing** when a LATER one was spoken — the order is
+      fixed, so a hole in the middle is a skip;
+    * a sentence after the last one spoken is **not reached**, which is a fact
+      about the call, not a fault of the agent;
+    * the withdrawal route is owed exactly when the interview ran to the end,
+      which the outcome says and the order cannot.
+
+    It reads the same rendered speech as the gate audit, through the same
+    helper, so the two cannot drift apart.
+    """
+    spoken = _normalise(" ".join(bot_utterances(transcript)))
+    sentences = floor_sentences(questionnaire)
+    seen = {
+        key: _normalise(text) in spoken
+        for key, text in sentences.items()
+        if text
+    }
+    order = [key for key in FLOOR_SEQUENCE if key in seen]
+    last_spoken = max(
+        (index for index, key in enumerate(order) if seen[key]), default=-1
+    )
+    missing = [key for key in order[:last_spoken] if not seen[key]]
+    not_reached = [key for key in order[last_spoken + 1 :]]
+
+    if "withdrawal" in seen:
+        if completed and not seen["withdrawal"]:
+            missing.append("withdrawal")
+        elif not seen["withdrawal"]:
+            not_reached.append("withdrawal")
+
+    return {
+        "floor_spoken": sorted(key for key, was_spoken in seen.items() if was_spoken),
+        "floor_missing": missing,
+        "floor_not_reached": not_reached,
+        "floor_check_basis": (
+            "a floor sentence counts as owed once a later one was spoken; the "
+            "withdrawal route once the interview ran to the end"
+        ),
+    }
+
+
 def audit_transcript(transcript: str, phrases: list[GatePhrase]) -> dict[str, Any]:
     """The post-hoc twin of the live monitor, over the final transcript.
 

@@ -14,7 +14,12 @@ from .field_trial import marks as field_trial_marks
 from .field_trial import routed as field_trial_routed
 from .field_trial import trial_phone
 from .instrument import for_call
-from .phrases import audit_transcript, bot_utterances, phrases_from_questionnaire
+from .phrases import (
+    audit_floor,
+    audit_transcript,
+    bot_utterances,
+    phrases_from_questionnaire,
+)
 from .questionnaire import (
     normalize_structured_result,
     validate_structured_result,
@@ -420,6 +425,16 @@ def _finish_attempt(
             outcome.transcript, phrases_from_questionnaire(questionnaire)
         )
         detail.update(gate_findings)
+        # The three floor sentences that are not gates were composed and never
+        # checked. They are checked now — against how far the call actually got,
+        # so a hang-up is not read as a skip.
+        detail.update(
+            audit_floor(
+                outcome.transcript,
+                questionnaire,
+                completed=outcome.status == "COMPLETED",
+            )
+        )
 
     with transaction(connection):
         connection.execute(
