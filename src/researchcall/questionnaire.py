@@ -376,10 +376,22 @@ def validate_structured_result(
     questionnaire: dict[str, Any], result: dict[str, Any]
 ) -> None:
     present = set(result)
-    if not SCHEMA_REQUIRED_RESULT_FIELDS <= present:
-        raise ValueError("Structured result fields do not match the recipient schema")
-    if present - REQUIRED_RESULT_FIELDS - OPTIONAL_RESULT_FIELDS:
-        raise ValueError("Structured result fields do not match the recipient schema")
+    # Name the difference. The first live call returned something whose fields
+    # did not match, and the message said exactly that and nothing more — which
+    # left no way to tell a service artefact from an agent mistake without
+    # guessing.
+    missing = sorted(SCHEMA_REQUIRED_RESULT_FIELDS - present)
+    unexpected = sorted(present - REQUIRED_RESULT_FIELDS - OPTIONAL_RESULT_FIELDS)
+    if missing or unexpected:
+        parts = []
+        if missing:
+            parts.append("missing " + ", ".join(missing))
+        if unexpected:
+            parts.append("unexpected " + ", ".join(unexpected))
+        raise ValueError(
+            "Structured result fields do not match the recipient schema: "
+            + "; ".join(parts)
+        )
     if result["consent"] not in CONSENT_VALUES:
         raise ValueError("Structured result has an invalid consent value")
     # The one field whose absence carries meaning: it is missing exactly when

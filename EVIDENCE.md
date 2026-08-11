@@ -834,3 +834,41 @@ the behaviour of that run, not of the current build.
   request. The live payload shapes used in the tests come from the operator's
   measurements in `FINDINGS.md`, section 9.
 - No push, publication, upload, release, or DevPost action.
+
+
+## Diagnosis of the first live call — 2026-08-11
+
+The call itself was placed by the operator. What follows was executed here,
+offline, against the record it left behind (`out/feldversuch/state.db`, attempt
+id=4) and against synthetic payloads; no CALL-E credential, call, or network
+request was used.
+
+```text
+python -m pytest -q      # before: 220 passed, 509 subtests
+python -m pytest -q      # after:  230 passed, 511 subtests
+python -m ruff check <changed files>      # All checks passed
+```
+
+Read from the live record, not inferred:
+
+- the three BOT turns carrying the consent sentence, and the comparison against
+  the study's phrase: `IDENTICAL: True`, while the same phrase was `False`
+  against the buffer the monitor actually built from whole transcript lines;
+- `gates_missed=['consent_question']`, `structured_result_error` present, and
+  no stored copy of what the agent returned;
+- `q1` answered "Nein", `q2` (filtered on `q1 = yes`) skipped, `q3` asked.
+
+Reproduced offline with synthetic payloads: a call-level result placed under
+`structured_result` was returned by the old lookup instead of the recipient's
+interview, which produces exactly the recorded error message.
+
+Migration checked against a copy of the operator's own state file: the
+`attempt.rehearsal` column is added, all four existing rows are kept and marked
+as real calls.
+
+## Not executed in this round
+
+- No CALL-E credential, call, live transport, webhook, or network request. The
+  open question of what the agent returned on 2026-08-11 is left open rather
+  than answered by a request nobody authorised.
+- No push, publication, upload, release, or DevPost action.

@@ -244,6 +244,70 @@ automatische Spracherkennung über Freitext wäre geraten, nicht gemessen.
 **Ungeprüft:** Ob die Direktive genügt oder ob auch die englischen Rahmenanweisungen
 übersetzt werden müssen. Das zeigt erst der erste Live-Anruf.
 
+## 12. Der erste echte Anruf dieses Projekts (2026-08-11)
+
+**Gefahren hat ihn der Operator**, nicht ich; ich habe den persistierten Datensatz
+gelesen (`attempt` id=4, `run_id=call_upJG0DnBS8Ky8vZ_3XLG8Q`). Anders als §10 und §11
+ist das ein **eigener** Befund — aber aus der Datenbank, nicht aus einem Anruf von mir.
+
+**Nebenbestätigung zuerst: der Create ging durch.** Kein `result_schema_invalid`. Das
+Schema aus §10 (Absenz statt Union-Types) hält live. Der Anruf lief 2:27 Minuten und
+endete als `COMPLETED`; Transkript kam als `transcript_turns` (§9 bestätigt).
+
+**a) Der Agent teilt einen wörtlich vorgegebenen Satz auf mehrere Turns auf.**
+
+```
+[00:00] BOT: Guten Tag.
+[00:00] BOT: Wir führen eine kurze wissenschaftliche Befragung zur Mobilität durch. Ihre Teilnahme ist freiwillig.
+[00:06] BOT: Dürfen wir Ihnen drei Fragen stellen?
+```
+
+Aneinandergehängt ist das **zeichengenau** der Einwilligungssatz der Studie — geprüft,
+nicht geschätzt: `IDENTICAL: True`. Es ist also **keine Paraphrase**, sondern ein
+Zeilenumbruch. §4 gilt weiter uneingeschränkt.
+
+**Der Gate-Fehlalarm war unserer.** Der Phrasen-Monitor bekam ganze Transkriptzeilen —
+mitsamt ihrem eigenen `[00:06] BOT: `-Präfix, das damit *zwischen* den Satzteilen stand.
+Gesucht wurde ein zusammenhängender Teilstring, gefunden werden konnte er nie. Der
+Monitor liest jetzt die **Rede** statt der Zeilen, nur die des Agenten (ein Gate ist ein
+Satz, den er schuldet, nicht einer, den er hören darf), über den ganzen Anruf gepuffert —
+ein Zwischenruf trennt die Teile nicht mehr. Wörtlich bleibt wörtlich.
+
+**Derselbe Defekt steckte ein zweites Mal im Wortlaut-Abgleich** (`transcript_wording_matches`),
+der pro Äußerung prüfte. Er blieb im Live-Datensatz nur deshalb unsichtbar, weil der
+Schema-Fehler den Block übersprang — beim nächsten Anruf hätte er einen zweiten
+Fehlalarm erzeugt.
+
+**b) Die Filterlogik hat korrekt gearbeitet.** q1 („Nutzen Sie … öffentliche
+Verkehrsmittel?") wurde mit „Nein" beantwortet, q2 (`ask_if q1 = yes`) daher
+übersprungen, q3 gestellt. Zwei von drei Fragen sind hier das richtige Ergebnis.
+
+**c) `structured_result_error` — und wir waren blind.** Die abgelehnte Rohantwort wurde
+nirgends gespeichert, die Meldung lautete nur „fields do not match the recipient
+schema". Was zurückkam, ist damit **nicht mehr feststellbar**; der Anruf ist als Beleg
+verloren. Offline reproduziert wurde die wahrscheinlichste Ursache: Mit jedem Anruf
+reisen **zwei** Schemata — das des Empfängers (das Interview) und das der Anrufebene
+(`completed_count`). Legt der Dienst das Anrufebenen-Objekt unter `structured_result`
+ab, lieferte die alte Suche genau dieses zurück, und die Validierung sagte
+wahrheitsgemäß, dass die Felder nicht zum Empfängerschema passen. Der Agent muss dafür
+nichts falsch gemacht haben.
+
+Geändert: Das Empfängerergebnis hat Vorrang; ein Objekt der Anrufebene wird nur noch
+akzeptiert, wenn es überhaupt wie ein Interview aussieht (die am 2026-08-01 gemessene
+Form `result.structuredResult` bleibt damit gültig). Die abgelehnte Rohantwort wird
+nummernbereinigt und größenbegrenzt mitgeschrieben, die Fehlermeldung benennt fehlende
+UND überzählige Felder, und ein `COMPLETED` ohne Empfängerergebnis ist selbst ein
+Befund statt eines stillen Nichts.
+
+**Offen bleibt:** Was der Agent am 2026-08-11 wirklich zurückgab. Das beantwortet erst
+der nächste Anruf — oder ein `GET /v1/calls/call_upJG0DnBS8Ky8vZ_3XLG8Q` durch den
+Operator.
+
+**d) Betriebsbefund:** Die Trockenprobe verbrauchte den einen Versuch pro Person; beim
+ersten echten Anruf war niemand mehr wählbar. Es gibt jetzt `--rehearsal`: der Versuch
+wird aufgezeichnet und geprüft, zählt aber nicht gegen die Ein-Anruf-Regel, schreibt
+nichts ins Wählregister und löscht bei einem Fixture-Widerruf niemanden.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency

@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS attempt (
     run_id TEXT,
     idempotency_key TEXT NOT NULL UNIQUE,
     detail_json TEXT NOT NULL DEFAULT '{}',
+    -- A rehearsal exercises the machinery without spending the person: it is
+    -- recorded like any attempt, but the eligibility rules look past it.
+    rehearsal INTEGER NOT NULL DEFAULT 0,
     UNIQUE(sample_id, attempt_no)
 );
 
@@ -179,6 +182,12 @@ def migrate(connection: sqlite3.Connection) -> list[str]:
         applied.append("sample.assigned_window")
 
     attempt_columns = _columns(connection, "attempt")
+    if attempt_columns and "rehearsal" not in attempt_columns:
+        connection.execute(
+            "ALTER TABLE attempt ADD COLUMN rehearsal INTEGER NOT NULL DEFAULT 0"
+        )
+        applied.append("attempt.rehearsal")
+        attempt_columns = _columns(connection, "attempt")
     if attempt_columns and "attempt_no" not in attempt_columns:
         connection.executescript(
             """

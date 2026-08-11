@@ -42,6 +42,38 @@ class GatePhrase:
             )
 
 
+#: One rendered transcript line: ``[mm:ss] SPEAKER: text``.
+SPOKEN_LINE_RE = re.compile(r"^\[\d{2}:\d{2}\] (?P<speaker>[A-Z]+): (?P<text>.*)$")
+
+
+def bot_utterances(transcript: str) -> list[str]:
+    """What the agent actually said, without the transcript's own scaffolding.
+
+    Measured on the first live call (2026-08-11): the agent speaks one required
+    sentence across three turns. Concatenated it was character-identical to the
+    required phrase — a line break, not a paraphrase. Reading whole transcript
+    lines therefore missed the gate, because each line carries its own
+    ``[00:06] BOT: `` prefix and that text sat between the parts of the
+    sentence.
+
+    Only the agent's own turns are returned. A gate is a sentence the agent owes
+    the person; hearing it back from the other side does not discharge it. A
+    line that does not parse is passed through unchanged rather than dropped:
+    losing text would weaken a check whose whole point is literal recognition.
+    """
+    spoken: list[str] = []
+    for line in transcript.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        match = SPOKEN_LINE_RE.fullmatch(stripped)
+        if match is None:
+            spoken.append(stripped)
+        elif match.group("speaker") == "BOT":
+            spoken.append(match.group("text"))
+    return spoken
+
+
 def _normalise(text: str) -> str:
     """Whitespace-tolerant, case-tolerant, punctuation kept.
 
@@ -118,12 +150,21 @@ class PhraseMonitor:
         return {
             "gates_seen": self.seen,
             "gates_missed": self.missed,
-            "gate_check_basis": "literal recognition of predefined sentences in monitored lines",
+            "gate_check_basis": (
+                "literal recognition of predefined sentences in what the agent "
+                "said, with its turns joined"
+            ),
         }
 
 
 def audit_transcript(transcript: str, phrases: list[GatePhrase]) -> dict[str, Any]:
-    """The post-hoc twin of the live monitor, over the final transcript."""
+    """The post-hoc twin of the live monitor, over the final transcript.
+
+    The monitor keeps a rolling buffer precisely so a sentence may arrive in
+    pieces; it is fed the agent's utterances rather than the transcript's lines
+    so that the pieces sit next to each other. An interjection from the other
+    side does not separate them: those turns are not fed at all.
+    """
     monitor = PhraseMonitor(phrases=phrases)
-    monitor.observe_all(transcript.splitlines() or [transcript])
+    monitor.observe_all(bot_utterances(transcript) or [transcript])
     return monitor.findings()

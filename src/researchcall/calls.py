@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from .questionnaire import build_task, result_schema
+from .questionnaire import REQUIRED_RESULT_FIELDS, build_task, result_schema
 
 
 TERMINAL_STATUSES = {
@@ -547,15 +547,27 @@ class LiveCallClient:
                 return code
         return None
 
-    @staticmethod
-    def _structured_result(value: dict[str, Any]) -> dict[str, Any] | None:
-        containers = [value]
-        if isinstance(value.get("result"), dict):
-            containers.insert(0, value["result"])
-        for container in containers:
-            for key in ("structured_result", "structuredResult"):
-                if isinstance(container.get(key), dict):
-                    return container[key]
+    @classmethod
+    def _structured_result(cls, value: dict[str, Any]) -> dict[str, Any] | None:
+        """The interview, which is the RECIPIENT's result — never the call's.
+
+        Two schemas travel with every call: ``recipient_result_schema`` carries
+        the interview, ``result_schema`` counts completed calls. Both come back
+        under the same key names, so a lookup that takes the first match it
+        finds can return ``{"completed_count": 1}`` and hand it to a validation
+        that expects consent and answers. The error that produces is true and
+        useless — it says the fields do not match the recipient schema, because
+        they are not a recipient result at all.
+
+        So the recipient is searched first, everywhere it can sit. A call-level
+        object is still accepted afterwards — the first measured call (2026-08-01)
+        returned the interview under ``result.structuredResult`` and that shape
+        must keep working — but only if it looks like an interview at all, which
+        is decided by whether it carries any field the recipient schema requires.
+        A counter does not, and no result is more honest than the wrong one.
+        """
+        fallback: dict[str, Any] | None = None
+        for container in cls._containers(value):
             recipients = container.get("recipients")
             if (
                 isinstance(recipients, list)
@@ -566,7 +578,31 @@ class LiveCallClient:
                 for key in ("structured_result", "structuredResult"):
                     if isinstance(recipient.get(key), dict):
                         return recipient[key]
-        return None
+            if fallback is None:
+                for key in ("structured_result", "structuredResult"):
+                    candidate = container.get(key)
+                    if isinstance(candidate, dict) and (
+                        set(candidate) & REQUIRED_RESULT_FIELDS
+                    ):
+                        fallback = candidate
+        return fallback
+
+    @classmethod
+    def _unrecognised_result_fields(cls, value: dict[str, Any]) -> list[str]:
+        """Field names of a result object that was found but not usable.
+
+        Names only, never values: this is the breadcrumb that tells an operator
+        whether something came back at all, without copying foreign data into
+        the record on a path where nothing was validated.
+        """
+        for container in cls._containers(value):
+            for key in ("structured_result", "structuredResult"):
+                candidate = container.get(key)
+                if isinstance(candidate, dict) and not (
+                    set(candidate) & REQUIRED_RESULT_FIELDS
+                ):
+                    return sorted(str(name) for name in candidate)
+        return []
 
     def call(
         self,
@@ -621,6 +657,10 @@ class LiveCallClient:
                 turns = self._turns(attempts)
                 transcript, transcript_location = self._transcript(latest, turns)
                 structured = self._structured_result(latest)
+                unrecognised = (
+                    [] if structured is not None
+                    else self._unrecognised_result_fields(latest)
+                )
                 detail: dict[str, Any] = {
                     "transport": "live-api",
                     "progress_source": "activity",
@@ -628,6 +668,8 @@ class LiveCallClient:
                 }
                 if attempts:
                     detail["recipient_attempts"] = len(attempts)
+                if unrecognised:
+                    detail["structured_result_unrecognized_fields"] = unrecognised
                 if progress is not None:
                     detail.update(progress)
 
