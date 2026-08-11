@@ -24,6 +24,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
+from .questionnaire import ai_disclosure_sentence, stop_right_sentence
+
 
 @dataclass(frozen=True)
 class GatePhrase:
@@ -90,7 +92,17 @@ def phrases_from_questionnaire(questionnaire: dict[str, Any]) -> list[GatePhrase
     The consent text is always a gate: no question before it is not
     configurable, so its sentence is not either.
     """
-    phrases = [GatePhrase(key="consent_question", text=questionnaire["consent_text"])]
+    phrases = [
+        GatePhrase(key="consent_question", text=questionnaire["consent_text"]),
+        # Both are spoken in every call and neither is configurable, so both are
+        # checked the same way the consent sentence is: a call that did not
+        # disclose the machine, or did not offer the way out, lands in review.
+        GatePhrase(key="ai_disclosure", text=ai_disclosure_sentence(questionnaire)),
+        GatePhrase(
+            key="stop_right",
+            text=stop_right_sentence(questionnaire.get("language", "")),
+        ),
+    ]
     for entry in questionnaire.get("gate_phrases", []):
         phrases.append(GatePhrase(key=str(entry["key"]), text=str(entry["text"])))
     seen: set[str] = set()

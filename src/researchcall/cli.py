@@ -11,7 +11,11 @@ from typing import Sequence
 from .calls import OBSERVED_SETUP_SECONDS, FixtureCallClient, LiveCallClient
 from .database import connect, create_study, get_study, initialize
 from .field_trial import trial_phone
-from .questionnaire import load_questionnaire_file, validate_questionnaire
+from .questionnaire import (
+    load_questionnaire_file,
+    missing_disclosure_settings,
+    validate_questionnaire,
+)
 from .reporting import build_report
 from .runner import run_day, withdraw_external_ref
 from .safety import mask_phone
@@ -194,7 +198,22 @@ def run(argv: Sequence[str] | None = None) -> int:
             print(f"sample_drawn={count} windows={','.join(windows)}")
         elif args.command == "run-day":
             study = get_study(connection, args.study)
-            validate_questionnaire(json.loads(study["questionnaire_json"]))
+            questionnaire = json.loads(study["questionnaire_json"])
+            validate_questionnaire(questionnaire)
+            # Nobody is called by a machine without being told so, and without
+            # being told how to take their answers back. A study that has not
+            # named those cannot go live; a dry run may proceed, because the
+            # rehearsal is where this is meant to be noticed.
+            incomplete = missing_disclosure_settings(questionnaire)
+            if incomplete and args.live:
+                raise ValueError(
+                    "Live mode requires the spoken disclosure settings: "
+                    + ", ".join(incomplete)
+                    + ". They are said aloud in every call; without them the "
+                    "call cannot name who is calling or how to withdraw."
+                )
+            if incomplete:
+                print("disclosure_incomplete=" + ",".join(incomplete))
             if args.live and args.rehearsal:
                 raise ValueError(
                     "--rehearsal is for the fixture transport; a live call is "

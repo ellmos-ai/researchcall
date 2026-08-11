@@ -61,6 +61,56 @@ LANGUAGE_DIRECTIVES = {
     ),
 }
 
+#: The floor every call stands on, in the study's own language.
+#:
+#: Measured in the first live call (2026-08-11, FINDINGS section 13): the
+#: opening said only what the researcher's own consent sentence said — no word
+#: that a machine was calling, no way out during the call, no route to withdraw
+#: afterwards. None of that may depend on what somebody happened to type into
+#: their instrument, so these three sentences are composed here and spoken
+#: verbatim in every call.
+AI_DISCLOSURE = {
+    "de": (
+        "Bevor wir beginnen: Diesen Anruf führt ein automatisierter Assistent, "
+        "also eine künstliche Intelligenz, im Auftrag von {commissioner}."
+    ),
+    "en": (
+        "Before we begin: this call is made by an automated assistant — an "
+        "artificial intelligence — on behalf of {commissioner}."
+    ),
+}
+
+STOP_RIGHT_SENTENCE = {
+    "de": (
+        "Ihre Teilnahme ist freiwillig, und Sie können das Gespräch jederzeit "
+        "ohne Angabe von Gründen beenden."
+    ),
+    "en": (
+        "Taking part is voluntary, and you can end this call at any time "
+        "without giving a reason."
+    ),
+}
+
+WITHDRAWAL_ROUTE = {
+    "de": (
+        "Wenn Sie Ihre Antworten später zurückziehen möchten, wenden Sie sich "
+        "an {withdrawal_contact}."
+    ),
+    "en": (
+        "If you would like to withdraw your answers later, please contact "
+        "{withdrawal_contact}."
+    ),
+}
+
+#: What a study must name before it may call anybody. Both are spoken aloud, so
+#: neither can be guessed from free text: whether a privacy paragraph "contains"
+#: a withdrawal route is a judgement, and this project does not make those.
+DISCLOSURE_SETTINGS = ("commissioner", "withdrawal_contact")
+
+#: Said aloud where a setting is missing. Loud on purpose: a dry run may run
+#: with it, a live call may not.
+NOT_CONFIGURED = "[NOT CONFIGURED: {setting}]"
+
 #: What an answer becomes when it fits none of the fixed categories and the
 #: analysis rule says to keep it as "other". It is deliberately not a category of
 #: the instrument: the instrument stays as it was written, and the report can
@@ -93,6 +143,48 @@ def language_directive(code: str) -> str:
         "every sentence spoken aloud must be in that language, including the "
         "parts you phrase yourself."
     )
+
+
+def _sentence(table: dict[str, str], questionnaire: dict[str, Any], **values: str) -> str:
+    base = _language_base(questionnaire.get("language", ""))
+    return table.get(base, table["en"]).format(**values)
+
+
+def _setting(questionnaire: dict[str, Any], name: str) -> str:
+    value = str(questionnaire.get(name) or "").strip()
+    return value or NOT_CONFIGURED.format(setting=name)
+
+
+def ai_disclosure_sentence(questionnaire: dict[str, Any]) -> str:
+    """The sentence that says a machine is calling, and on whose behalf."""
+    return _sentence(
+        AI_DISCLOSURE,
+        questionnaire,
+        commissioner=_setting(questionnaire, "commissioner"),
+    )
+
+
+def stop_right_sentence(language: str) -> str:
+    """Voluntariness and the right to end the call, in one sentence."""
+    return STOP_RIGHT_SENTENCE.get(_language_base(language), STOP_RIGHT_SENTENCE["en"])
+
+
+def withdrawal_route_sentence(questionnaire: dict[str, Any]) -> str:
+    """Where a person turns to pull their answers back afterwards."""
+    return _sentence(
+        WITHDRAWAL_ROUTE,
+        questionnaire,
+        withdrawal_contact=_setting(questionnaire, "withdrawal_contact"),
+    )
+
+
+def missing_disclosure_settings(questionnaire: dict[str, Any]) -> list[str]:
+    """Which of the spoken-aloud settings this study has not filled in."""
+    return [
+        name
+        for name in DISCLOSURE_SETTINGS
+        if not str(questionnaire.get(name) or "").strip()
+    ]
 
 
 def _task_label(value: str) -> str:
@@ -266,6 +358,18 @@ def build_task(questionnaire: dict[str, Any]) -> str:
         language_directive(questionnaire.get("language", "")),
     ]
 
+    # The floor, before anything the study itself says. It is quoted, so it is
+    # spoken word for word (FINDINGS section 4), and it comes first because a
+    # person deciding whether to take part must know who is calling them.
+    lines.append(
+        f'DISCLOSURE, say exactly and before anything else: "{ai_disclosure_sentence(questionnaire)}"'
+    )
+    stop_right = stop_right_sentence(questionnaire.get("language", ""))
+    if stop_right not in str(questionnaire.get("consent_text", "")):
+        # The workbench already carries this sentence inside the consent text;
+        # saying it twice would be harmless but sloppy. The test is literal.
+        lines.append(f'RIGHT TO STOP (say exactly): "{stop_right}"')
+
     opening = questionnaire.get("opening") or []
     if opening:
         lines.append("OPENING, in this order:")
@@ -336,6 +440,14 @@ def build_task(questionnaire: dict[str, Any]) -> str:
         text = str(block.get("text", "")).strip()
         if text:
             lines.append(f"CLOSING (your own words): {text}")
+
+    # Last, because it is about what happens after the call. Deliberately not a
+    # gate phrase: a call that breaks off early never reaches it, and flagging
+    # that as a missing sentence would fill the review queue with hang-ups.
+    lines.append(
+        "WITHDRAWAL, say exactly at the end of the interview: "
+        f'"{withdrawal_route_sentence(questionnaire)}"'
+    )
 
     lines.extend(
         [

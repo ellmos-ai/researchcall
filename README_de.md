@@ -275,6 +275,20 @@ Ohne **alle** fünf Bedingungen ist kein echter Anruf möglich:
 Der Schlüssel wird nur aus `CALLE_API_KEY` gelesen, nie ausgegeben oder gespeichert und nicht
 über ein geratenes Präfix validiert.
 
+### Was jeder Anruf sagt, unabhängig vom Instrument
+
+Drei Sätze stehen nicht im Belieben des Forschers — und seit dem 2026-08-11 hängen sie auch nicht mehr am Instrument. `build_task` bildet sie aus der Studie selbst und setzt sie in Anführungszeichen, damit sie wörtlich gesprochen werden:
+
+1. **Offenlegung, vor allem anderen:** Ein automatisierter Assistent — eine künstliche Intelligenz — ruft im Auftrag der genannten Stelle an.
+2. **Freiwilligkeit und Abbruchrecht** jederzeit, ohne Angabe von Gründen. Als eigener Block, außer der Einwilligungssatz enthält genau diesen Satz bereits.
+3. **Der Widerrufsweg** am Ende des Interviews: an wen man sich wendet, um die Antworten zurückzuziehen.
+
+Die ersten beiden sind Gate-Phrasen: Ein Transkript ohne sie öffnet einen Prüffall, genau wie ein fehlender Einwilligungssatz. Der dritte bewusst nicht — ein früh abgebrochenes Gespräch erreicht ihn nie, und daraus einen Prüffall zu machen hieße, die Warteschlange mit Auflegern zu füllen.
+
+`ethics.commissioner` und `ethics.withdrawal_contact` sind Pflichtangaben, weil sie laut gesprochen werden und weil die Frage, ob ein Datenschutzabsatz einen Widerrufsweg *enthält*, eine Beurteilung wäre — die trifft dieses Projekt nicht. Ohne sie wird ein Live-Lauf verweigert; ein Trockenlauf läuft und meldet `disclosure_incomplete`, denn dort soll so etwas auffallen.
+
+Damit sind die Art.-50-Lücken geschlossen, die `AI-ACT-STELLUNGNAHME.md` als offen führte — der erste echte Anruf machte keine dieser Angaben, und so sieht eine dokumentierte, aber unbehobene Lücke in der Praxis aus.
+
 ### Gesprächssprache
 
 Ein Sprach-Agent spricht einen zitierten Satz in der Sprache, in der er zitiert wurde — unabhängig vom `locale`-Feld (gemessen im Schwesterprojekt, festgehalten in `FINDINGS.md`). Alle zitierten Sätze hier stammen aus dem Instrument des Forschers und sind damit in der Studiensprache. Was ResearchCall drumherum beisteuert — Skalen-Ansage, Recht zu beenden, Einwilligungsfrage, Dauer, Herkunft der Nummer — liegt je Sprache vor, und der Auftrag trägt eine Sprachdirektive, geschrieben in eben dieser Sprache. Deutsch und Englisch sind gleichwertige Wege; eine Studiensprache ohne eigene Fassung bekommt eine englische Direktive, die die Sprache benennt, statt gar keiner. Wo ein Satz App-Teil und Freitext des Forschers mischt, verantwortet der Forscher den Freitext: das Werkzeug garantiert nur seine eigenen Teile.

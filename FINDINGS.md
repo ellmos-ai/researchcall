@@ -308,6 +308,67 @@ ersten echten Anruf war niemand mehr wählbar. Es gibt jetzt `--rehearsal`: der 
 wird aufgezeichnet und geprüft, zählt aber nicht gegen die Ein-Anruf-Regel, schreibt
 nichts ins Wählregister und löscht bei einem Fixture-Widerruf niemanden.
 
+## 13. Der Anruf sagte nicht, dass eine Maschine spricht (2026-08-11)
+
+**Festgestellt vom Nutzer im Live-Anruf D1**, wörtlich: „es wurde nicht gesagt, dass eine
+künstliche Intelligenz den Anruf führt. Es wurde keine möglichkeit gegebebn um zu
+widerrufen und dergleichen." Das persistierte Transkript bestätigt es. Die Eröffnung
+lautete vollständig:
+
+```
+[00:00] BOT: Guten Tag.
+[00:00] BOT: Wir führen eine kurze wissenschaftliche Befragung zur Mobilität durch. Ihre Teilnahme ist freiwillig.
+[00:06] BOT: Dürfen wir Ihnen drei Fragen stellen?
+```
+
+Keine Offenlegung der Automatisierung. Kein Hinweis, dass man jederzeit abbrechen kann.
+Kein Weg, die Antworten später zurückzuziehen.
+
+**Das war keine Überraschung, sondern eine bekannte Lücke.** `AI-ACT-STATEMENT.md`
+führte sie unter „Open Article 50 gaps" auf — inklusive des Vorschlags, ein
+unveränderliches erstes Sätzchen vor jede Begrüßung zu setzen, und mit dem
+ausdrücklichen Zusatz, dass genau das **nicht** implementiert sei. Die Doku hat also
+nicht gelogen; sie hat eine offene Flanke beschrieben, und der erste echte Anruf ist
+hineingelaufen. Das ist der Unterschied zwischen „dokumentiert" und „behoben".
+
+**Warum das Instrument allein es nicht leisten konnte:** Die Offenlegung hing an
+`ethics.instruction` — Freitext, ohne Vorgabewert, ohne Prüfung; der Fragebogen aus der
+Datei (den D1 benutzte) hat das Feld gar nicht. Und der Abbruchhinweis steckte im
+Einwilligungssatz, den der Forscher selbst schreibt: Der Workbench-Weg fügt ihn ein
+(`instrument.consent_text`), die Fixture-Datei tat es nicht. **Beide Wege hatten keine
+KI-Offenlegung.**
+
+**Behoben als Boden, nicht als Option.** `build_task` setzt jetzt in jedem Anruf drei
+wörtlich zu sprechende Sätze, in der Studiensprache:
+
+1. **Offenlegung**, vor allem anderen: dass ein automatisierter Assistent — eine
+   künstliche Intelligenz — im Auftrag der genannten Stelle anruft.
+2. **Freiwilligkeit und Abbruchrecht** in einem Satz (entfällt als eigener Block, wenn
+   der Einwilligungssatz ihn wörtlich schon enthält — literaler Test, keine Deutung).
+3. **Widerrufsweg** am Ende des Interviews: an wen man sich wendet.
+
+Offenlegung und Abbruchrecht sind **Gate-Phrasen** wie der Einwilligungssatz: Ein Anruf,
+in dem sie nicht fallen, landet in der Prüfung. Der Widerrufsweg bewusst nicht — ein
+früh abgebrochenes Gespräch erreicht ihn nie, und daraus einen Review-Fall zu machen
+hieße, die Warteschlange mit Auflegern zu füllen.
+
+**Auftraggebende Stelle und Widerrufsweg sind eigene Pflichtfelder** geworden
+(`ethics.commissioner`, `ethics.withdrawal_contact`). Sie hätten auch im Datenschutz-
+Freitext stehen können — aber ob ein Absatz einen Widerrufsweg *enthält*, ist eine
+Beurteilung, und auf einer Beurteilung lässt sich kein Gate bauen. Als eigene Felder
+sind sie maschinell prüfbar: **fehlt eines, startet kein Live-Anruf** (fail-closed); der
+Trockenlauf läuft weiter und meldet `disclosure_incomplete`, weil die Probe genau der
+Ort ist, an dem so etwas auffallen soll.
+
+**Damit sind die vier offenen Article-50-Punkte adressiert:** die Offenlegung hängt nicht
+mehr an editierbarem Freitext (1), sie steht vor der Begrüßung (2), die Reihenfolge im
+Auftrag ist eindeutig — Offenlegung, Abbruchrecht, Einwilligung, Fragen, Widerrufsweg
+(3), und die Rücklaufprüfung kennt die Offenlegung als eigene Gate-Phrase (4). Was der
+Code **nicht** garantieren kann: dass der Agent die vorgegebene Reihenfolge einhält.
+Gemessen ist nur, dass er zitierte Sätze wörtlich spricht (§4). Ob er sie an der
+richtigen Stelle spricht, zeigt das Transkript des nächsten Anrufs — und genau dafür
+sind die Gates da.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency

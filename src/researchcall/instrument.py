@@ -480,6 +480,10 @@ def build_questionnaire(
         "hypotheses": _as_lines(values.get("hypotheses")),
         "language": LOCALES[language],
         "consent_text": consent_text(language),
+        # Spoken in every call, so they travel with the study rather than
+        # living only in the workspace: who is calling, and how to withdraw.
+        "commissioner": str(values.get("ethics.commissioner") or "").strip(),
+        "withdrawal_contact": str(values.get("ethics.withdrawal_contact") or "").strip(),
         "questions": questions,
         "order": str(values.get("questionnaire.order") or "fixed"),
         "opening": opening_blocks(values, items, language),
