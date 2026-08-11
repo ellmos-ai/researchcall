@@ -270,9 +270,27 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertIn("Netzwerk deaktiviert · Fixture-Transport · keine echten Anrufe", german)
 
     def test_test_mode_never_supplies_or_reveals_a_locked_field(self) -> None:
-        # 12 since 2026-08-11: the duration became a locked promise rather
-        # than a switch (user decision, FINDINGS section 14).
-        self.assertEqual(len(self.locked), 12)
+        # The set, not the count. A bare number says that something changed;
+        # the set says WHICH field became locked or lost its lock, which is the
+        # part a person has to decide about. Deriving it from the registry
+        # instead would assert the registry against itself and prove nothing.
+        self.assertEqual(
+            self.locked,
+            {
+                "analysis.keep_raw_alongside_coded",
+                "analysis.report.answers_by_window",
+                "analysis.report.dropout_by_window",
+                "analysis.report.response_rate",
+                "ethics.consent_explicit",
+                "ethics.right_to_stop",
+                "ethics.time_estimate",  # locked 2026-08-11, FINDINGS section 14
+                "fieldwork.keep_raw_answer",
+                "pretest.instrument_check.measure",
+                "pretest.instrument_check.report_result_honestly",
+                "publication.dry_run_first",
+                "publication.source_check_before_upload",
+            },
+        )
         examples = test_mode.example_values(self.fields)
         self.assertEqual(set(examples), {field.path for field in self.fields if not field.locked})
         self.assertTrue(set(examples).isdisjoint(self.locked))
