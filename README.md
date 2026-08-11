@@ -223,6 +223,16 @@ researchcall --db survey.db run-day --study mobility-2026 --window morning --lim
 
 The current runner dispatches one-recipient REST calls serially as a conservative default and sends a deterministic, non-personal `Idempotency-Key`. This is not a claim that the service forbids parallel calls: concurrency remains unmeasured, and the code does not encode a provider concurrency ceiling. Each call and attempt remains independently addressable so a later, separately verified dispatcher can preserve the same schema and idempotency rules. The database claims the sample before the request, so an interruption or transport error does not make that person eligible for a retry.
 
+### Field trial: several played respondents, one consenting line
+
+A supervised rehearsal of the live path needs several respondents — a refusal, a completed interview, a withdrawal — while every call reaches the same briefed person. The frame cannot express that: a phone number is unique per study, in the import guard and again in the database index, because two records sharing a number would be two people sharing an identity.
+
+Setting `RESEARCHCALL_FIELD_TRIAL_PHONE` to one E.164 number therefore replaces the number **on the wire only**. Samples, attempts, responses and the dialed register stay per person; only the transport is handed the trial line. Every run says so on screen (`field_trial=on routed_to=+***NN`), every attempt record carries `field_trial_routed`, and the report opens with a block stating that the rates are a rehearsal, not survey results. The number itself is masked everywhere and removed from stored transcripts.
+
+The override is fail-closed: a variable that is set but not a usable E.164 number refuses the run instead of falling back to the drawn numbers, which belong to strangers.
+
+**A withdrawal during a trial is role-play, not a request.** The briefed human plays every part, so `withdrawal_requested` purges that one record and the run continues — ending every further call at the first played withdrawal would make the outcome that most needs rehearsing untestable. The real person's ways out are the ordinary ones: Ctrl-C, the bounded quota, or removing the variable.
+
 The measured call had about 40 seconds of setup time before ringing, independent of its later conversation length. Plan a serial quota with roughly `40 × N` seconds of setup overhead for `N` calls, plus ringing, conversation, and final synchronization time. The CLI prints this as a planning observation, not a guaranteed duration.
 
 ### Live progress and final transcript

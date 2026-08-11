@@ -275,6 +275,30 @@ Ohne **alle** fünf Bedingungen ist kein echter Anruf möglich:
 Der Schlüssel wird nur aus `CALLE_API_KEY` gelesen, nie ausgegeben oder gespeichert und nicht
 über ein geratenes Präfix validiert.
 
+### Feldversuch: mehrere gespielte Befragte, eine eingeweihte Leitung
+
+Eine begleitete Probe des Live-Wegs braucht mehrere Befragte — eine Verweigerung, ein
+vollständiges Interview, einen Widerruf —, während jeder Anruf dieselbe eingeweihte Person
+erreicht. Der Rahmen kann das nicht ausdrücken: Eine Rufnummer ist je Studie eindeutig, im
+Import-Schutz und noch einmal im Datenbank-Index, weil zwei Datensätze mit einer Nummer zwei
+Personen mit einer Identität wären.
+
+`RESEARCHCALL_FIELD_TRIAL_PHONE` auf eine E.164-Nummer gesetzt ersetzt die Nummer deshalb
+**nur auf dem Draht**. Stichprobe, Versuche, Antworten und Wählregister bleiben pro Person;
+nur der Transport bekommt die Testleitung. Jeder Lauf sagt es auf dem Bildschirm
+(`field_trial=on routed_to=+***NN`), jeder Versuchsdatensatz trägt `field_trial_routed`, und
+der Bericht beginnt mit einem Block, der die Zahlen als Probe kennzeichnet. Die Nummer selbst
+ist überall maskiert und wird aus gespeicherten Transkripten entfernt.
+
+Der Override ist fail-closed: eine gesetzte, aber unbrauchbare Nummer verweigert den Lauf,
+statt auf die gezogenen Nummern zurückzufallen — die gehören fremden Menschen.
+
+**Ein Widerruf im Feldversuch ist Rolle, keine Bitte.** Der eingeweihte Mensch spielt alle
+Parts; `withdrawal_requested` löscht daher diesen einen Datensatz, und der Lauf geht weiter.
+Beim ersten gespielten Widerruf alles zu beenden würde genau den Ausgang unprüfbar machen, der
+die Probe am dringendsten braucht. Der Ausstieg des echten Menschen sind die gewöhnlichen Wege:
+Strg-C, das begrenzte Kontingent oder die Variable entfernen.
+
 **REST ist der Live-Transport.** Schema-validierte Erhebung gibt es nur über die Developer-REST-API
 (`POST /v1/calls`). Der MCP-/CLI-Weg `plan_call` kennt kein `result_schema` und kann den
 standardisierten Ergebnisvertrag deshalb nicht liefern. Eine gemessene Kreuzabfrage lieferte
