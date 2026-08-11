@@ -21,7 +21,12 @@ Auftrag bauen  ->  vorlegen  ->  waehlen  ->  mitlesen  ->  Ergebnis sichern
 
 - **`status` taugt nicht als Fortschrittsanzeige.** Er stand auf `PREPARING`, waehrend
   bereits gesprochen wurde. Der Verlauf steht in **`activity`**.
-- **Das Transkript liegt in `result.transcript`**, als String im Format `[mm:ss] SPRECHER: Text`.
+- **Das Transkript liegt in `transcript_turns`** je Versuch (`recipients[].attempts[]`,
+  REST, gemessen 2026-08-11); der String `result.transcript` kann fehlen. Beides wird zu
+  `[mm:ss] SPRECHER: Text` gerendert.
+- **Mailbox meldet `completed`, Ablehnung meldet `failed`** (`status=DECLINED` im Freitext
+  `failure_message`). Beides wird vor der Auswertung berichtigt, sonst zaehlt eine Mailbox
+  als Interview — siehe FINDINGS.md, Abschnitt 9.
 - **Rund 40 Sekunden Vorlauf** je Anruf, unabhaengig von der Gespraechslaenge.
 - **Ob parallel gewaehlt werden kann, ist ungeprueft** — beide Faelle offenhalten.
 

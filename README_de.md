@@ -281,8 +281,18 @@ HTTP 404: MCP-Laufkennungen und REST-Anrufkennungen liegen in **getrennten ID-R�
 `PREPARING`, während das Gespräch bereits lief — als Fortschrittsbalken wird er deshalb nie
 dargestellt. Fortschritt kommt aus Änderungen an `activity`; die Kommandozeile gibt davon nur
 eine bereinigte Ereigniszahl aus, keinen Text, keine Nummern, keine Antworten. Das Transkript
-wird nach Abschluss aus `result.transcript` gelesen (das oberste Feld `transcript` war im
-gemessenen Ergebnis `null`), im Arbeitsspeicher geprüft und **nicht** gespeichert.
+wird nach Abschluss aus den Gesprächszügen des Versuchs gelesen
+(`recipients[].attempts[].transcript_turns`), ersatzweise aus dem String `result.transcript`
+(das oberste Feld `transcript` war in beiden Messungen `null`); beides wird zu denselben
+`[mm:ss] SPRECHER: Text`-Zeilen gerendert, im Arbeitsspeicher geprüft und **nicht** gespeichert.
+
+Zwei Ausgänge werden vor dem Zählen berichtigt, weil der Dienst sie so meldet, dass die
+Ausschöpfung sonst falsch aussieht: Eine Mailbox, die abnimmt, kommt als `completed` zurück —
+eine dokumentierte, bewusst zurückhaltende Heuristik liest die Ansage in den Zeilen der
+Gegenseite und führt solche Anrufe als `VOICEMAIL`, niemals gegen ein Ergebnis mit erteilter
+Einwilligung. Eine Ablehnung kommt als `failed` mit dem echten Ausgang im Freitext
+(`status=DECLINED`); dieser Status wird zurückgewonnen, damit eine Verweigerung von einem
+technischen Fehler unterscheidbar bleibt und nicht erneut gewählt wird.
 
 Der Inhaltsschutz weist Fragebögen ab, die ausdrücklich medizinischen, rechtlichen, finanziellen
 oder Notfallrat verlangen. Das ist ein enger technischer Rückhalt, **keine Rechtsprüfung**. Für
