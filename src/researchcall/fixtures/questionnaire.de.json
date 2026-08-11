@@ -1,9 +1,10 @@
 {
   "title": "Mobilitätsbefragung (fiktive Demonstration)",
   "language": "de-DE",
-  "consent_text": "Guten Tag. Wir führen eine kurze wissenschaftliche Befragung zur Mobilität durch. Ihre Teilnahme ist freiwillig. Dürfen wir Ihnen drei Fragen stellen?",
+  "consent_text": "Guten Tag. Wir führen eine kurze wissenschaftliche Befragung zur Mobilität durch. Dürfen wir Ihnen drei Fragen stellen?",
   "commissioner": "Institut für Mobilitätsforschung (fiktiv)",
   "withdrawal_contact": "widerruf@example.invalid",
+  "privacy_short": "Ihre Antworten werden pseudonym gespeichert und nach Abschluss der Studie gelöscht.",
   "questions": [
     {
       "id": "q1",

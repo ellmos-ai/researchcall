@@ -872,3 +872,40 @@ as real calls.
   open question of what the agent returned on 2026-08-11 is left open rather
   than answered by a request nobody authorised.
 - No push, publication, upload, release, or DevPost action.
+
+## Live findings A to E, and what they changed — 2026-08-11
+
+The calls were placed by the operator; what follows was executed here against the
+records they left (`out/feldversuch`, `out/feld2`) and against the built task text.
+No credential, no call, no network request.
+
+```text
+python -m pytest -q      # before: 235 passed, 515 subtests
+python -m pytest -q      # after:  242 passed, 519 subtests
+```
+
+Read from the live records, not inferred:
+
+- D1 confirmed the disclosure floor: `gates_seen` `[ai_disclosure, consent_question,
+  stop_right]`, `gates_missed` `[]`, no schema error, response stored with
+  `wording_matches=1`, withdrawal route spoken. The #120 schema change and the
+  result-envelope fix are therefore live-confirmed as well.
+- D2 confirmed the withdrawal path: after the abort, `attempt.detail_json` held only
+  `{"purged": true}`, there were zero `response` rows, no transcript and no gate record.
+  Deleted, not flagged.
+- D1 also showed the same promise twice ("Ihre Teilnahme ist freiwillig" in the floor
+  sentence and again inside the study's consent text) and one question asked three times
+  verbatim.
+- D3 was **not executed**: the balance was empty (HTTP 402). Voicemail and NO_ANSWER
+  classification remain unmeasured.
+
+Measured offline over every quoted block of a built task, both paths side by side
+(`_reports/_overlap.py`, `_reports/_blocks.py`): the duplicate promise existed in the file
+path *and* in the workbench path, in two different wordings; duration and privacy were
+spoken only in the workbench path, because a questionnaire loaded from a file carries no
+opening blocks.
+
+## Not executed in this round
+
+- No CALL-E credential, call, live transport, webhook, or network request by me.
+- No push, publication, upload, release, or DevPost action.

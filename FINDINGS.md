@@ -369,10 +369,81 @@ Gemessen ist nur, dass er zitierte Sätze wörtlich spricht (§4). Ob er sie an 
 richtigen Stelle spricht, zeigt das Transkript des nächsten Anrufs — und genau dafür
 sind die Gates da.
 
+## 14. Was zwei weitere Live-Anrufe zeigten (2026-08-11, D1 und D2)
+
+Gefahren hat sie der Operator, gelesen habe ich die persistierten Datensätze.
+
+**Bestätigt:** Der Offenlegungs-Boden hält — `gates_seen` = `[ai_disclosure,
+consent_question, stop_right]`, `gates_missed` = `[]`, kein Schema-Fehler, Antwort
+gespeichert mit `wording_matches=1`, Widerrufsweg gesprochen. Damit sind auch der
+#120-Schema-Fix und die Ergebnis-Auswahl aus §12 live belegt. **D2 (Abbruch):** Nach dem
+Abbruch enthielt `attempt.detail_json` nur noch `{"purged": true}`, null `response`-Zeilen,
+kein Transkript, kein Prüfprotokoll — gelöscht statt markiert.
+
+**A — Dieselbe Zusage zweimal.** Der Bot sagte „Ihre Teilnahme ist freiwillig" im
+Boden-Satz und gleich darauf noch einmal im Einwilligungstext der Studie. Gemessen über
+alle wörtlich zu sprechenden Blöcke war es **in beiden Wegen** so: im Datei-Weg die
+Freiwilligkeit, im Workbench-Weg das Abbruchrecht in zwei verschiedenen Formulierungen.
+Meine Entdopplungsregel prüfte auf Satzgleichheit und feuerte deshalb **nie**; der Test
+dazu war grün, weil er die Zeichenkette zählte statt der Aussage.
+
+Gelöst durch Trennung statt Erkennung: Der Boden gehört dem Werkzeug, der
+Einwilligungstext ist die **Frage**. `instrument.consent_text` stellt das Abbruchrecht
+nicht mehr voran, der Fixture-Consent verliert seinen Freiwilligkeitssatz, und die
+Entdopplungsregel ist ersatzlos entfallen.
+
+**B — Wortgleiche Wiederholung ohne Ende.** q3 wurde dreimal identisch gestellt, nachdem
+frei geantwortet wurde. Ursache war nicht das Modell, sondern unsere Lücke: absolutes
+Umformulierungsverbot, Kategorien „do not read aloud", und **keine Anweisung für den Fall
+„Antwort passt in keine Kategorie"**. Wortgleich wiederholen war die einzige erlaubte
+Handlung — unbegrenzt oft. Derselbe Mechanismus erklärt die zweite Beobachtung: Auch der
+Einwilligungsblock wurde wiederholt, nachdem die Begrüßung dazwischenkam.
+
+Neu im Auftrag: höchstens **zwei** Anläufe je Frage; beim zweiten wird nicht die Frage
+wiederholt, sondern die Antwortmöglichkeiten neutral nachgeführt (nondirektives Nachfragen
+— es lässt den Reiz unverändert); danach wird die Rohantwort behalten und die Kategorie
+**leer gelassen**. Das trägt die App bereits: Eine Rohantwort ohne Kategorie ist erlaubt,
+die Kodierung passiert regelgeleitet in Station 7. Der dritte Anlauf brachte live keine
+neue Information — er erzwang nur die Verkürzung auf „Ja".
+
+**C und D — Ein Versprechen, zwei Wege, nur einer löst es ein.** Dauer und
+Datenschutzhinweis existierten längst, aber als `opening`-Blöcke, die nur der
+Workbench-Weg baut. Der Feldversuch benutzt einen Fragebogen **aus der Datei** — der hat
+gar keine Öffnungsblöcke, also fiel beides aus. Auf die Frage des Nutzers, ob es nur an
+einer fehlenden Eingabe lag: im Kern ja, aber nicht an seiner Eingabe, sondern am Weg.
+Mit einer Workbench-Studie wäre sein Datenschutztext gesprochen worden.
+
+Beides steht jetzt im Boden: Umfang und Dauer („dauert etwa X Minuten und umfasst **bis
+zu** Y Fragen" — bei Filterlogik ist jede exakte Zahl eine mögliche Lüge) und ein
+Datenschutz-Satz aus dem neuen Pflichtfeld `ethics.privacy_short`. Der lange Hinweis
+bleibt daneben bestehen: Er soll Datenarten, Aufzeichnung, Löschweg und Ansprechpartner
+vollständig nennen, und das ist kein Telefonsatz. Die Dauer respektiert weiter ihren
+Schalter (`ethics.time_estimate`) — ein bedingungsloser Satz hätte eine wirksame
+Einstellung zur Attrappe gemacht.
+
+**E — Die Löschung blieb ungesagt.** Der Code löscht bei `withdrawal_requested`
+vollständig, sagt es der Person aber nicht. Neu im Boden: „Wenn Sie möchten, dass Ihre
+bisherigen Antworten gelöscht werden, sagen Sie es mir — dann geschieht das sofort."
+Bewusst **nicht** „wenn Sie abbrechen": Wer auflegt, löst keinen Widerruf aus, und
+Teilantworten bleiben stehen. Abbruch und Widerruf sind im Code zwei Dinge; ein Satz, der
+sie verschmilzt, würde mehr versprechen als der Code hält.
+
+**Reihenfolge im Anruf jetzt:** Offenlegung → Umfang/Dauer → Datenschutz → Abbruchrecht →
+Löschung auf Wunsch → studieneigene Öffnung → Einwilligungsfrage → Fragen → Abschluss →
+Widerrufsweg. Gate-Phrasen sind Offenlegung, Abbruchrecht, Datenschutz und
+Einwilligungssatz — die Dauer nicht: Ihr Fehlen ist eine Unhöflichkeit, keine Verletzung,
+und jedes zusätzliche Gate kauft Fehlalarme.
+
+**Offen und ausdrücklich NICHT erledigt:** D3 wurde nicht ausgeführt (Guthaben leer, HTTP
+402). Die Klassifikation von **Voicemail und NO_ANSWER** aus §9 ist damit weiterhin
+**ungeprüft** — sie steht als Code und als Test, aber nicht als Messung.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency
   controls" sind dokumentiert, die Grenze nicht. **Im Code beide Fälle offenhalten.**
-- Besetzt und Nicht-Abheben — noch nicht live gesehen. Mailbox und Ablehnung sind seit
+- Besetzt und Nicht-Abheben — noch nicht live gesehen; der geplante Test D3 fiel am
+  2026-08-11 wegen leeren Guthabens (HTTP 402) aus. Die Voicemail-Heuristik ist damit
+  weiterhin nur offline belegt. Mailbox und Ablehnung sind seit
   2026-08-11 gemessen (§9), kommen live aber als `completed` bzw. `failed` zurück.
 - Ob REST- und MCP-Weg dasselbe Kontingent teilen.

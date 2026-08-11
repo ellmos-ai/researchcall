@@ -228,10 +228,15 @@ The current runner dispatches one-recipient REST calls serially as a conservativ
 Three sentences are not the researcher's to leave out, and since 2026-08-11 they are not the instrument's to carry either. `build_task` composes them from the study itself, quoted so they are spoken word for word:
 
 1. **Disclosure, before anything else:** an automated assistant — an artificial intelligence — is calling on behalf of the named commissioning body.
-2. **Voluntariness and the right to stop** at any time, without giving a reason. Emitted as its own block unless the consent sentence already contains that exact sentence.
-3. **The withdrawal route**, at the end of the interview: whom to contact to pull the answers back.
+2. **Scope and duration:** about how many minutes, and *up to* how many questions. "Up to", because with filter logic any exact count can become a lie.
+3. **What happens with the answers**, in one sentence from `ethics.privacy_short`. The long privacy notice stays alongside it: it names data categories, recording, deletion route and contact in full, which is a paragraph, not a phone sentence.
+4. **Voluntariness and the right to stop** at any time, without giving a reason.
+5. **Deletion on request:** if the person wants the answers so far deleted, saying so is enough. Deliberately not "if you stop" — hanging up leaves partial answers, only a withdrawal purges them, and a sentence must not promise more than the code does.
+6. **The withdrawal route**, at the end of the interview: whom to contact to pull the answers back.
 
-The first two are gate phrases: a transcript that does not contain them opens a review case, exactly as a missing consent sentence does. The third is deliberately not a gate — a call that breaks off early never reaches it, and flagging that would fill the queue with hang-ups.
+Disclosure, right to stop and the data statement are gate phrases alongside the consent sentence: a transcript without them opens a review case. The duration is not — a missing duration is a discourtesy, not a breach, and every added gate buys false alarms. The withdrawal route is not either: a call that breaks off early never reaches it.
+
+The consent sentence is the *question*, nothing more. It used to carry the right to stop as well, which made the same promise twice in two wordings — measured live on 2026-08-11.
 
 `ethics.commissioner` and `ethics.withdrawal_contact` are required settings because they are spoken aloud, and because whether a privacy paragraph "contains" a withdrawal route is a judgement this project does not make. Without them a live run is refused; a dry run proceeds and reports `disclosure_incomplete`, since the rehearsal is where that belongs.
 

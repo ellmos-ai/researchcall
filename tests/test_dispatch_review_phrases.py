@@ -17,7 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from researchcall.calls import FixtureCallClient
-from researchcall.questionnaire import ai_disclosure_sentence, stop_right_sentence
+from researchcall.questionnaire import (
+    ai_disclosure_sentence,
+    privacy_sentence,
+    stop_right_sentence,
+)
 from researchcall.database import connect, initialize, migrate, utc_now
 from researchcall.dispatch import (
     MULTI_CALL,
@@ -317,7 +321,7 @@ class PhraseTestCase(unittest.TestCase):
         # be absent from this list.
         self.assertEqual(
             [p.key for p in phrases],
-            ["consent_question", "ai_disclosure", "stop_right"],
+            ["consent_question", "ai_disclosure", "stop_right", "data_statement"],
         )
 
     def test_a_fragment_too_short_to_recognise_is_refused(self):
@@ -350,17 +354,25 @@ class PhraseTestCase(unittest.TestCase):
         findings = monitor.findings()
         self.assertEqual(
             findings["gates_missed"],
-            ["abort_offer", "ai_disclosure", "consent_question", "stop_right"],
+            [
+                "abort_offer",
+                "ai_disclosure",
+                "consent_question",
+                "data_statement",
+                "stop_right",
+            ],
         )
         self.assertIn("literal recognition", findings["gate_check_basis"])
 
     def test_transcript_audit_uses_the_same_matcher(self):
-        # A complete call now also says who is calling and that the person may
-        # stop at any time; a transcript without those is a call with a gap.
+        # A complete call now also says who is calling, what happens with the
+        # answers, and that the person may stop; a transcript without those is a
+        # call with a gap.
         questionnaire = self.questionnaire()
         transcript = (
             "[00:00] BOT: " + ai_disclosure_sentence(questionnaire) + "\n"
             "[00:01] BOT: " + stop_right_sentence("en") + "\n"
+            "[00:02] BOT: " + privacy_sentence(questionnaire) + "\n"
             "[00:03] BOT: " + self.CONSENT + "\n"
             "[00:05] CALLEE: Yes, go ahead.\n"
             "[00:07] BOT: You can stop this interview at any time.\n"
