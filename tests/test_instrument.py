@@ -224,6 +224,57 @@ class ConversationFrameTestCase(unittest.TestCase):
         self.assertTrue(outcome.structured_result["refusal_reason"])
         validate_structured_result(questionnaire, outcome.structured_result)
 
+    def test_both_study_languages_speak_their_own_sentences(self) -> None:
+        """Neither language is the afterthought of the other.
+
+        Every sentence ResearchCall itself contributes to the call — scale
+        poles, right to stop, consent question, duration, number origin — comes
+        from the study language, and none of it leaks the other language. The
+        researcher's own texts are their own business; these are ours.
+        """
+        german = instrument.build_questionnaire(dict(VALUES), "de")[0]
+        english = instrument.build_questionnaire(dict(VALUES), "en")[0]
+
+        spoken_de = " ".join(
+            [german["consent_text"], *(q["wording"] for q in german["questions"])]
+            + [str(block.get("text", "")) for block in german["opening"]]
+        )
+        spoken_en = " ".join(
+            [english["consent_text"], *(q["wording"] for q in english["questions"])]
+            + [str(block.get("text", "")) for block in english["opening"]]
+        )
+
+        self.assertIn("jederzeit beenden", spoken_de)
+        self.assertIn("Möchten Sie an der Befragung teilnehmen?", spoken_de)
+        self.assertIn("Skala von 1 bis 5", spoken_de)
+        self.assertIn("dauert etwa", spoken_de)
+
+        self.assertIn("end this call at any time", spoken_en)
+        self.assertIn("Would you like to take part in the survey?", spoken_en)
+        self.assertIn("scale from 1 to 5", spoken_en)
+        self.assertIn("takes about", spoken_en)
+
+        for german_fragment in ("jederzeit beenden", "Befragung dauert", "Skala von"):
+            self.assertNotIn(german_fragment, spoken_en)
+        for english_fragment in ("end this call", "survey takes", "scale from"):
+            self.assertNotIn(english_fragment, spoken_de)
+
+    def test_the_task_carries_the_language_directive_in_that_same_language(self) -> None:
+        """The directive is addressed to the agent, so it speaks its language too."""
+        german, _ = instrument.build_questionnaire(dict(VALUES), "de")
+        english, _ = instrument.build_questionnaire(dict(VALUES), "en")
+
+        german_task = build_task(german)
+        english_task = build_task(english)
+
+        self.assertIn("GESPRÄCHSSPRACHE", german_task)
+        self.assertIn("auf Deutsch", german_task)
+        self.assertNotIn("CONVERSATION LANGUAGE", german_task)
+
+        self.assertIn("CONVERSATION LANGUAGE", english_task)
+        self.assertIn("in English", english_task)
+        self.assertNotIn("GESPRÄCHSSPRACHE", english_task)
+
     def test_an_unanswered_entry_may_be_absent_instead_of_null(self) -> None:
         """Absence is what the API-compatible schema leaves behind (issue #120).
 

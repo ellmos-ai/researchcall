@@ -223,6 +223,10 @@ researchcall --db survey.db run-day --study mobility-2026 --window morning --lim
 
 The current runner dispatches one-recipient REST calls serially as a conservative default and sends a deterministic, non-personal `Idempotency-Key`. This is not a claim that the service forbids parallel calls: concurrency remains unmeasured, and the code does not encode a provider concurrency ceiling. Each call and attempt remains independently addressable so a later, separately verified dispatcher can preserve the same schema and idempotency rules. The database claims the sample before the request, so an interruption or transport error does not make that person eligible for a retry.
 
+### Conversation language
+
+A voice agent speaks a quoted sentence in the language it was quoted in, whatever the locale field says (measured in a sister project, recorded in `FINDINGS.md`). Every quoted sentence here comes from the researcher's instrument and is therefore already in the study language. What ResearchCall adds around it — scale announcement, right to stop, consent question, duration, number origin — exists per language, and the task carries a directive naming the conversation language, written in that language. German and English are equal paths; a study language without its own directive gets an English one naming the language rather than none. Where a sentence mixes an app fragment with the researcher's free text, the free text is the researcher's responsibility: the tool guarantees its own parts only.
+
 ### Field trial: several played respondents, one consenting line
 
 A supervised rehearsal of the live path needs several respondents — a refusal, a completed interview, a withdrawal — while every call reaches the same briefed person. The frame cannot express that: a phone number is unique per study, in the import guard and again in the database index, because two records sharing a number would be two people sharing an identity.

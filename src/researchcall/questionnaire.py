@@ -44,6 +44,23 @@ SCHEMA_REQUIRED_RESULT_FIELDS = REQUIRED_RESULT_FIELDS - {"spoken_consent_wordin
 #: would put "conduct the conversation in de" into the instruction.
 LANGUAGE_NAMES = {"de": "German", "en": "English"}
 
+#: The directive is addressed to the voice agent, and it is written in the
+#: language the call is held in. Both fassungen carry the same instruction and
+#: neither is a translation of the other in the sense of being second: a study
+#: is run in one language, and the task it produces is written in that one.
+LANGUAGE_DIRECTIVES = {
+    "de": (
+        "GESPRÄCHSSPRACHE: Führen Sie das gesamte Gespräch auf Deutsch; jeder "
+        "laut gesprochene Satz muss deutsch sein, auch die Teile, die Sie selbst "
+        "formulieren."
+    ),
+    "en": (
+        "CONVERSATION LANGUAGE: Conduct the entire call in English; every "
+        "sentence spoken aloud must be English, including the parts you phrase "
+        "yourself."
+    ),
+}
+
 #: What an answer becomes when it fits none of the fixed categories and the
 #: analysis rule says to keep it as "other". It is deliberately not a category of
 #: the instrument: the instrument stays as it was written, and the report can
@@ -51,10 +68,31 @@ LANGUAGE_NAMES = {"de": "German", "en": "English"}
 UNLISTED_CODE = "__unlisted__"
 
 
+def _language_base(code: str) -> str:
+    """``de-DE`` and ``de`` are the same language; the workbench emits the first."""
+    return str(code or "").lower().split("-")[0]
+
+
 def language_name(code: str) -> str:
     """The spoken language, written out for the instruction."""
-    base = str(code or "").lower().split("-")[0]
-    return LANGUAGE_NAMES.get(base, f"the language with the code {code}")
+    return LANGUAGE_NAMES.get(_language_base(code), f"the language with the code {code}")
+
+
+def language_directive(code: str) -> str:
+    """The sentence that tells the agent which language the call is held in.
+
+    A study whose language ResearchCall does not carry a fassung for still gets
+    a directive — in English, naming the language — because saying nothing is
+    the one outcome the measurement in FINDINGS section 11 rules out.
+    """
+    base = _language_base(code)
+    if base in LANGUAGE_DIRECTIVES:
+        return LANGUAGE_DIRECTIVES[base]
+    return (
+        f"CONVERSATION LANGUAGE: Conduct the entire call in {language_name(code)}; "
+        "every sentence spoken aloud must be in that language, including the "
+        "parts you phrase yourself."
+    )
 
 
 def _task_label(value: str) -> str:
@@ -225,9 +263,7 @@ def build_task(questionnaire: dict[str, Any]) -> str:
         "Conduct one standardized scientific telephone interview.",
         "STRICT STANDARDIZATION: Say every quoted sentence exactly as written. Do not paraphrase, summarize, embellish, or add spontaneous probes.",
         "Ask for consent first. If consent is not granted, thank the person and end the interview without asking survey questions.",
-        f"CONVERSATION LANGUAGE: Conduct the entire call in "
-        f"{language_name(questionnaire.get('language', ''))}; every sentence spoken "
-        f"aloud must be in that language, including the parts you phrase yourself.",
+        language_directive(questionnaire.get("language", "")),
     ]
 
     opening = questionnaire.get("opening") or []
