@@ -12,7 +12,11 @@ from .coding import apply_unlisted_policy
 from .database import load_questionnaire, transaction, utc_now
 from .instrument import for_call
 from .phrases import audit_transcript, phrases_from_questionnaire
-from .questionnaire import validate_structured_result, wording_matches
+from .questionnaire import (
+    normalize_structured_result,
+    validate_structured_result,
+    wording_matches,
+)
 from .review import open_review, reasons_for_attempt
 from .safety import idempotency_key, redact_phone_numbers, validate_e164
 
@@ -286,6 +290,11 @@ def _finish_attempt(
     matches = False
     coding_notes: list[dict[str, str]] = []
     if structured is not None:
+        # Absence is the wire form, null the stored one: the schema the API
+        # accepts has no "or null", so an unanswered entry arrives missing.
+        # Filling it in here, before anything reads the result, keeps the coding
+        # rule, the report and the export looking at one shape.
+        structured = normalize_structured_result(questionnaire, structured)
         structured, coding_notes = apply_unlisted_policy(questionnaire, structured)
         try:
             validate_structured_result(questionnaire, structured)

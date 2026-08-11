@@ -44,6 +44,30 @@ from researchcall.sampling import (
 )
 
 
+def nullable_unions(schema: Any, path: str = "$") -> list[str]:
+    """Every place a schema says "or null" — in any of its spellings.
+
+    The API rejects the whole request for one of these, so the check is made
+    against the shape rather than against a list of known field names: a union
+    reintroduced in a new field would otherwise pass unnoticed.
+    """
+    found: list[str] = []
+    if isinstance(schema, dict):
+        declared = schema.get("type")
+        if isinstance(declared, list):
+            found.append(f"{path}.type is a union: {declared}")
+        elif declared == "null":
+            found.append(f"{path}.type is null")
+        if isinstance(schema.get("enum"), list) and None in schema["enum"]:
+            found.append(f"{path}.enum contains null")
+        for key, value in schema.items():
+            found.extend(nullable_unions(value, f"{path}.{key}"))
+    elif isinstance(schema, list):
+        for index, value in enumerate(schema):
+            found.extend(nullable_unions(value, f"{path}[{index}]"))
+    return found
+
+
 QUESTIONNAIRE = ROOT / "src" / "researchcall" / "fixtures" / "questionnaire.de.json"
 OUTCOMES = ROOT / "src" / "researchcall" / "fixtures" / "outcomes.json"
 TEST_TEMP_ROOT = ROOT / "out" / "tests"
@@ -96,6 +120,10 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertNotIn('equals "yes"', task)
         self.assertIn("Do not paraphrase", task)
         self.assertIn("raw words", task)
+        # The schema no longer accepts null (issue #120), so the task must not
+        # keep asking for it: the call would survive create and fail on return.
+        self.assertNotIn("null", task)
+        self.assertIn("omit", task)
         schema = result_schema(self.questionnaire)
         self.assertIn("asked_verbatim", schema["required"])
         self.assertIn("spoken_wording", schema["required"])
@@ -400,6 +428,127 @@ class ResearchCallTestCase(unittest.TestCase):
             for row in self.connection.execute("SELECT detail_json FROM attempt")
         )
         self.assertNotIn(transcript, stored)
+
+    # --- Schema shapes the API accepts (upstream issue #120) ------------------
+
+    def sent_schemas(self, questionnaire: dict[str, Any]) -> list[dict[str, Any]]:
+        """Both schemas of one create request, as they go over the wire."""
+        client = LiveCallClient(
+            api_key="fixture-token",
+            base_url="https://example.invalid",
+            first_poll_seconds=0,
+            poll_seconds=0,
+            poll_timeout_seconds=1,
+        )
+        sent: list[dict[str, Any]] = []
+        responses = iter([{"id": "rest-call-1"}, {"status": "COMPLETED"}])
+
+        def fake_request(method, path, payload=None, idempotency_key=None):
+            if payload is not None:
+                sent.append(payload)
+            return next(responses)
+
+        with patch.object(client, "_request", side_effect=fake_request):
+            client.call(
+                {"sample_id": 1, "phone_e164": "+15550123456"},
+                questionnaire,
+                "stable-key",
+            )
+        payload = sent[0]
+        return [payload["result_schema"], payload["recipient_result_schema"]]
+
+    def test_no_schema_sent_to_the_api_declares_a_nullable_union(self) -> None:
+        """Upstream issue #120: a union type is rejected before the call exists.
+
+        `{"type": ["string", "null"]}` makes `POST /v1/calls` fail with
+        `result_schema_invalid`, so every live interview would die at create
+        time. Absence carries what null used to carry, and this guard keeps the
+        union from coming back through any of its spellings.
+        """
+        open_item = dict(self.questionnaire)
+        open_item["questions"] = [
+            *self.questionnaire["questions"],
+            {"id": "q4", "wording": "Was fehlt Ihnen im Nahverkehr?", "format": "open"},
+        ]
+        refusal = dict(
+            self.questionnaire, on_refusal={"ask_reason": True, "offer_callback": True}
+        )
+        for name, questionnaire in (
+            ("fixture", self.questionnaire),
+            ("open item", open_item),
+            ("refusal fields", refusal),
+        ):
+            with self.subTest(questionnaire=name):
+                for schema in self.sent_schemas(questionnaire):
+                    self.assertEqual(nullable_unions(schema), [])
+
+    def test_a_result_that_omits_unanswered_entries_is_recorded_like_a_null_one(
+        self,
+    ) -> None:
+        """The proof that absence costs nothing: same record, either way.
+
+        An agent answering the new schema leaves unanswered entries out; the
+        fixtures still send explicit nulls. Both must reach the database as the
+        same response and the same audit detail, or the schema change would have
+        quietly changed the data.
+        """
+        self.import_rows(2)
+        draw_sample(self.connection, self.study_id, 2, 3)
+        samples = self.connection.execute(
+            "SELECT id, time_window FROM sample ORDER BY id"
+        ).fetchall()
+        client = FixtureCallClient.from_file(OUTCOMES)
+        base = client.call({"sample_id": 1}, self.questionnaire, "unused").structured_result
+        unanswered = self.questionnaire["questions"][-1]["id"]
+
+        with_null = json.loads(json.dumps(base))
+        for field in ("answers", "raw_answers", "spoken_wording"):
+            with_null[field][unanswered] = None
+        with_absence = json.loads(json.dumps(with_null))
+        for field in ("answers", "raw_answers", "spoken_wording"):
+            del with_absence[field][unanswered]
+
+        for sample, structured in zip(samples, (with_null, with_absence)):
+            outcome = CallOutcome(
+                status="COMPLETED",
+                run_id=f"rest-{sample['id']}",
+                structured_result=structured,
+                detail={"transport": "live-api"},
+            )
+            with patch.object(client, "call", return_value=outcome):
+                run_day(
+                    self.connection,
+                    get_study(self.connection, "study"),
+                    sample["time_window"],
+                    1,
+                    client,
+                )
+
+        stored = self.connection.execute(
+            """
+            SELECT structured_json, consent, asked_verbatim_reported, wording_matches
+            FROM response ORDER BY sample_id
+            """
+        ).fetchall()
+        self.assertEqual(len(stored), 2)
+        self.assertEqual(
+            json.loads(stored[0]["structured_json"]),
+            json.loads(stored[1]["structured_json"]),
+        )
+        self.assertEqual(stored[0]["consent"], stored[1]["consent"])
+        self.assertEqual(
+            stored[0]["asked_verbatim_reported"], stored[1]["asked_verbatim_reported"]
+        )
+        self.assertEqual(stored[0]["wording_matches"], stored[1]["wording_matches"])
+        details = [
+            json.loads(row["detail_json"])
+            for row in self.connection.execute(
+                "SELECT detail_json FROM attempt ORDER BY sample_id"
+            )
+        ]
+        self.assertEqual(details[0], details[1])
+        # The stored form keeps explicit nulls: absence is the wire form only.
+        self.assertIsNone(json.loads(stored[1]["structured_json"])["answers"][unanswered])
 
     # --- Live payload shapes measured against GET /v1/calls/{id} on 2026-08-11 ---
 

@@ -158,6 +158,55 @@ liest, bekommt gar kein Transkript — still, ohne Fehler.
   als `COMPLETED` wäre er nie wiederholt worden. Inhaltlich richtig („niemand erreicht"),
   aber es kostet Anrufe: `attempts_per_person > 0` erhöht damit das Anrufvolumen.
 
+## 10. Nullable Union-Types im Schema werden abgelehnt (Fremdbefund, nicht selbst gemessen)
+
+**Quelle: Upstream-Issue #120 in `CALLE-AI/awesome-phone-call-agents` (offen).**
+Anders als §§1–9 stammt dieser Punkt NICHT aus einer eigenen Messung — hier wurde
+kein Anruf und kein API-Aufruf gemacht. Er wird trotzdem behandelt, weil er einen
+Totalausfall beschreibt und die Gegenmaßnahme nichts kostet.
+
+Der Befund: `result_schema` bzw. `recipient_result_schema` mit einem Union-Type
+
+```json
+{"type": ["string", "null"]}
+```
+
+führen zu HTTP-Fehler `result_schema_invalid`. Der Anruf wird **gar nicht erst
+angelegt** — der Fehler fällt beim `POST /v1/calls`, nicht im Gespräch. Die
+eigentliche Ursache steht laut Issue nur in `details.reason`; die
+Fehlermeldung oben nennt sie nicht.
+
+**Betroffen war unser Schema durchgehend** (`questionnaire.py`): `answers`,
+`raw_answers`, `spoken_wording`, `spoken_consent_wording`, `refusal_reason`,
+`callback_wanted`. Jeder Live-Interview-Dispatch wäre am Create gescheitert.
+
+**Umstellung: Absenz statt `null`.** Kein Feld ist mehr „string oder null";
+unbeantwortete Einträge fehlen einfach. Das trägt dieselbe Information — ein
+`null`-Eintrag sagte „hier steht kein Wert", ein fehlender sagt es auch —, muss
+aber an drei Stellen zusammenpassen:
+
+- **Schema:** einfache Typen, Einträge optional. Offene Fragen haben in
+  `answers` gar keine Eigenschaft mehr; zusammen mit `additionalProperties:
+  false` verbietet das eine Kodierung im Gespräch strenger als das frühere
+  „muss null sein".
+- **Auftragstext:** Die Anweisungen sagten dem Agenten wörtlich „use null when
+  it was not asked". Das wäre nach der Schemaänderung die Aufforderung, etwas zu
+  tun, was das Schema verbietet — der Anruf wäre dann nicht am Create, sondern
+  am Ergebnis gescheitert. Jetzt: „omit the entry entirely".
+- **Auswertung:** `spoken_consent_wording` darf **nur** fehlen, wenn
+  `consent = not_obtained` — sonst wäre eine fehlende Einwilligungsformel nicht
+  mehr von einer nie gestellten Frage zu unterscheiden.
+
+**Speicherform bleibt `null`.** Ankommende Ergebnisse werden einmal normalisiert
+(`normalize_structured_result`), bevor Kodierregel, Validierung, Bericht und
+Export sie sehen. Absenz ist die Drahtform, `null` die Speicherform; damit
+bleiben Datensätze von vor und nach der Umstellung vergleichbar.
+
+**Offen:** Ob die API sonst noch Schema-Konstrukte ablehnt (`additionalProperties:
+false`, `enum`, verschachtelte Objekte), ist ungeprüft — das Issue nennt nur die
+Union-Types. Ein Regressionstest läuft rekursiv über beide gesendeten Schemas und
+schlägt bei jedem Union-Type, `"type": "null"` und `null` in einem `enum` an.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency

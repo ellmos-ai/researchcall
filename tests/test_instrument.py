@@ -224,6 +224,55 @@ class ConversationFrameTestCase(unittest.TestCase):
         self.assertTrue(outcome.structured_result["refusal_reason"])
         validate_structured_result(questionnaire, outcome.structured_result)
 
+    def test_an_unanswered_entry_may_be_absent_instead_of_null(self) -> None:
+        """Absence is what the API-compatible schema leaves behind (issue #120).
+
+        Nullable unions are rejected at create time, so unanswered entries are
+        omitted rather than sent as null. Validation has to read both, because
+        fixtures and stored records keep the explicit null form.
+        """
+        questionnaire, _ = build()
+        client = FixtureCallClient.from_file(OUTCOMES)
+        result = client.call({"sample_id": 1}, questionnaire, "unused").structured_result
+        last = questionnaire["questions"][-1]["id"]
+        for field in ("answers", "raw_answers", "spoken_wording"):
+            result[field].pop(last, None)
+
+        validate_structured_result(questionnaire, result)
+
+    def test_an_open_item_stays_uncategorized_however_it_is_sent(self) -> None:
+        questionnaire, _ = build()
+        client = FixtureCallClient.from_file(OUTCOMES)
+        result = client.call({"sample_id": 1}, questionnaire, "unused").structured_result
+        open_ids = [
+            question["id"]
+            for question in questionnaire["questions"]
+            if instrument.is_open(question)
+        ]
+        self.assertTrue(open_ids, "this frame needs an open item for the check")
+        open_id = open_ids[0]
+
+        result["answers"].pop(open_id)          # absent: the new wire form
+        validate_structured_result(questionnaire, result)
+        result["answers"][open_id] = None       # null: the stored form
+        validate_structured_result(questionnaire, result)
+        result["answers"][open_id] = "categorized anyway"
+        with self.assertRaisesRegex(ValueError, "must not be categorized"):
+            validate_structured_result(questionnaire, result)
+
+    def test_the_consent_wording_may_only_be_missing_when_it_was_never_asked(self) -> None:
+        """Absence is allowed where null was allowed — not one case further."""
+        questionnaire, _ = build()
+        client = FixtureCallClient.from_file(OUTCOMES)
+        result = client.call({"sample_id": 1}, questionnaire, "unused").structured_result
+        self.assertEqual(result["consent"], "granted")
+        del result["spoken_consent_wording"]
+        with self.assertRaisesRegex(ValueError, "spoken_consent_wording"):
+            validate_structured_result(questionnaire, result)
+
+        result["consent"] = "not_obtained"
+        validate_structured_result(questionnaire, result)
+
     def test_a_frame_without_the_refusal_question_carries_no_field_for_it(self) -> None:
         questionnaire, _ = build(
             **{"ethics.on_refusal.ask_reason": False, "ethics.on_refusal.offer_callback": False}
