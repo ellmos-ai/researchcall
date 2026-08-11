@@ -415,6 +415,10 @@
     "de": "Testmodus verlassen",
     "en": "Leave test mode"
   },
+  "Locked on user decision of 2026-08-11: every call states the duration and the number of questions, computed from the instrument.": {
+    "de": "Auf Nutzerentscheid vom 2026-08-11 fest verdrahtet: Jeder Anruf nennt Dauer und Fragenzahl, berechnet aus dem Instrument.",
+    "en": "Locked on user decision of 2026-08-11: every call states the duration and the number of questions, computed from the instrument."
+  },
   "Losses are always broken down by time window.": {
     "de": "Ausfälle werden immer nach Zeitfenster aufgeschlüsselt.",
     "en": "Losses are always broken down by time window."
@@ -714,10 +718,6 @@
   "Some settings on this station are kept but not yet read by anything. They are marked, because a control that quietly changes nothing is worse than one that is missing.": {
     "de": "Einige Einstellungen dieser Station werden gespeichert, aber noch von nichts gelesen. Sie sind gekennzeichnet, denn ein Bedienelement, das stillschweigend nichts bewirkt, ist schlimmer als eines, das fehlt.",
     "en": "Some settings on this station are kept but not yet read by anything. They are marked, because a control that quietly changes nothing is worse than one that is missing."
-  },
-  "Speaks a duration computed from the instrument, not a typed guess.": {
-    "de": "Nennt eine Dauer, die aus dem Instrument berechnet wird — keine getippte Schätzung.",
-    "en": "Speaks a duration computed from the instrument, not a typed guess."
   },
   "Spoken as an opening block; the one-sentence version is what the floor says.": {
     "de": "Wird als Öffnungsblock gesprochen; den einen Satz sagt der feste Gesprächsboden.",

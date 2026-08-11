@@ -201,13 +201,19 @@ class ConversationFrameTestCase(unittest.TestCase):
             spoken,
         )
 
-    def test_a_switched_off_time_estimate_is_the_only_thing_that_removes_it(self) -> None:
+    def test_the_duration_can_no_longer_be_switched_off(self) -> None:
+        """User decision of 2026-08-11: the duration is a promise, not an option.
+
+        The switch was closed rather than the sentence made conditional — a
+        sentence that always falls must not carry a control that suggests
+        otherwise.
+        """
         questionnaire, _ = build(**{"ethics.time_estimate": False})
-        self.assertFalse(questionnaire["announce_duration"])
         spoken = build_task(
             dict(questionnaire, commissioner="X", privacy_short="Y", withdrawal_contact="Z")
         )
-        self.assertNotIn("dauert etwa", spoken)
+        self.assertIn("dauert etwa", spoken)
+        self.assertIn("umfasst bis zu", spoken)
 
     def test_the_right_to_stop_is_said_and_not_merely_stored(self) -> None:
         """It is a locked setting, so it cannot be switched off — but it must be heard."""

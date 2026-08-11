@@ -214,15 +214,15 @@ def withdrawal_route_sentence(questionnaire: dict[str, Any]) -> str:
     )
 
 
-def scope_sentence(questionnaire: dict[str, Any]) -> str | None:
-    """How long it takes and how many questions there are — or nothing.
+def scope_sentence(questionnaire: dict[str, Any]) -> str:
+    """How long it takes and how many questions there are.
 
-    ``announce_duration`` mirrors ``ethics.time_estimate``, which a researcher may
-    switch off. Speaking it regardless would turn a documented, effective setting
-    into decoration — the one thing the effect register exists to prevent.
+    User decision of 2026-08-11: "wir hatten außerdem mal eine voraussichtliche
+    dauer als PFLICHT". The earlier objection — that an unconditional block would
+    turn a switchable setting into decoration — was answered by closing the
+    switch rather than by conditioning the block: ``ethics.time_estimate`` is
+    ``locked`` now, like consent and the right to stop.
     """
-    if not questionnaire.get("announce_duration", True):
-        return None
     questions = questionnaire.get("questions") or []
     minutes = questionnaire.get("estimated_minutes")
     if not isinstance(minutes, int) or minutes <= 0:
@@ -429,9 +429,7 @@ def build_task(questionnaire: dict[str, Any]) -> str:
     lines.append(
         f'DISCLOSURE, say exactly and before anything else: "{ai_disclosure_sentence(questionnaire)}"'
     )
-    scope = scope_sentence(questionnaire)
-    if scope is not None:
-        lines.append(f'SCOPE (say exactly): "{scope}"')
+    lines.append(f'SCOPE (say exactly): "{scope_sentence(questionnaire)}"')
     lines.append(f'DATA (say exactly): "{privacy_sentence(questionnaire)}"')
     lines.append(
         f'RIGHT TO STOP (say exactly): "{stop_right_sentence(questionnaire.get("language", ""))}"'

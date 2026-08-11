@@ -783,14 +783,15 @@ class ResearchCallTestCase(unittest.TestCase):
                         spoken.count(promise), 1, f"{promise!r} is said more than once"
                     )
 
-    def test_switching_the_duration_off_removes_the_sentence(self) -> None:
-        """`ethics.time_estimate` stays a real switch, not decoration."""
-        with_duration = build_task(self.full_study())
-        without = build_task(self.full_study(announce_duration=False))
+    def test_the_duration_is_said_in_every_call(self) -> None:
+        """Locked by user decision of 2026-08-11, like consent and the stop right."""
+        task = build_task(self.full_study())
+        self.assertIn("Minuten", task)
+        self.assertIn("umfasst bis zu", task)
 
-        self.assertIn("Minuten", with_duration)
-        self.assertNotIn("umfasst bis zu", without)
-        self.assertIn("künstliche Intelligenz", without)
+        # Even a study that still carries the old off-switch says it: the field
+        # is locked now, so an old value cannot silence the promise.
+        self.assertIn("umfasst bis zu", build_task(self.full_study(announce_duration=False)))
 
     def test_a_study_without_a_privacy_sentence_cannot_go_live(self) -> None:
         self.assertEqual(
