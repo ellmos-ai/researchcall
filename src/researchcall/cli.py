@@ -8,7 +8,12 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Sequence
 
-from .calls import OBSERVED_SETUP_SECONDS, FixtureCallClient, LiveCallClient
+from .calls import (
+    OBSERVED_SETUP_SECONDS,
+    CalleAPIError,
+    FixtureCallClient,
+    LiveCallClient,
+)
 from .database import connect, create_study, get_study, initialize
 from .field_trial import trial_phone
 from .questionnaire import (
@@ -277,6 +282,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     except KeyboardInterrupt:
         print("interrupted=attempt-state-preserved", file=sys.stderr)
         return 130
+    except CalleAPIError as error:
+        # An empty balance is an everyday situation, not a defect. Live on
+        # 2026-08-11 it reached the operator as "RuntimeError" and looked like
+        # one, so it is spelled out here — including that nothing was dialled,
+        # which decides whether anybody has to be re-drawn.
+        parts = [f"service_refused=http_{error.status_code}"]
+        if error.code:
+            parts.append(error.code)
+        if error.reason_code:
+            parts.append(f"reason={error.reason_code}")
+        print(" ".join(parts), file=sys.stderr)
+        if error.message:
+            print(error.message, file=sys.stderr)
+        if not error.dialled:
+            print(
+                "nothing was dialled: no call was created, no record was used, "
+                "the run stopped here.",
+                file=sys.stderr,
+            )
+        return 3
     except (ValueError, sqlite3.Error, OSError, json.JSONDecodeError) as error:
         print(f"error={error}", file=sys.stderr)
         return 2
