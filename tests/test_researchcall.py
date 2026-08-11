@@ -8,6 +8,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -17,7 +18,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from researchcall import cli
-from researchcall.calls import CallOutcome, FixtureCallClient, LiveCallClient
+from researchcall.calls import (
+    CalleAPIError,
+    CallOutcome,
+    FixtureCallClient,
+    LiveCallClient,
+)
 from researchcall.calls import _transcript_from_turns as transcript_from_turns
 from researchcall.database import connect, create_study, get_study, initialize, migrate
 from researchcall.field_trial import ENV_VAR as FIELD_TRIAL_ENV
@@ -568,6 +574,140 @@ class ResearchCallTestCase(unittest.TestCase):
 
         self.assertEqual(task.count(stop_right_sentence("de")), 1)
         self.assertIn("künstliche Intelligenz", task)
+
+    # --- What the service says when it refuses (Befund F) --------------------
+
+    def test_a_refused_service_answer_names_its_reason(self) -> None:
+        """HTTP 402 arrived live as a bare RuntimeError — unreadable for anyone.
+
+        The bearer token travels in the header, never in the body, so the code,
+        the message and the reason code are diagnostics rather than secrets. The
+        body as a whole is still not stored: only those three fields are.
+        """
+        client = LiveCallClient(
+            api_key="fixture-token", base_url="https://example.invalid",
+            first_poll_seconds=0, poll_seconds=0, poll_timeout_seconds=1,
+        )
+        body = json.dumps(
+            {
+                "error": {
+                    "code": "insufficient_balance",
+                    "message": "Insufficient CALL-E balance. Please top up at https://example.invalid/billing and try again.",
+                    "details": {"reason_code": "iams_balance_insufficient"},
+                }
+            }
+        ).encode("utf-8")
+
+        def fake_urlopen(request, timeout):
+            raise urllib.error.HTTPError(
+                "https://example.invalid/v1/calls", 402, "Payment Required", {}, io.BytesIO(body)
+            )
+
+        with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            with self.assertRaises(CalleAPIError) as caught:
+                client.call(
+                    {"sample_id": 1, "phone_e164": "+15550123456"},
+                    self.full_study(),
+                    "key",
+                )
+
+        error = caught.exception
+        self.assertEqual(error.status_code, 402)
+        self.assertEqual(error.code, "insufficient_balance")
+        self.assertEqual(error.reason_code, "iams_balance_insufficient")
+        self.assertIn("top up", error.message)
+        self.assertFalse(error.dialled, "402 is refused before any call exists")
+
+    def test_a_refusal_does_not_burn_the_people_it_never_dialled(self) -> None:
+        """The expensive half of the finding.
+
+        A 402 after the third of ten calls must leave seven records callable.
+        The attempt row is claimed before the request, so a refusal that never
+        reached the wire has to give it back.
+        """
+        self.import_rows(3)
+        draw_sample(self.connection, self.study_id, 3, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+
+        class RefusingClient:
+            calls = 0
+
+            def call(self, sample, asked, idempotency_key):
+                RefusingClient.calls += 1
+                raise CalleAPIError(402, "insufficient_balance", "no balance", "iams")
+
+        with self.assertRaises(CalleAPIError):
+            run_day(
+                self.connection,
+                get_study(self.connection, "study"),
+                window,
+                3,
+                RefusingClient(),
+            )
+
+        self.assertEqual(RefusingClient.calls, 1, "the run stops at the first refusal")
+        self.assertEqual(
+            self.connection.execute("SELECT COUNT(*) AS n FROM attempt").fetchone()["n"],
+            0,
+            "a record that was never dialled must stay callable",
+        )
+
+    def test_a_transport_error_that_did_reach_the_service_keeps_its_attempt(self) -> None:
+        """A timeout mid-call is not a refusal: that person WAS dialled."""
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+
+        class TimingOut:
+            def call(self, sample, asked, idempotency_key):
+                raise TimeoutError("polling exceeded")
+
+        run_day(
+            self.connection, get_study(self.connection, "study"), window, 1, TimingOut()
+        )
+
+        row = self.connection.execute(
+            "SELECT call_status, detail_json FROM attempt"
+        ).fetchone()
+        self.assertEqual(row["call_status"], "FAILED")
+        self.assertIn("TimeoutError", row["detail_json"])
+
+    def test_the_command_line_explains_a_refusal_instead_of_a_stack_trace(self) -> None:
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+        self.connection.close()
+        stderr = io.StringIO()
+
+        class Refusing:
+            @staticmethod
+            def from_environment(progress_callback=None):
+                class Client:
+                    def call(self, *args):
+                        raise CalleAPIError(
+                            402,
+                            "insufficient_balance",
+                            "Insufficient CALL-E balance. Please top up at https://example.invalid/billing",
+                            "iams_balance_insufficient",
+                        )
+
+                return Client()
+
+        with patch("researchcall.cli.LiveCallClient", Refusing), contextlib.redirect_stderr(stderr):
+            code = cli.main(
+                [
+                    "--db", str(self.db_path), "run-day", "--study", "study",
+                    "--window", window, "--limit", "1", "--live",
+                    "--confirm-live", "CALL 1", "--consent-attested",
+                ]
+            )
+
+        self.assertEqual(code, 3, "a refused service gets its own exit code")
+        message = stderr.getvalue()
+        self.assertIn("402", message)
+        self.assertIn("insufficient_balance", message)
+        self.assertIn("top up", message)
+        self.assertIn("nothing was dialled", message)
 
     # --- The floor after live findings A-E (2026-08-11) ----------------------
 

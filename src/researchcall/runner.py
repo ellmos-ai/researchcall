@@ -7,7 +7,7 @@ import sqlite3
 from collections import Counter
 from typing import Any, Protocol
 
-from .calls import CallOutcome, TERMINAL_STATUSES
+from .calls import CalleAPIError, CallOutcome, TERMINAL_STATUSES
 from .coding import apply_unlisted_policy
 from .database import load_questionnaire, transaction, utc_now
 from .field_trial import marks as field_trial_marks
@@ -498,6 +498,19 @@ def _finish_attempt(
         )
 
 
+def _release_attempt(connection: sqlite3.Connection, attempt_id: int) -> None:
+    """Undo a claim for a call that never happened.
+
+    The row is written before the request so an interruption cannot make the
+    same person eligible twice. When the service refuses before dialling — no
+    balance, bad key, rate limit — that reasoning turns around: nobody was
+    called, nothing was spent, and leaving the claim would spend the person on
+    an attempt that never existed.
+    """
+    with transaction(connection):
+        connection.execute("DELETE FROM attempt WHERE id = ?", (attempt_id,))
+
+
 def _mark_local_failure(
     connection: sqlite3.Connection,
     attempt_id: int,
@@ -515,7 +528,16 @@ def _mark_local_failure(
                 utc_now(),
                 status,
                 json.dumps(
-                    {"transport_error": type(error).__name__}, separators=(",", ":")
+                    {
+                        "transport_error": type(error).__name__,
+                        **(
+                            error.as_detail()
+                            if isinstance(error, CalleAPIError)
+                            else {}
+                        ),
+                    },
+                    ensure_ascii=False,
+                    separators=(",", ":"),
                 ),
                 attempt_id,
             ),
@@ -585,6 +607,14 @@ def run_day(
                 sample["idempotency_key"],
             )
             _finish_attempt(connection, sample, questionnaire, outcome)
+        except CalleAPIError as error:
+            if error.dialled:
+                _mark_local_failure(connection, sample["attempt_id"], "FAILED", error)
+            else:
+                _release_attempt(connection, sample["attempt_id"])
+            # Either way the run stops: a refusal repeats itself, and working
+            # through the rest of the quota only turns one problem into many.
+            raise
         except KeyboardInterrupt as error:
             _mark_local_failure(connection, sample["attempt_id"], "INTERRUPTED", error)
             raise

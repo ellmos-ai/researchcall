@@ -438,6 +438,43 @@ und jedes zusätzliche Gate kauft Fehlalarme.
 402). Die Klassifikation von **Voicemail und NO_ANSWER** aus §9 ist damit weiterhin
 **ungeprüft** — sie steht als Code und als Test, aber nicht als Messung.
 
+## 15. Leeres Guthaben sah aus wie ein Programmfehler (2026-08-11)
+
+D-Anruf 3 ging nicht raus. Was im Datensatz stand: `call_status=FAILED`,
+`detail_json={"transport_error": "RuntimeError"}`, `run_id=None`. Kein Grund, kein Text.
+Der Operator musste den POST von Hand nachstellen, um zu erfahren, was wirklich zurückkam:
+
+```
+HTTP 402
+{"error":{"code":"insufficient_balance",
+          "message":"Insufficient CALL-E balance. Please top up at … and try again.",
+          "details":{"reason_code":"iams_balance_insufficient"}}}
+```
+
+Das Guthaben war leer — eine Alltagslage. Unsere App machte daraus einen technischen
+Klumpen, bei dem ein Forscher den Fehler bei sich sucht.
+
+**Warum wir den Body weggeworfen haben, und warum das zu vorsichtig war:** Der
+Bearer-Token reist im **Header**, nie im Body. Fehlercode, Meldung und `reason_code` sind
+Diagnosen des Dienstes, keine Geheimnisse. Den ganzen Body zu speichern bleibt trotzdem
+falsch — er könnte Nutzerdaten enthalten. Gespeichert werden deshalb genau diese drei
+Felder plus der Statuscode.
+
+**Der teure Teil des Befundes** war ein anderer: Die Versuchszeile wird **vor** der
+Anfrage angelegt, damit eine Unterbrechung niemanden doppelt anrufbar macht. Bei einem
+402 kehrt sich diese Logik um — niemand wurde angerufen, nichts wurde ausgegeben. Ohne
+Gegenmaßnahme hätte ein leeres Guthaben nach dem dritten von zehn Anrufen **sieben
+Personen verbrannt**. Statusse, die vor dem Wählen abweisen (401, 402, 403, 429), geben
+die Zeile jetzt zurück; der Lauf hält an, weil eine Ablehnung sich wiederholt.
+
+Ein Zeitablauf **mitten** im Anruf ist ausdrücklich etwas anderes: Da wurde gewählt, die
+Versuchszeile bleibt als `FAILED` stehen. Beides ist getestet.
+
+Die CLI meldet die Ablehnung im Klartext mit eigenem Exit-Code (3) statt eines
+Stapelabbilds — inklusive des Satzes, dass nichts gewählt wurde. Damit ist zugleich der
+Upstream-Punkt entschärft, dass die `failure_codes` nirgends aufgezählt sind: Wir zeigen,
+was kommt, statt es zu deuten.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency

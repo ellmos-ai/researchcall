@@ -68,9 +68,80 @@ WEAK_VOICEMAIL_MARKERS = (
     "currently unavailable",
 )
 
+#: Statuses the service returns *before* a call exists: nothing was dialled, no
+#: money was spent, nobody was contacted. A record claimed for such an attempt
+#: has to be given back — otherwise one empty balance burns everyone left in the
+#: quota (measured 2026-08-11: HTTP 402 mid-run).
+REFUSED_BEFORE_DIALLING = {401, 402, 403, 429}
+
+
+class CalleAPIError(RuntimeError):
+    """What the service said, in the words it used.
+
+    Live on 2026-08-11 an empty balance arrived as a bare ``RuntimeError``: the
+    record showed ``{"transport_error": "RuntimeError"}`` and nothing else, so
+    an everyday situation looked like a defect in the tool. The bearer token
+    travels in the request header and never in the response body, so the error
+    code, its message and the reason code are diagnostics, not secrets — the
+    earlier blanket discarding of the body was overcautious. The body as a whole
+    is still not kept: only these three fields are.
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        code: str = "",
+        message: str = "",
+        reason_code: str = "",
+    ) -> None:
+        self.status_code = int(status_code)
+        self.code = code or ""
+        self.message = message or ""
+        self.reason_code = reason_code or ""
+        super().__init__(
+            f"CALL-E API returned HTTP {self.status_code}"
+            + (f" ({self.code})" if self.code else "")
+        )
+
+    @property
+    def dialled(self) -> bool:
+        """Whether the request could have reached a telephone at all."""
+        return self.status_code not in REFUSED_BEFORE_DIALLING
+
+    def as_detail(self) -> dict[str, Any]:
+        """The part of the refusal worth writing into the attempt record."""
+        detail: dict[str, Any] = {"http_status": self.status_code}
+        for key, value in (
+            ("error_code", self.code),
+            ("error_message", self.message),
+            ("reason_code", self.reason_code),
+        ):
+            if value:
+                detail[key] = value
+        return detail
+
+
 #: CALL-E reports a refused call as a generic failure and keeps the real ending
 #: in a free-text field: "calling task status=DECLINED (Hangup by: user)".
 FAILURE_STATUS_RE = re.compile(r"status=([A-Z_]+)")
+
+
+def _api_error(error: "urllib.error.HTTPError") -> "CalleAPIError":
+    """Read the service's own error fields, and nothing else, out of a failure."""
+    code = message = reason = ""
+    try:
+        payload = json.loads(error.read().decode("utf-8", "replace"))
+    except Exception:                       # a body that is not JSON tells us nothing
+        payload = None
+    if isinstance(payload, dict):
+        body = payload.get("error")
+        body = body if isinstance(body, dict) else payload
+        code = str(body.get("code") or "")
+        message = str(body.get("message") or "")
+        details = body.get("details")
+        if isinstance(details, dict):
+            reason = str(details.get("reason_code") or "")
+    return CalleAPIError(error.code, code, message, reason)
 
 
 def _passes_filter(question: dict[str, Any], answers: dict[str, Any]) -> bool:
@@ -402,7 +473,7 @@ class LiveCallClient:
             with urllib.request.urlopen(request, timeout=30) as response:
                 value = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as error:
-            raise RuntimeError(f"CALL-E API returned HTTP {error.code}") from error
+            raise _api_error(error) from error
         if not isinstance(value, dict):
             raise RuntimeError("CALL-E API returned a non-object response")
         return value
