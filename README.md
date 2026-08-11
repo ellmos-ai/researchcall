@@ -242,6 +242,10 @@ The consent sentence is the *question*, nothing more. It used to carry the right
 
 This closes the Article 50 gaps that `AI-ACT-STATEMENT.md` had listed as open — the first live call made none of these disclosures, which is what a documented but unfixed gap looks like in practice.
 
+### Which setting reaches the call, and which does not
+
+`PROMPT-MAP.md` lists every one of the study settings against the place it takes effect: a sentence in the task, a rule in the run, or nothing at all. It carries two columns rather than one — *does it reach the prompt* and *does anything check that it arrived* — because a composed sentence can still be swallowed by the agent, and only gate phrases are compared against the transcript afterwards. `tests/test_prompt_map.py` measures what the map claims, including four whole task texts kept as golden files.
+
 ### Conversation language
 
 A voice agent speaks a quoted sentence in the language it was quoted in, whatever the locale field says (measured in a sister project, recorded in `FINDINGS.md`). Every quoted sentence here comes from the researcher's instrument and is therefore already in the study language. What ResearchCall adds around it — scale announcement, right to stop, consent question, duration, number origin — exists per language, and the task carries a directive naming the conversation language, written in that language. German and English are equal paths; a study language without its own directive gets an English one naming the language rather than none. Where a sentence mixes an app fragment with the researcher's free text, the free text is the researcher's responsibility: the tool guarantees its own parts only.
