@@ -29,7 +29,10 @@ from researchcall.dataphase import (
 from researchcall.questionnaire import (
     build_task,
     load_questionnaire_file,
+    ai_disclosure_sentence,
+    missing_disclosure_settings,
     result_schema,
+    stop_right_sentence,
 )
 from researchcall.reporting import build_report
 from researchcall.runner import (
@@ -432,6 +435,135 @@ class ResearchCallTestCase(unittest.TestCase):
         )
         self.assertNotIn(transcript, stored)
 
+    # --- The floor every call stands on --------------------------------------
+
+    def study_with_disclosure(self, **overrides: Any) -> dict[str, Any]:
+        return dict(
+            self.questionnaire,
+            commissioner="Universität Beispielstadt",
+            withdrawal_contact="widerruf@example.invalid",
+            **overrides,
+        )
+
+    def test_every_call_discloses_the_machine_and_the_right_to_stop(self) -> None:
+        """Measured in the first live call: neither was said.
+
+        The transcript opened with the study's own consent sentence and nothing
+        else — no word that a machine was calling, no way out during the call,
+        no route to withdraw afterwards. None of that may depend on what a
+        researcher happened to write into their instrument.
+        """
+        task = build_task(self.study_with_disclosure())
+
+        self.assertIn("künstliche Intelligenz", task)
+        self.assertIn("Universität Beispielstadt", task)
+        self.assertIn("jederzeit", task)
+        self.assertIn("widerruf@example.invalid", task)
+        # Order: the machine is named before consent is asked, and consent is
+        # asked before any question. The withdrawal route comes at the end.
+        disclosure = task.index("künstliche Intelligenz")
+        consent = task.index("CONSENT (say exactly)")
+        first_question = task.index(self.questionnaire["questions"][0]["wording"])
+        withdrawal = task.index("widerruf@example.invalid")
+        self.assertLess(disclosure, consent)
+        self.assertLess(consent, first_question)
+        self.assertLess(first_question, withdrawal)
+
+    def test_the_floor_speaks_the_study_language(self) -> None:
+        english = build_task(
+            self.study_with_disclosure(language="en", consent_text="May we ask you three questions?")
+        )
+
+        self.assertIn("artificial intelligence", english)
+        self.assertIn("at any time", english)
+        self.assertIn("withdraw", english)
+        self.assertNotIn("künstliche Intelligenz", english)
+
+    def test_the_disclosure_and_the_stop_right_are_audited_like_consent(self) -> None:
+        questionnaire = self.study_with_disclosure()
+        phrases = {phrase.key for phrase in phrases_from_questionnaire(questionnaire)}
+        self.assertEqual(phrases, {"consent_question", "ai_disclosure", "stop_right"})
+
+        spoken_without_disclosure = transcript_from_turns(
+            [
+                {
+                    "offset_seconds": 0,
+                    "speaker": "bot",
+                    "text": questionnaire["consent_text"],
+                },
+                {"offset_seconds": 9, "speaker": "bot", "text": stop_right_sentence("de")},
+            ]
+        )
+        findings = audit_transcript(
+            spoken_without_disclosure, phrases_from_questionnaire(questionnaire)
+        )
+
+        self.assertEqual(findings["gates_missed"], ["ai_disclosure"])
+        self.assertIn("stop_right", findings["gates_seen"])
+
+    def test_a_study_without_a_withdrawal_route_cannot_go_live(self) -> None:
+        """Fail-closed: no route to withdraw, no live call.
+
+        A dry run still works — refusing it would stop the rehearsal that is
+        supposed to surface exactly this — but it says what is missing.
+        """
+        stripped = {
+            key: value
+            for key, value in self.questionnaire.items()
+            if key not in ("commissioner", "withdrawal_contact")
+        }
+        self.connection.execute(
+            "UPDATE study SET questionnaire_json = ? WHERE id = ?",
+            (json.dumps(stripped, ensure_ascii=False), self.study_id),
+        )
+        self.connection.commit()
+        self.assertEqual(
+            missing_disclosure_settings(stripped), ["commissioner", "withdrawal_contact"]
+        )
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+        self.connection.close()
+        arguments = [
+            "--db", str(self.db_path), "run-day", "--study", "study",
+            "--window", window, "--limit", "1",
+        ]
+
+        stderr = io.StringIO()
+        with patch(
+            "researchcall.cli.LiveCallClient.from_environment",
+            side_effect=AssertionError("no live client may be built"),
+        ), contextlib.redirect_stderr(stderr):
+            code = cli.main(
+                [*arguments, "--live", "--confirm-live", "CALL 1", "--consent-attested"]
+            )
+        self.assertEqual(code, 2)
+        self.assertIn("withdrawal_contact", stderr.getvalue())
+
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            self.assertEqual(cli.main(arguments), 0)
+        self.assertIn("disclosure_incomplete", stdout.getvalue())
+
+    def test_the_right_to_stop_is_not_said_twice(self) -> None:
+        """The workbench already puts it into the consent sentence.
+
+        Saying it again as its own block would be harmless but sloppy, and the
+        check for it is literal: the sentence is either in the consent text or
+        it is not.
+        """
+        from researchcall import instrument
+        from test_instrument import VALUES
+
+        built, _ = instrument.build_questionnaire(dict(VALUES), "de")
+        built["commissioner"] = "Universität Beispielstadt"
+        built["withdrawal_contact"] = "widerruf@example.invalid"
+
+        task = build_task(built)
+
+        self.assertEqual(task.count(stop_right_sentence("de")), 1)
+        self.assertIn("künstliche Intelligenz", task)
+
     # --- What the first real call (2026-08-11) showed -------------------------
 
     LIVE_CONSENT_TURNS = [
@@ -465,8 +597,8 @@ class ResearchCallTestCase(unittest.TestCase):
             transcript, phrases_from_questionnaire(self.questionnaire)
         )
 
-        self.assertEqual(findings["gates_seen"], ["consent_question"])
-        self.assertEqual(findings["gates_missed"], [])
+        self.assertIn("consent_question", findings["gates_seen"])
+        self.assertNotIn("consent_question", findings["gates_missed"])
 
     def test_a_gate_is_not_satisfied_by_the_other_side_saying_it(self) -> None:
         """A gate is a sentence the agent owes, not one it may hear."""
@@ -485,7 +617,8 @@ class ResearchCallTestCase(unittest.TestCase):
             transcript, phrases_from_questionnaire(self.questionnaire)
         )
 
-        self.assertEqual(findings["gates_missed"], ["consent_question"])
+        self.assertIn("consent_question", findings["gates_missed"])
+        self.assertEqual(findings["gates_seen"], [])
 
     def test_the_wording_check_also_reads_across_turns(self) -> None:
         """The same split defeats the verbatim check one line further on.
@@ -495,7 +628,7 @@ class ResearchCallTestCase(unittest.TestCase):
         mismatch for a sentence that was spoken exactly.
         """
         structured = self.fixture_structured_result()
-        turns = list(self.LIVE_CONSENT_TURNS)
+        turns = [*self.floor_turns(), *self.LIVE_CONSENT_TURNS]
         offset = 20
         for question in self.questionnaire["questions"]:
             turns.append(
@@ -1037,17 +1170,33 @@ class ResearchCallTestCase(unittest.TestCase):
                 "stable-key",
             )
 
-    def interview_turns(self, structured: dict[str, object]) -> list[dict[str, object]]:
-        """The turn list a completed interview leaves behind, as the API returns it."""
-        turns: list[dict[str, object]] = [
+    def floor_turns(self) -> list[dict[str, object]]:
+        """What every call now opens with: who is calling, and the way out."""
+        return [
             {
                 "offset_seconds": 0,
                 "speaker": "bot",
+                "text": ai_disclosure_sentence(self.questionnaire),
+            },
+            {
+                "offset_seconds": 3,
+                "speaker": "bot",
+                "text": stop_right_sentence(self.questionnaire["language"]),
+            },
+        ]
+
+    def interview_turns(self, structured: dict[str, object]) -> list[dict[str, object]]:
+        """The turn list a completed interview leaves behind, as the API returns it."""
+        turns: list[dict[str, object]] = [
+            *self.floor_turns(),
+            {
+                "offset_seconds": 6,
+                "speaker": "bot",
                 "text": self.questionnaire["consent_text"],
             },
-            {"offset_seconds": 4, "speaker": "user", "text": "Ja, gerne."},
+            {"offset_seconds": 10, "speaker": "user", "text": "Ja, gerne."},
         ]
-        offset = 10
+        offset = 16
         for question in self.questionnaire["questions"]:
             turns.append(
                 {"offset_seconds": offset, "speaker": "bot", "text": question["wording"]}
@@ -1093,9 +1242,12 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertIsNotNone(outcome.transcript)
         lines = outcome.transcript.splitlines()
         self.assertEqual(
-            lines[0], f'[00:00] BOT: {self.questionnaire["consent_text"]}'
+            lines[0], f"[00:00] BOT: {ai_disclosure_sentence(self.questionnaire)}"
         )
-        self.assertEqual(lines[1], "[00:04] USER: Ja, gerne.")
+        self.assertEqual(
+            lines[2], f'[00:06] BOT: {self.questionnaire["consent_text"]}'
+        )
+        self.assertEqual(lines[3], "[00:10] USER: Ja, gerne.")
         self.assertTrue(all(TRANSCRIPT_LINE_RE.fullmatch(line) for line in lines))
         self.assertEqual(
             outcome.detail["transcript_location"],
@@ -1139,7 +1291,9 @@ class ResearchCallTestCase(unittest.TestCase):
         )
         self.assertEqual(detail["transcript_format"], "timestamped-speaker-lines")
         self.assertTrue(detail["transcript_wording_matches"])
-        self.assertEqual(detail["gates_seen"], ["consent_question"])
+        self.assertEqual(
+            detail["gates_seen"], ["ai_disclosure", "consent_question", "stop_right"]
+        )
         self.assertEqual(detail["gates_missed"], [])
         self.assertTrue(detail["transcript_persisted"])
 

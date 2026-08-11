@@ -69,6 +69,14 @@ EFFECTS: dict[str, tuple[str, str]] = {
         "Speaks a duration computed from the instrument, not a typed guess.",
     ),
     "ethics.privacy_text": (SCRIPT, "Spoken before consent is asked."),
+    "ethics.commissioner": (
+        SCRIPT,
+        "Named in the disclosure sentence that opens every call, before consent.",
+    ),
+    "ethics.withdrawal_contact": (
+        SCRIPT,
+        "Named at the end of every interview; a live run without it is refused.",
+    ),
     "ethics.consent_explicit": (FRAME, "Consent is asked before any question."),
     "ethics.right_to_stop": (FRAME, "The right to stop is stated in every call."),
     "ethics.number_origin": (SCRIPT, "Spoken block: where the number came from."),

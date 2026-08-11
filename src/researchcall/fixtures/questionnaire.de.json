@@ -2,16 +2,25 @@
   "title": "Mobilitätsbefragung (fiktive Demonstration)",
   "language": "de-DE",
   "consent_text": "Guten Tag. Wir führen eine kurze wissenschaftliche Befragung zur Mobilität durch. Ihre Teilnahme ist freiwillig. Dürfen wir Ihnen drei Fragen stellen?",
+  "commissioner": "Institut für Mobilitätsforschung (fiktiv)",
+  "withdrawal_contact": "widerruf@example.invalid",
   "questions": [
     {
       "id": "q1",
       "wording": "Nutzen Sie mindestens einmal pro Woche öffentliche Verkehrsmittel?",
-      "categories": ["yes", "no"]
+      "categories": [
+        "yes",
+        "no"
+      ]
     },
     {
       "id": "q2",
       "wording": "Wie zufrieden sind Sie insgesamt mit den öffentlichen Verkehrsmitteln, die Sie nutzen?",
-      "categories": ["satisfied", "neutral", "dissatisfied"],
+      "categories": [
+        "satisfied",
+        "neutral",
+        "dissatisfied"
+      ],
       "ask_if": {
         "question": "q1",
         "equals": "yes"
@@ -20,8 +29,11 @@
     {
       "id": "q3",
       "wording": "Stimmen Sie der Aussage zu: Gute öffentliche Verkehrsmittel sind für meinen Alltag wichtig?",
-      "categories": ["agree", "neutral", "disagree"]
+      "categories": [
+        "agree",
+        "neutral",
+        "disagree"
+      ]
     }
   ]
 }
-

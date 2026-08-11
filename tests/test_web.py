@@ -43,6 +43,10 @@ ANSWERS = {
     "hypotheses": "H1 | more departures raise bus use | share of bus trips",
     "items": 'I1 | H1 | dichotomous | "Do you use the bus?"',
     "ethics.instruction": "This is an automated research call from an independent study.",
+    # Required since 2026-08-11: both are spoken aloud in every call, so a
+    # study that has not named them cannot be finished here or run live.
+    "ethics.commissioner": "Example University",
+    "ethics.withdrawal_contact": "withdraw@example.invalid",
     "ethics.privacy_text": "Answers are stored pseudonymously and deleted on request.",
     "ethics.number_origin": "public directory",
     "ethics.greeting": "Good afternoon",

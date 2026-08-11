@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from researchcall.calls import FixtureCallClient
+from researchcall.questionnaire import ai_disclosure_sentence, stop_right_sentence
 from researchcall.database import connect, initialize, migrate, utc_now
 from researchcall.dispatch import (
     MULTI_CALL,
@@ -310,7 +311,14 @@ class PhraseTestCase(unittest.TestCase):
 
     def test_the_consent_text_is_always_a_gate(self):
         phrases = phrases_from_questionnaire({"consent_text": self.CONSENT})
-        self.assertEqual([p.key for p in phrases], ["consent_question"])
+        # Since 2026-08-11 two further sentences are owed in every call and are
+        # gates for the same reason: that a machine is calling, and that the
+        # person may stop at any time. Neither is configurable, so neither can
+        # be absent from this list.
+        self.assertEqual(
+            [p.key for p in phrases],
+            ["consent_question", "ai_disclosure", "stop_right"],
+        )
 
     def test_a_fragment_too_short_to_recognise_is_refused(self):
         with self.assertRaises(ValueError):
@@ -329,7 +337,7 @@ class PhraseTestCase(unittest.TestCase):
         monitor = PhraseMonitor(phrases=phrases_from_questionnaire(self.questionnaire()))
         monitor.observe("Bot is speaking: may i ask you three short  questions for a study on public transport?")
         self.assertEqual(monitor.seen, ["consent_question"])
-        self.assertEqual(monitor.missed, ["abort_offer"])
+        self.assertIn("abort_offer", monitor.missed)
 
     def test_a_sentence_split_across_two_lines_is_still_found(self):
         monitor = PhraseMonitor(phrases=phrases_from_questionnaire(self.questionnaire()))
@@ -340,17 +348,25 @@ class PhraseTestCase(unittest.TestCase):
     def test_a_miss_is_a_fact_about_the_feed_not_a_verdict(self):
         monitor = PhraseMonitor(phrases=phrases_from_questionnaire(self.questionnaire()))
         findings = monitor.findings()
-        self.assertEqual(findings["gates_missed"], ["abort_offer", "consent_question"])
+        self.assertEqual(
+            findings["gates_missed"],
+            ["abort_offer", "ai_disclosure", "consent_question", "stop_right"],
+        )
         self.assertIn("literal recognition", findings["gate_check_basis"])
 
     def test_transcript_audit_uses_the_same_matcher(self):
+        # A complete call now also says who is calling and that the person may
+        # stop at any time; a transcript without those is a call with a gap.
+        questionnaire = self.questionnaire()
         transcript = (
-            "[00:01] BOT: " + self.CONSENT + "\n"
+            "[00:00] BOT: " + ai_disclosure_sentence(questionnaire) + "\n"
+            "[00:01] BOT: " + stop_right_sentence("en") + "\n"
+            "[00:03] BOT: " + self.CONSENT + "\n"
             "[00:05] CALLEE: Yes, go ahead.\n"
             "[00:07] BOT: You can stop this interview at any time.\n"
         )
         findings = audit_transcript(
-            transcript, phrases_from_questionnaire(self.questionnaire())
+            transcript, phrases_from_questionnaire(questionnaire)
         )
         self.assertEqual(findings["gates_missed"], [])
 

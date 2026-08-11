@@ -45,18 +45,34 @@ Eine Befragung von Beschäftigten über Arbeitszufriedenheit oder von Lernenden 
 - Ohne passende Live-Quotenbestätigung und `--consent-attested` startet die CLI keinen Live-Lauf (`src/researchcall/cli.py:169-188`). Das ist eine Operatorattestierung, kein Nachweis einer vorherigen Einwilligung jeder angerufenen Person.
 - Das System prüft im Rücklauf, ob Einwilligungssatz und standardisierte Fragen im Bot-Transkript vorkommen (`src/researchcall/runner.py:304-356`). Seit der Nutzerentscheidung vom 2026-08-11 wird das Transkript beim Versuch gespeichert, damit eine Person das Gespräch prüfen kann; die Aufbewahrung ist je Studie abschaltbar (`fieldwork.keep_transcript`), wählbare Nummern werden vorher entfernt (`src/researchcall/safety.py:52-72`), und Widerruf oder bewusste Anonymisierung löschen den gespeicherten Text mit dem Datensatz.
 
-### Offene Lücken nach Art. 50
+### Die Art.-50-Lücken und was sie geschlossen hat
 
-1. `ethics.instruction` ist erforderlich, aber frei editierbar und hat keinen KI-Inhaltsvalidator (`ethics.forms.yaml:3-15`). Ein Text ohne „KI/AI“ kann die Formularprüfung bestehen.
-2. `opening_blocks()` setzt eine frei formulierte, nicht wortwörtliche Begrüßung **vor** die Instruktion (`src/researchcall/instrument.py:425-442`). Damit ist die in der Formularhilfe behauptete erste Offenlegung technisch nicht gesichert.
-3. `build_task()` sagt zwar „Ask for consent first“, listet danach aber die gesamte Öffnung und erst anschließend den exakten Einwilligungssatz (`src/researchcall/questionnaire.py:200-218`). Die Reihenfolge sollte eindeutig statt widersprüchlich sein.
-4. Die Rücklaufprüfung baut ihre Solltexte nur aus Einwilligung und Fragen, nicht aus der KI-Offenlegung (`src/researchcall/runner.py:294-306`).
+Die vier Punkte, die hier bis zum 2026-08-11 standen, waren nicht theoretisch: Der erste
+echte Anruf machte keine dieser Angaben, und der Nutzer hat es benannt (`FINDINGS.md`,
+Abschnitt 13). Sie sind jetzt strukturell adressiert statt dem Instrument überlassen.
 
-Der Status ist **Ethikrahmen vorhanden, Art.-50-Nachweis offen**. Ein unveränderlicher erster Satz sollte vor jeder Begrüßung stehen, etwa:
+1. Die Offenlegung hängt nicht mehr an `ethics.instruction` (Freitext ohne Prüfung).
+   `build_task()` bildet sie aus der Studiensprache und der genannten auftraggebenden
+   Stelle (`src/researchcall/questionnaire.py`, `AI_DISCLOSURE`).
+2. Sie steht vor den Öffnungsblöcken, in Anführungszeichen, mit der Anweisung, sie vor
+   allem anderen zu sprechen.
+3. Die Reihenfolge im Auftrag ist eindeutig: Offenlegung, Abbruchrecht, Einwilligung,
+   Fragen, Widerrufsweg am Ende.
+4. Offenlegung und Abbruchrecht sind Gate-Phrasen und werden gegen das Transkript
+   geprüft wie der Einwilligungssatz; ein Anruf ohne sie öffnet einen Prüffall
+   (`src/researchcall/phrases.py`).
 
-> „Guten Tag, ich bin ein KI-Anrufassistent im Auftrag von [Forschungseinrichtung].“
+`ethics.commissioner` und `ethics.withdrawal_contact` sind Pflichtangaben und werden
+wörtlich gesprochen. Ohne sie wird ein Live-Lauf verweigert; ein Trockenlauf läuft und
+meldet `disclosure_incomplete`.
 
-Erst danach folgen Studienzweck, Nummernquelle, Dauer, Datenschutz, Freiwilligkeit und der genaue Einwilligungssatz. Der erste BOT-Beitrag muss automatisch gegen die Offenlegung geprüft werden. Die notwendigen Änderungen sind in `AUFGABEN.txt` eingetragen, nicht als bereits umgesetzt dargestellt.
+**Was damit nicht belegt ist.** Gemessen ist, dass zitierte Sätze wörtlich gesprochen
+werden (`FINDINGS.md`, Abschnitt 4); dass der Agent auch die vorgegebene *Reihenfolge*
+einhält, ist nicht gemessen — dafür existiert die Gate-Prüfung. `--consent-attested`
+bleibt eine Zusicherung des Betreibers, kein Nachweis vorheriger Einwilligung der
+angerufenen Person. Der Status ist **Ethikrahmen mit im Auftrag erzwungenen und im
+Rücklauf geprüften Art.-50-Angaben, deren Platzierung je Anruf nachgewiesen statt
+unterstellt wird**.
 
 ## 3. Die angerufene Person hat vorher nicht eingewilligt
 

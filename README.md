@@ -223,6 +223,20 @@ researchcall --db survey.db run-day --study mobility-2026 --window morning --lim
 
 The current runner dispatches one-recipient REST calls serially as a conservative default and sends a deterministic, non-personal `Idempotency-Key`. This is not a claim that the service forbids parallel calls: concurrency remains unmeasured, and the code does not encode a provider concurrency ceiling. Each call and attempt remains independently addressable so a later, separately verified dispatcher can preserve the same schema and idempotency rules. The database claims the sample before the request, so an interruption or transport error does not make that person eligible for a retry.
 
+### What every call says, whatever the instrument says
+
+Three sentences are not the researcher's to leave out, and since 2026-08-11 they are not the instrument's to carry either. `build_task` composes them from the study itself, quoted so they are spoken word for word:
+
+1. **Disclosure, before anything else:** an automated assistant — an artificial intelligence — is calling on behalf of the named commissioning body.
+2. **Voluntariness and the right to stop** at any time, without giving a reason. Emitted as its own block unless the consent sentence already contains that exact sentence.
+3. **The withdrawal route**, at the end of the interview: whom to contact to pull the answers back.
+
+The first two are gate phrases: a transcript that does not contain them opens a review case, exactly as a missing consent sentence does. The third is deliberately not a gate — a call that breaks off early never reaches it, and flagging that would fill the queue with hang-ups.
+
+`ethics.commissioner` and `ethics.withdrawal_contact` are required settings because they are spoken aloud, and because whether a privacy paragraph "contains" a withdrawal route is a judgement this project does not make. Without them a live run is refused; a dry run proceeds and reports `disclosure_incomplete`, since the rehearsal is where that belongs.
+
+This closes the Article 50 gaps that `AI-ACT-STATEMENT.md` had listed as open — the first live call made none of these disclosures, which is what a documented but unfixed gap looks like in practice.
+
 ### Conversation language
 
 A voice agent speaks a quoted sentence in the language it was quoted in, whatever the locale field says (measured in a sister project, recorded in `FINDINGS.md`). Every quoted sentence here comes from the researcher's instrument and is therefore already in the study language. What ResearchCall adds around it — scale announcement, right to stop, consent question, duration, number origin — exists per language, and the task carries a directive naming the conversation language, written in that language. German and English are equal paths; a study language without its own directive gets an English one naming the language rather than none. Where a sentence mixes an app fragment with the researcher's free text, the free text is the researcher's responsibility: the tool guarantees its own parts only.

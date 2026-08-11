@@ -28,6 +28,34 @@
   required: false
   locked: false
 
+- field: ethics.commissioner
+  station: 03-ethics
+  label: "Auftraggebende Stelle"
+  label_en: "Commissioning body"
+  question: "In wessen Auftrag wird angerufen?"
+  question_en: "On whose behalf is the call made?"
+  type: text
+  options: []
+  default: null
+  help: "Wird in jedem Anruf wörtlich genannt: ein automatisierter Assistent ruft in ihrem Auftrag an."
+  help_en: "Named verbatim in every call: an automated assistant is calling on their behalf."
+  required: true
+  locked: false
+
+- field: ethics.withdrawal_contact
+  station: 03-ethics
+  label: "Widerrufsweg"
+  label_en: "Withdrawal route"
+  question: "An wen wendet sich eine Person, die ihre Antworten später zurückziehen möchte?"
+  question_en: "Whom does a person contact who wants to withdraw their answers later?"
+  type: text
+  options: []
+  default: null
+  help: "Wird am Ende jedes Interviews wörtlich genannt; ohne diese Angabe startet kein Live-Anruf."
+  help_en: "Named verbatim at the end of every interview; without it no live call starts."
+  required: true
+  locked: false
+
 - field: ethics.privacy_text
   station: 03-ethics
   label: "Datenschutzhinweis"

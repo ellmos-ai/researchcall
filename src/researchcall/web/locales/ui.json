@@ -427,9 +427,17 @@
     "de": "NO_ANSWER ist ein Tageszeit-Signal, DECLINED ist Verweigerung. Beides wird nie zusammengezählt.",
     "en": "NO_ANSWER is a time-of-day signal, DECLINED is refusal. They are never added together."
   },
+  "Named at the end of every interview; a live run without it is refused.": {
+    "de": "Wird am Ende jedes Interviews genannt; ohne die Angabe wird ein Live-Lauf verweigert.",
+    "en": "Named at the end of every interview; a live run without it is refused."
+  },
   "Named for the record; the dry run draws from a generated fictitious frame.": {
     "de": "Für die Akte festgehalten; der Trockenlauf zieht aus einer erzeugten, fiktiven Auswahlgrundlage.",
     "en": "Named for the record; the dry run draws from a generated fictitious frame."
+  },
+  "Named in the disclosure sentence that opens every call, before consent.": {
+    "de": "Wird im Offenlegungssatz genannt, der jeden Anruf eröffnet, vor der Einwilligung.",
+    "en": "Named in the disclosure sentence that opens every call, before consent."
   },
   "Names the findings note the report offers for download, started from the numbers with the reading left open.": {
     "de": "Benennt die Befunde-Notiz, die der Bericht zum Download anbietet — aus den Zahlen begonnen, die Deutung bleibt offen.",

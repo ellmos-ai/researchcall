@@ -45,18 +45,34 @@ Surveying employees about workplace satisfaction or students about teaching qual
 - The CLI will not start a live run without the quota-bound confirmation and `--consent-attested` (`src/researchcall/cli.py:169-188`). This is an operator attestation, not evidence of each recipient's prior consent.
 - Returned evidence checks whether the consent sentence and standardised questions appear in bot transcript lines (`src/researchcall/runner.py:304-356`). Since the user decision of 2026-08-11 the transcript is stored with the attempt so a person can review the conversation; retention is switchable per study (`fieldwork.keep_transcript`), dialable numbers are removed before storing (`src/researchcall/safety.py:52-72`), and withdrawal or deliberate anonymisation erases the stored text with the record.
 
-### Open Article 50 gaps
+### The Article 50 gaps, and what closed them
 
-1. `ethics.instruction` is required but freely editable and has no AI-content validator (`ethics.forms.yaml:3-15`). Text without “AI” passes form validation.
-2. `opening_blocks()` places a free-form, non-verbatim greeting **before** the instruction (`src/researchcall/instrument.py:425-442`), so the form's claimed first disclosure is not technically enforced.
-3. `build_task()` says “Ask for consent first”, but then lists the whole opening and only afterwards the exact consent sentence (`src/researchcall/questionnaire.py:200-218`). The order should be unambiguous.
-4. Returned-evidence validation builds expected text from consent and questions, not the AI disclosure (`src/researchcall/runner.py:294-306`).
+The four gaps listed here until 2026-08-11 were not hypothetical: the first live call
+made none of the disclosures, and the user said so (`FINDINGS.md`, section 13). They are
+now addressed structurally rather than left to the instrument.
 
-The status is **an existing ethics framework with Article 50 evidence open**. An immutable first sentence should precede every greeting, for example:
+1. The disclosure no longer depends on `ethics.instruction`, which is free text with no
+   validator. `build_task()` composes it from the study's own language and its named
+   commissioning body (`src/researchcall/questionnaire.py`, `AI_DISCLOSURE`).
+2. It is emitted before the opening blocks, quoted, with the instruction to say it before
+   anything else.
+3. The order in the task is unambiguous: disclosure, right to stop, consent, questions,
+   withdrawal route at the end.
+4. The disclosure and the right to stop are gate phrases, checked against the transcript
+   exactly like the consent sentence; a call that did not speak them opens a review case
+   (`src/researchcall/phrases.py`).
 
-> “Hello, I am an AI call assistant acting on behalf of [research institution].”
+`ethics.commissioner` and `ethics.withdrawal_contact` are required settings, spoken
+verbatim. A live run without them is refused; a dry run proceeds and reports
+`disclosure_incomplete`.
 
-Only then should the study purpose, number source, duration, privacy information, voluntariness, and exact consent question follow. The first BOT utterance must be validated automatically. These changes are recorded in `AUFGABEN.txt`, not represented here as already implemented.
+**What this does not establish.** The measured fact is that quoted sentences are spoken
+verbatim (`FINDINGS.md`, section 4); that the agent also honours the instructed *order*
+is not measured, which is why the gate audit exists. The operator attestation
+`--consent-attested` remains an attestation, not evidence of prior consent by each
+recipient. The status is **an ethics framework whose Article 50 disclosures are now
+enforced in the task and audited in the return, with their placement verified per call
+rather than assumed**.
 
 ## 3. The called person did not consent in advance
 
