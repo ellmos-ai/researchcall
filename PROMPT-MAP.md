@@ -52,11 +52,20 @@ review case. The others are composed but unverified — see the open gap at the 
 | Sentence | Built from | In the prompt | Checked |
 |---|---|---|---|
 | AI disclosure | `ethics.commissioner` | always, first | **gate** `ai_disclosure` |
-| Scope and duration | items + `ethics.time_estimate` (locked) | always | no |
+| Scope and duration | items + `ethics.time_estimate` (locked) | always | floor audit |
 | Data statement | `ethics.privacy_short` | always | **gate** `data_statement` |
 | Right to stop | fixed wording | always | **gate** `stop_right` |
-| Deletion on request | fixed wording | always | no |
-| Withdrawal route | `ethics.withdrawal_contact` | always, last | no — a call that breaks off early never reaches it |
+| Deletion on request | fixed wording | always | floor audit |
+| Withdrawal route | `ethics.withdrawal_contact` | always, last | floor audit, once the interview ran |
+
+**Two kinds of check, on purpose.** A *gate* is owed unconditionally: its absence
+opens a review case whatever else happened. The *floor audit* asks first how far the
+call got — a sentence counts as skipped only when a later one was spoken, and the
+withdrawal route only when the interview ran to the end. Making everything a gate
+would have been simpler and wrong: a caller who hangs up during the opening never
+owed the later sentences, and the queue would fill with hang-ups instead of findings.
+Both read the same rendered speech through the same helper (`phrases.bot_utterances`),
+so the two verdicts cannot drift apart.
 
 `commissioner`, `privacy_short` and `withdrawal_contact` are required: without them a live
 run is refused and a dry run reports `disclosure_incomplete`.
@@ -140,9 +149,10 @@ points at it.
 | The same promise spoken twice in two wordings | live call D1 | **closed** — the consent sentence is the question, the floor owns the ethics |
 | No option for "the answer fits no category" | live call D1 | **closed** — two attempts, then raw answer without a category |
 | Deletion happened but was never announced | live call D2 | **closed** — deletion-on-request sentence |
-| **Floor sentences other than gates are never verified** | this map | **open** — the wording audit builds its expectations from consent and questions only, so a swallowed scope, deletion or withdrawal sentence goes unnoticed |
+| Floor sentences other than gates were never verified | this map | **closed** — `phrases.audit_floor`, progress-aware; a hole opens a `floor_missed` review case |
 | **Voicemail and NO_ANSWER classification** | FINDINGS §9 | **open** — implemented and unit-tested, never measured live (D3 fell to an empty balance) |
 
-The open row about unverified floor sentences is the reason this map has two columns
-instead of one. It would have been invisible in a map that only asked "does the option
-reach the prompt?".
+The row about unverified floor sentences is the reason this map has two columns
+instead of one: it would have been invisible in a map that only asked "does the option
+reach the prompt?". It was found by writing the map and closed the same day — which is
+the whole point of keeping the second column.

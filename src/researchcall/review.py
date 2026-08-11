@@ -39,6 +39,10 @@ class ReviewReason(str, Enum):
     SCHEMA_ERROR = "schema_error"
     UNCLEAR_CONSENT = "unclear_consent"
     GATE_MISSED = "gate_missed"
+    #: A sentence the floor owes was skipped — not a gate, but not optional
+    #: either. Kept apart from GATE_MISSED so a reviewer sees at a glance
+    #: whether an ethics phrase or a scope/deletion promise went missing.
+    FLOOR_MISSED = "floor_missed"
     MANUAL_FLAG = "manual_flag"
 
 
@@ -79,6 +83,8 @@ def reasons_for_attempt(
         reasons.append(ReviewReason.UNCLEAR_CONSENT)
     if detail.get("gates_missed"):
         reasons.append(ReviewReason.GATE_MISSED)
+    if detail.get("floor_missing"):
+        reasons.append(ReviewReason.FLOOR_MISSED)
     return reasons
 
 

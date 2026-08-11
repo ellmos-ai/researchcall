@@ -478,6 +478,33 @@ Stapelabbilds — inklusive des Satzes, dass nichts gewählt wurde. Damit ist zu
 Upstream-Punkt entschärft, dass die `failure_codes` nirgends aufgezählt sind: Wir zeigen,
 was kommt, statt es zu deuten.
 
+## 16. Die Zusagen, die niemand prüfte (2026-08-11, aus der Deckungskarte)
+
+Nicht aus einem Anruf, sondern aus dem Schreiben der Karte: Von den sechs Sätzen des
+Gesprächsbodens waren drei **erzeugt, aber von nichts überprüft** — Umfang, Löschung,
+Widerrufsweg. Der Wortlaut-Abgleich baut seine Sollwerte nur aus Einwilligungssatz und
+Fragen; ein verschluckter Umfangssatz wäre niemandem aufgefallen. Dieselbe Klasse Zusage,
+die uns bei der Offenlegung schon einmal um die Ohren geflogen ist: dokumentiert, nicht
+geprüft.
+
+**Warum nicht einfach alle zu Gates machen.** Weil ein früh abgebrochenes Gespräch die
+späteren Sätze nie schuldete. Wer während der Eröffnung auflegt, hat keinen Widerrufsweg
+verpasst — die Prüfwarteschlange füllte sich dann mit Auflegern statt mit Befunden. Die
+Prüfung muss also wissen, **wie weit** das Gespräch kam.
+
+**Die Regel, die dafür ohne Deutung auskommt:** Die Reihenfolge des Bodens ist fest. Also
+gilt ein Satz als geschuldet, sobald ein **späterer** gesprochen wurde — ein Loch in der
+Mitte ist ein Übersprung. Was nach dem letzten gesprochenen Satz kommt, ist „nicht
+erreicht": eine Tatsache über den Anruf, kein Fehler des Agenten. Einzige Ausnahme ist
+der Widerrufsweg: Er steht am Ende, seine Schuld hängt nicht an der Reihenfolge, sondern
+am Ausgang — geschuldet, wenn das Interview durchlief.
+
+Ein Loch öffnet einen Prüffall mit eigenem Grund (`floor_missed`), getrennt von
+`gate_missed`: Der Prüfer soll auf einen Blick sehen, ob eine Ethik-Phrase oder eine
+Umfangs-/Löschzusage fehlte. Gelesen wird dieselbe gerenderte Rede über denselben Helper
+wie beim Gate-Audit — nach dem Fehlalarm von §12 sollen die beiden Urteile nicht
+auseinanderlaufen können.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency

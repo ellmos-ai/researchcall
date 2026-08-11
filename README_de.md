@@ -286,7 +286,7 @@ Drei Sätze stehen nicht im Belieben des Forschers — und seit dem 2026-08-11 h
 5. **Löschung auf Wunsch:** Wer will, dass die bisherigen Antworten gelöscht werden, muss es nur sagen. Bewusst nicht „wenn Sie abbrechen" — wer auflegt, hinterlässt Teilantworten; nur ein Widerruf löscht. Ein Satz darf nicht mehr versprechen, als der Code hält.
 6. **Der Widerrufsweg** am Ende des Interviews: an wen man sich wendet, um die Antworten zurückzuziehen.
 
-Offenlegung, Abbruchrecht und Datenschutz-Satz sind Gate-Phrasen neben dem Einwilligungssatz: Ein Transkript ohne sie öffnet einen Prüffall. Die Dauer nicht — ihr Fehlen ist eine Unhöflichkeit, keine Verletzung, und jedes zusätzliche Gate kauft Fehlalarme. Der Widerrufsweg ebenfalls nicht: Ein früh abgebrochenes Gespräch erreicht ihn nie.
+Offenlegung, Abbruchrecht und Datenschutz-Satz sind Gate-Phrasen neben dem Einwilligungssatz: Ein Transkript ohne sie öffnet einen Prüffall. Die übrigen drei — Umfang, Löschung und Widerrufsweg — werden ebenfalls geprüft, aber daran gemessen, wie weit der Anruf kam: Ein Satz gilt erst als übersprungen, wenn ein späterer gesprochen wurde, und der Widerrufsweg erst, wenn das Interview durchlief. Ein Loch in dieser Folge öffnet einen `floor_missed`-Fall, getrennt vom fehlenden Gate. Alle sechs zu unbedingten Gates zu machen hätte die Warteschlange mit Auflegern statt mit Befunden gefüllt. Die Dauer nicht — ihr Fehlen ist eine Unhöflichkeit, keine Verletzung, und jedes zusätzliche Gate kauft Fehlalarme. Der Widerrufsweg ebenfalls nicht: Ein früh abgebrochenes Gespräch erreicht ihn nie.
 
 Der Einwilligungssatz ist die **Frage**, mehr nicht. Früher trug er das Abbruchrecht mit — dieselbe Zusage fiel dadurch zweimal in zwei Formulierungen, live gemessen am 2026-08-11.
 

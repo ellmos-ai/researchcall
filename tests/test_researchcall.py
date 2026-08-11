@@ -27,7 +27,11 @@ from researchcall.calls import (
 from researchcall.calls import _transcript_from_turns as transcript_from_turns
 from researchcall.database import connect, create_study, get_study, initialize, migrate
 from researchcall.field_trial import ENV_VAR as FIELD_TRIAL_ENV
-from researchcall.phrases import audit_transcript, phrases_from_questionnaire
+from researchcall.phrases import (
+    audit_floor,
+    audit_transcript,
+    phrases_from_questionnaire,
+)
 from researchcall.dataphase import (
     anonymise_deliberately,
     call_detail,
@@ -37,10 +41,13 @@ from researchcall.questionnaire import (
     build_task,
     load_questionnaire_file,
     ai_disclosure_sentence,
+    deletion_sentence,
     missing_disclosure_settings,
     privacy_sentence,
     result_schema,
+    scope_sentence,
     stop_right_sentence,
+    withdrawal_route_sentence,
 )
 from researchcall.reporting import build_report
 from researchcall.runner import (
@@ -574,6 +581,108 @@ class ResearchCallTestCase(unittest.TestCase):
 
         self.assertEqual(task.count(stop_right_sentence("de")), 1)
         self.assertIn("künstliche Intelligenz", task)
+
+    # --- Floor sentences that are not gates, but still owed ------------------
+
+    def spoken(self, *keys: str) -> str:
+        """A transcript containing exactly the named floor sentences, in order."""
+        study = self.full_study()
+        sentences = {
+            "disclosure": ai_disclosure_sentence(study),
+            "scope": scope_sentence(study),
+            "data": privacy_sentence(study),
+            "stop": stop_right_sentence(study["language"]),
+            "deletion": deletion_sentence(study),
+            "consent": study["consent_text"],
+            "withdrawal": withdrawal_route_sentence(study),
+        }
+        return transcript_from_turns(
+            [
+                {"offset_seconds": index * 5, "speaker": "bot", "text": sentences[key]}
+                for index, key in enumerate(keys)
+            ]
+        )
+
+    def test_a_skipped_floor_sentence_is_a_hole_and_is_reported(self) -> None:
+        """The gap this map found: composed, spoken, and verified by nothing.
+
+        A sentence is owed when a LATER one was spoken — the order is fixed, so
+        anything before something that was said must have been said too. That is
+        a literal rule over the sequence, not a judgement about the call.
+        """
+        findings = audit_floor(
+            self.spoken("disclosure", "data", "stop", "deletion", "consent"),
+            self.full_study(),
+        )
+
+        self.assertEqual(findings["floor_missing"], ["scope"])
+        self.assertNotIn("withdrawal", findings["floor_missing"])
+
+    def test_a_call_that_ended_early_is_not_accused_of_skipping(self) -> None:
+        """Somebody hung up during the opening; nothing was skipped.
+
+        The same reasoning that kept the withdrawal route out of the gates: a
+        conversation that never got that far never owed the sentence, and
+        flagging it would fill the queue with hang-ups instead of findings.
+        """
+        findings = audit_floor(self.spoken("disclosure", "scope"), self.full_study())
+
+        self.assertEqual(findings["floor_missing"], [])
+        self.assertEqual(
+            findings["floor_not_reached"], ["data", "stop", "deletion", "withdrawal"]
+        )
+
+    def test_the_withdrawal_route_is_owed_once_the_interview_ran(self) -> None:
+        """It is the one sentence whose debt depends on the outcome, not the order."""
+        complete = self.spoken(
+            "disclosure", "scope", "data", "stop", "deletion", "consent", "withdrawal"
+        )
+        without_route = self.spoken(
+            "disclosure", "scope", "data", "stop", "deletion", "consent"
+        )
+
+        self.assertEqual(
+            audit_floor(complete, self.full_study(), completed=True)["floor_missing"], []
+        )
+        self.assertEqual(
+            audit_floor(without_route, self.full_study(), completed=True)["floor_missing"],
+            ["withdrawal"],
+        )
+        # …and an unfinished call still owes nothing for it.
+        self.assertEqual(
+            audit_floor(without_route, self.full_study(), completed=False)["floor_missing"],
+            [],
+        )
+
+    def test_a_hole_in_the_floor_opens_a_review_case(self) -> None:
+        structured = self.fixture_structured_result()
+        turns = [
+            {"offset_seconds": 0, "speaker": "bot", "text": ai_disclosure_sentence(self.questionnaire)},
+            # scope deliberately left out
+            {"offset_seconds": 4, "speaker": "bot", "text": privacy_sentence(self.questionnaire)},
+            {"offset_seconds": 6, "speaker": "bot", "text": stop_right_sentence(self.questionnaire["language"])},
+            {"offset_seconds": 8, "speaker": "bot", "text": deletion_sentence(self.questionnaire)},
+            {"offset_seconds": 10, "speaker": "bot", "text": self.questionnaire["consent_text"]},
+        ]
+        offset = 20
+        for question in self.questionnaire["questions"]:
+            turns.append({"offset_seconds": offset, "speaker": "bot", "text": question["wording"]})
+            turns.append(
+                {
+                    "offset_seconds": offset + 3,
+                    "speaker": "user",
+                    "text": structured["raw_answers"][question["id"]],
+                }
+            )
+            offset += 10
+        detail, _ = self.call_with_transcript(
+            transcript_from_turns(turns).splitlines()
+        )
+
+        self.assertEqual(detail["floor_missing"], ["scope", "withdrawal"])
+        reason = self.connection.execute("SELECT reason FROM review").fetchone()
+        self.assertIsNotNone(reason, "a skipped floor sentence must reach the queue")
+        self.assertIn("floor_missed", reason["reason"])
 
     # --- What the service says when it refuses (Befund F) --------------------
 
