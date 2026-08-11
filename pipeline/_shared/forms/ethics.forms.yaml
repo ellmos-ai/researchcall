@@ -56,6 +56,20 @@
   required: true
   locked: false
 
+- field: ethics.privacy_short
+  station: 03-ethics
+  label: "Datenschutz in einem Satz"
+  label_en: "Data statement in one sentence"
+  question: "Was wird gespeichert und wie lange — in einem Satz, den man am Telefon versteht?"
+  question_en: "What is stored and for how long, in one sentence a person can follow on the phone?"
+  type: text
+  options: []
+  default: null
+  help: "Wird in jedem Anruf vor der Einwilligung gesprochen; der lange Hinweis bleibt daneben bestehen."
+  help_en: "Spoken in every call before consent is asked; the long notice stays alongside it."
+  required: true
+  locked: false
+
 - field: ethics.privacy_text
   station: 03-ethics
   label: "Datenschutzhinweis"

@@ -24,7 +24,11 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
-from .questionnaire import ai_disclosure_sentence, stop_right_sentence
+from .questionnaire import (
+    ai_disclosure_sentence,
+    privacy_sentence,
+    stop_right_sentence,
+)
 
 
 @dataclass(frozen=True)
@@ -102,6 +106,11 @@ def phrases_from_questionnaire(questionnaire: dict[str, Any]) -> list[GatePhrase
             key="stop_right",
             text=stop_right_sentence(questionnaire.get("language", "")),
         ),
+        # What happens with the answers is an information duty like the other
+        # two, so it is checked like them. The duration is not a gate: a missing
+        # duration is a discourtesy, not a breach, and every added gate buys
+        # more false alarms for less.
+        GatePhrase(key="data_statement", text=privacy_sentence(questionnaire)),
     ]
     for entry in questionnaire.get("gate_phrases", []):
         phrases.append(GatePhrase(key=str(entry["key"]), text=str(entry["text"])))

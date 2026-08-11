@@ -719,9 +719,9 @@
     "de": "Nennt eine Dauer, die aus dem Instrument berechnet wird — keine getippte Schätzung.",
     "en": "Speaks a duration computed from the instrument, not a typed guess."
   },
-  "Spoken before consent is asked.": {
-    "de": "Wird gesprochen, bevor um Zustimmung gebeten wird.",
-    "en": "Spoken before consent is asked."
+  "Spoken as an opening block; the one-sentence version is what the floor says.": {
+    "de": "Wird als Öffnungsblock gesprochen; den einen Satz sagt der feste Gesprächsboden.",
+    "en": "Spoken as an opening block; the one-sentence version is what the floor says."
   },
   "Spoken block: where the number came from.": {
     "de": "Gesprochener Baustein: woher die Rufnummer stammt.",
@@ -730,6 +730,10 @@
   "Spoken closing, phrased freely by the agent.": {
     "de": "Gesprochener Abschluss, vom Agenten frei formuliert.",
     "en": "Spoken closing, phrased freely by the agent."
+  },
+  "Spoken in every call before consent, and checked against the transcript.": {
+    "de": "Wird in jedem Anruf vor der Einwilligung gesprochen und gegen das Transkript geprüft.",
+    "en": "Spoken in every call before consent, and checked against the transcript."
   },
   "Spoken opening, phrased freely by the agent.": {
     "de": "Gesprochene Begrüßung, vom Agenten frei formuliert.",

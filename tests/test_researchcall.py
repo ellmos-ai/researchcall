@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import re
 import sqlite3
 import sys
 import tempfile
@@ -31,6 +32,7 @@ from researchcall.questionnaire import (
     load_questionnaire_file,
     ai_disclosure_sentence,
     missing_disclosure_settings,
+    privacy_sentence,
     result_schema,
     stop_right_sentence,
 )
@@ -480,9 +482,12 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertNotIn("künstliche Intelligenz", english)
 
     def test_the_disclosure_and_the_stop_right_are_audited_like_consent(self) -> None:
-        questionnaire = self.study_with_disclosure()
+        questionnaire = self.full_study()
         phrases = {phrase.key for phrase in phrases_from_questionnaire(questionnaire)}
-        self.assertEqual(phrases, {"consent_question", "ai_disclosure", "stop_right"})
+        self.assertEqual(
+            phrases,
+            {"consent_question", "ai_disclosure", "stop_right", "data_statement"},
+        )
 
         spoken_without_disclosure = transcript_from_turns(
             [
@@ -498,7 +503,7 @@ class ResearchCallTestCase(unittest.TestCase):
             spoken_without_disclosure, phrases_from_questionnaire(questionnaire)
         )
 
-        self.assertEqual(findings["gates_missed"], ["ai_disclosure"])
+        self.assertIn("ai_disclosure", findings["gates_missed"])
         self.assertIn("stop_right", findings["gates_seen"])
 
     def test_a_study_without_a_withdrawal_route_cannot_go_live(self) -> None:
@@ -564,6 +569,117 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertEqual(task.count(stop_right_sentence("de")), 1)
         self.assertIn("künstliche Intelligenz", task)
 
+    # --- The floor after live findings A-E (2026-08-11) ----------------------
+
+    def full_study(self, **overrides: Any) -> dict[str, Any]:
+        study = dict(
+            self.questionnaire,
+            commissioner="Universität Beispielstadt",
+            withdrawal_contact="widerruf@example.invalid",
+            privacy_short=(
+                "Ihre Antworten werden pseudonym gespeichert und nach zwei Jahren gelöscht."
+            ),
+        )
+        study.update(overrides)
+        return study
+
+    def test_the_floor_says_scope_privacy_and_deletion_in_one_fixed_order(self) -> None:
+        """What the live calls showed missing, in the order a person needs it."""
+        task = build_task(self.full_study())
+
+        disclosure = task.index("künstliche Intelligenz")
+        scope = task.index("umfasst bis zu")
+        privacy = task.index("pseudonym gespeichert")
+        stop = task.index("jederzeit ohne Angabe von Gründen beenden")
+        consent = task.index("CONSENT (say exactly)")
+        first_question = task.index(self.questionnaire["questions"][0]["wording"])
+        withdrawal = task.index("widerruf@example.invalid")
+        self.assertLess(disclosure, scope)
+        self.assertLess(scope, privacy)
+        self.assertLess(privacy, stop)
+        self.assertLess(stop, consent)
+        self.assertLess(consent, first_question)
+        self.assertLess(first_question, withdrawal)
+        self.assertIn("Minuten", task)
+
+    def test_the_floor_speaks_english_too(self) -> None:
+        english = build_task(
+            self.full_study(
+                language="en",
+                consent_text="May we ask you three questions?",
+                privacy_short="Your answers are stored pseudonymously and deleted after two years.",
+            )
+        )
+        self.assertIn("artificial intelligence", english)
+        self.assertIn("up to", english)
+        self.assertIn("stored pseudonymously", english)
+        self.assertIn("deleted", english)
+        self.assertNotIn("umfasst bis zu", english)
+
+    def test_no_ethics_promise_is_spoken_twice_in_either_path(self) -> None:
+        """Befund A, measured on both paths rather than on one sentence.
+
+        The old check counted occurrences of one exact sentence and passed
+        while the same promise was made twice in different words — in the file
+        path the voluntariness, in the workbench path the right to stop.
+        """
+        from researchcall import instrument
+        from test_instrument import VALUES
+
+        built, _ = instrument.build_questionnaire(dict(VALUES), "de")
+        built.update(
+            commissioner="Beispiel-Institut",
+            withdrawal_contact="widerruf@example.invalid",
+            privacy_short="Antworten werden pseudonym gespeichert.",
+        )
+        for name, questionnaire in (
+            ("file", self.full_study()),
+            ("workbench", built),
+        ):
+            with self.subTest(path=name):
+                spoken = " ".join(re.findall(r'"([^"]{15,})"', build_task(questionnaire)))
+                for promise in ("Teilnahme ist freiwillig", "jederzeit", "künstliche Intelligenz"):
+                    self.assertEqual(
+                        spoken.count(promise), 1, f"{promise!r} is said more than once"
+                    )
+
+    def test_switching_the_duration_off_removes_the_sentence(self) -> None:
+        """`ethics.time_estimate` stays a real switch, not decoration."""
+        with_duration = build_task(self.full_study())
+        without = build_task(self.full_study(announce_duration=False))
+
+        self.assertIn("Minuten", with_duration)
+        self.assertNotIn("umfasst bis zu", without)
+        self.assertIn("künstliche Intelligenz", without)
+
+    def test_a_study_without_a_privacy_sentence_cannot_go_live(self) -> None:
+        self.assertEqual(
+            missing_disclosure_settings(
+                {k: v for k, v in self.full_study().items() if k != "privacy_short"}
+            ),
+            ["privacy_short"],
+        )
+        self.assertEqual(missing_disclosure_settings(self.full_study()), [])
+
+    def test_the_deletion_promise_says_what_the_code_actually_does(self) -> None:
+        """Befund E: deletion happens on request, not on every hang-up.
+
+        A sentence promising deletion "if you stop" would be wrong: ending the
+        call leaves partial answers, only `withdrawal_requested` purges them.
+        """
+        task = build_task(self.full_study())
+
+        self.assertIn("sagen Sie es mir", task)
+        self.assertNotIn("Wenn Sie abbrechen, werden Ihre", task)
+
+    def test_the_task_bounds_how_often_one_question_may_be_repeated(self) -> None:
+        """Befund B: repeating a question verbatim forever is not standardisation."""
+        task = build_task(self.full_study())
+
+        self.assertIn("at most twice", task)
+        self.assertIn("do not repeat it a third time", task)
+        self.assertIn("leave the entry in answers out", task)
+
     # --- What the first real call (2026-08-11) showed -------------------------
 
     LIVE_CONSENT_TURNS = [
@@ -571,10 +687,7 @@ class ResearchCallTestCase(unittest.TestCase):
         {
             "offset_seconds": 0,
             "speaker": "bot",
-            "text": (
-                "Wir führen eine kurze wissenschaftliche Befragung zur Mobilität "
-                "durch. Ihre Teilnahme ist freiwillig."
-            ),
+            "text": "Wir führen eine kurze wissenschaftliche Befragung zur Mobilität durch.",
         },
         {"offset_seconds": 6, "speaker": "bot", "text": "Dürfen wir Ihnen drei Fragen stellen?"},
         {"offset_seconds": 11, "speaker": "user", "text": "Hallo. Ja."},
@@ -1179,6 +1292,11 @@ class ResearchCallTestCase(unittest.TestCase):
                 "text": ai_disclosure_sentence(self.questionnaire),
             },
             {
+                "offset_seconds": 2,
+                "speaker": "bot",
+                "text": privacy_sentence(self.questionnaire),
+            },
+            {
                 "offset_seconds": 3,
                 "speaker": "bot",
                 "text": stop_right_sentence(self.questionnaire["language"]),
@@ -1244,10 +1362,11 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertEqual(
             lines[0], f"[00:00] BOT: {ai_disclosure_sentence(self.questionnaire)}"
         )
+        # index 1 and 2 are the data statement and the right to stop
         self.assertEqual(
-            lines[2], f'[00:06] BOT: {self.questionnaire["consent_text"]}'
+            lines[3], f'[00:06] BOT: {self.questionnaire["consent_text"]}'
         )
-        self.assertEqual(lines[3], "[00:10] USER: Ja, gerne.")
+        self.assertEqual(lines[4], "[00:10] USER: Ja, gerne.")
         self.assertTrue(all(TRANSCRIPT_LINE_RE.fullmatch(line) for line in lines))
         self.assertEqual(
             outcome.detail["transcript_location"],
@@ -1292,7 +1411,8 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertEqual(detail["transcript_format"], "timestamped-speaker-lines")
         self.assertTrue(detail["transcript_wording_matches"])
         self.assertEqual(
-            detail["gates_seen"], ["ai_disclosure", "consent_question", "stop_right"]
+            detail["gates_seen"],
+            ["ai_disclosure", "consent_question", "data_statement", "stop_right"],
         )
         self.assertEqual(detail["gates_missed"], [])
         self.assertTrue(detail["transcript_persisted"])

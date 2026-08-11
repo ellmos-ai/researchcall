@@ -435,24 +435,31 @@ def opening_blocks(values: dict[str, Any], items: Sequence[Item], language: str)
     if values.get("ethics.number_origin"):
         prefix = NUMBER_ORIGIN_PREFIX.get(language, NUMBER_ORIGIN_PREFIX["en"])
         add("number_origin", prefix + str(values["ethics.number_origin"]).strip(), True)
-    if values.get("ethics.time_estimate", True):
-        template = TIME_ESTIMATE.get(language, TIME_ESTIMATE["en"])
-        add("time_estimate", template.format(minutes=estimate_minutes(items)), True)
-    add("privacy", values.get("ethics.privacy_text"), True)
+    # Duration and the data statement are no longer opening blocks: the floor
+    # speaks both in every call, whichever path built the study. Emitting them
+    # here as well would say each of them twice in the workbench path.
+    add("privacy_long", values.get("ethics.privacy_text"), True)
     return blocks
 
 
-def consent_text(language: str) -> str:
-    """The consent sentence, asked word for word.
-
-    It carries the right to stop because that right is part of the frame: a
-    setting nobody can switch off has to be *said*, not merely stored.
-    """
-    return (
-        RIGHT_TO_STOP.get(language, RIGHT_TO_STOP["en"])
-        + " "
-        + CONSENT_QUESTION.get(language, CONSENT_QUESTION["en"])
+def estimate_minutes_for_questions(questions: list[dict[str, Any]]) -> int:
+    """A duration for a questionnaire that arrived without one (file path)."""
+    seconds = sum(
+        SECONDS_PER_OPEN_ITEM if is_open(question) else SECONDS_PER_ITEM
+        for question in questions
     )
+    return max(1, round(seconds / 60))
+
+
+def consent_text(language: str) -> str:
+    """The consent sentence, asked word for word — the question, and only it.
+
+    It used to carry the right to stop as well. Since the floor says that in
+    every call (questionnaire.build_task), keeping it here made the same promise
+    twice in two wordings — measured live on 2026-08-11. The frame still
+    guarantees the sentence; it is simply said in one place.
+    """
+    return CONSENT_QUESTION.get(language, CONSENT_QUESTION["en"])
 
 
 def build_questionnaire(
@@ -484,6 +491,8 @@ def build_questionnaire(
         # living only in the workspace: who is calling, and how to withdraw.
         "commissioner": str(values.get("ethics.commissioner") or "").strip(),
         "withdrawal_contact": str(values.get("ethics.withdrawal_contact") or "").strip(),
+        "privacy_short": str(values.get("ethics.privacy_short") or "").strip(),
+        "announce_duration": bool(values.get("ethics.time_estimate", True)),
         "questions": questions,
         "order": str(values.get("questionnaire.order") or "fixed"),
         "opening": opening_blocks(values, items, language),

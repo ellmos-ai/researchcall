@@ -46,6 +46,7 @@ ANSWERS = {
     # Required since 2026-08-11: both are spoken aloud in every call, so a
     # study that has not named them cannot be finished here or run live.
     "ethics.commissioner": "Example University",
+    "ethics.privacy_short": "Answers are stored pseudonymously and deleted after two years.",
     "ethics.withdrawal_contact": "withdraw@example.invalid",
     "ethics.privacy_text": "Answers are stored pseudonymously and deleted on request.",
     "ethics.number_origin": "public directory",

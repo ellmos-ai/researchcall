@@ -178,8 +178,11 @@ class ConversationFrameTestCase(unittest.TestCase):
     def test_the_frame_is_spoken_in_the_order_station_three_prescribes(self) -> None:
         questionnaire, _ = build()
         kinds = [block["kind"] for block in questionnaire["opening"]]
+        # Duration and the data statement moved into the floor on 2026-08-11:
+        # the file path never had them, and emitting them here as well would say
+        # each of them twice. What remains here is the study's own colour.
         self.assertEqual(
-            kinds, ["greeting", "instruction", "number_origin", "time_estimate", "privacy"]
+            kinds, ["greeting", "instruction", "number_origin", "privacy_long"]
         )
         task = build_task(questionnaire)
         self.assertIn('instruction (say exactly): "Eine unabhaengige Studie', task)
@@ -191,26 +194,33 @@ class ConversationFrameTestCase(unittest.TestCase):
         short, _ = build(items=[ITEMS[0]])
         long, _ = build(items=ITEMS * 4)
         self.assertLess(short["estimated_minutes"], long["estimated_minutes"])
-        spoken = [
-            block["text"]
-            for block in short["opening"]
-            if block["kind"] == "time_estimate"
-        ]
-        self.assertEqual(spoken, [f"Die Befragung dauert etwa {short['estimated_minutes']} Minuten."])
+        spoken = build_task(dict(short, commissioner="X", privacy_short="Y", withdrawal_contact="Z"))
+        self.assertIn(
+            f"Die Befragung dauert etwa {short['estimated_minutes']} Minuten und "
+            f"umfasst bis zu {len(short['questions'])} Fragen.",
+            spoken,
+        )
 
     def test_a_switched_off_time_estimate_is_the_only_thing_that_removes_it(self) -> None:
         questionnaire, _ = build(**{"ethics.time_estimate": False})
-        self.assertNotIn(
-            "time_estimate", [block["kind"] for block in questionnaire["opening"]]
+        self.assertFalse(questionnaire["announce_duration"])
+        spoken = build_task(
+            dict(questionnaire, commissioner="X", privacy_short="Y", withdrawal_contact="Z")
         )
+        self.assertNotIn("dauert etwa", spoken)
 
     def test_the_right_to_stop_is_said_and_not_merely_stored(self) -> None:
         """It is a locked setting, so it cannot be switched off — but it must be heard."""
         questionnaire, _ = build()
-        self.assertIn("jederzeit beenden", questionnaire["consent_text"])
+        task = build_task(
+            dict(questionnaire, commissioner="X", privacy_short="Y", withdrawal_contact="Z")
+        )
+        # The consent sentence is the question now; the promise itself is spoken
+        # by the floor, in every call, whichever path built the study.
+        self.assertNotIn("jederzeit", questionnaire["consent_text"])
+        self.assertIn("jederzeit ohne Angabe von Gründen beenden", task)
         self.assertIn(
-            f'CONSENT (say exactly): "{questionnaire["consent_text"]}"',
-            build_task(questionnaire),
+            f'CONSENT (say exactly): "{questionnaire["consent_text"]}"', task
         )
 
     def test_refusals_are_asked_about_and_the_schema_can_carry_the_answer(self) -> None:
@@ -244,20 +254,25 @@ class ConversationFrameTestCase(unittest.TestCase):
             + [str(block.get("text", "")) for block in english["opening"]]
         )
 
-        self.assertIn("jederzeit beenden", spoken_de)
         self.assertIn("Möchten Sie an der Befragung teilnehmen?", spoken_de)
         self.assertIn("Skala von 1 bis 5", spoken_de)
-        self.assertIn("dauert etwa", spoken_de)
 
-        self.assertIn("end this call at any time", spoken_en)
         self.assertIn("Would you like to take part in the survey?", spoken_en)
         self.assertIn("scale from 1 to 5", spoken_en)
-        self.assertIn("takes about", spoken_en)
 
-        for german_fragment in ("jederzeit beenden", "Befragung dauert", "Skala von"):
-            self.assertNotIn(german_fragment, spoken_en)
-        for english_fragment in ("end this call", "survey takes", "scale from"):
-            self.assertNotIn(english_fragment, spoken_de)
+        self.assertNotIn("Skala von", spoken_en)
+        self.assertNotIn("scale from", spoken_de)
+
+        # The floor is language-specific too, and it is where the right to stop
+        # and the duration are spoken since 2026-08-11.
+        floor_de = build_task(dict(german, commissioner="X", privacy_short="Y", withdrawal_contact="Z"))
+        floor_en = build_task(dict(english, commissioner="X", privacy_short="Y", withdrawal_contact="Z"))
+        self.assertIn("jederzeit ohne Angabe von Gründen beenden", floor_de)
+        self.assertIn("dauert etwa", floor_de)
+        self.assertIn("end this call at any time", floor_en)
+        self.assertIn("takes about", floor_en)
+        self.assertNotIn("dauert etwa", floor_en)
+        self.assertNotIn("takes about", floor_de)
 
     def test_the_task_carries_the_language_directive_in_that_same_language(self) -> None:
         """The directive is addressed to the agent, so it speaks its language too."""

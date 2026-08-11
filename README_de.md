@@ -280,10 +280,15 @@ Der Schlüssel wird nur aus `CALLE_API_KEY` gelesen, nie ausgegeben oder gespeic
 Drei Sätze stehen nicht im Belieben des Forschers — und seit dem 2026-08-11 hängen sie auch nicht mehr am Instrument. `build_task` bildet sie aus der Studie selbst und setzt sie in Anführungszeichen, damit sie wörtlich gesprochen werden:
 
 1. **Offenlegung, vor allem anderen:** Ein automatisierter Assistent — eine künstliche Intelligenz — ruft im Auftrag der genannten Stelle an.
-2. **Freiwilligkeit und Abbruchrecht** jederzeit, ohne Angabe von Gründen. Als eigener Block, außer der Einwilligungssatz enthält genau diesen Satz bereits.
-3. **Der Widerrufsweg** am Ende des Interviews: an wen man sich wendet, um die Antworten zurückzuziehen.
+2. **Umfang und Dauer:** etwa wie viele Minuten und *bis zu* wie viele Fragen. „Bis zu", weil bei Filterlogik jede exakte Zahl eine mögliche Lüge ist.
+3. **Was mit den Antworten geschieht**, in einem Satz aus `ethics.privacy_short`. Der lange Datenschutzhinweis bleibt daneben: Er nennt Datenarten, Aufzeichnung, Löschweg und Ansprechpartner vollständig — das ist ein Absatz, kein Telefonsatz.
+4. **Freiwilligkeit und Abbruchrecht** jederzeit, ohne Angabe von Gründen.
+5. **Löschung auf Wunsch:** Wer will, dass die bisherigen Antworten gelöscht werden, muss es nur sagen. Bewusst nicht „wenn Sie abbrechen" — wer auflegt, hinterlässt Teilantworten; nur ein Widerruf löscht. Ein Satz darf nicht mehr versprechen, als der Code hält.
+6. **Der Widerrufsweg** am Ende des Interviews: an wen man sich wendet, um die Antworten zurückzuziehen.
 
-Die ersten beiden sind Gate-Phrasen: Ein Transkript ohne sie öffnet einen Prüffall, genau wie ein fehlender Einwilligungssatz. Der dritte bewusst nicht — ein früh abgebrochenes Gespräch erreicht ihn nie, und daraus einen Prüffall zu machen hieße, die Warteschlange mit Auflegern zu füllen.
+Offenlegung, Abbruchrecht und Datenschutz-Satz sind Gate-Phrasen neben dem Einwilligungssatz: Ein Transkript ohne sie öffnet einen Prüffall. Die Dauer nicht — ihr Fehlen ist eine Unhöflichkeit, keine Verletzung, und jedes zusätzliche Gate kauft Fehlalarme. Der Widerrufsweg ebenfalls nicht: Ein früh abgebrochenes Gespräch erreicht ihn nie.
+
+Der Einwilligungssatz ist die **Frage**, mehr nicht. Früher trug er das Abbruchrecht mit — dieselbe Zusage fiel dadurch zweimal in zwei Formulierungen, live gemessen am 2026-08-11.
 
 `ethics.commissioner` und `ethics.withdrawal_contact` sind Pflichtangaben, weil sie laut gesprochen werden und weil die Frage, ob ein Datenschutzabsatz einen Widerrufsweg *enthält*, eine Beurteilung wäre — die trifft dieses Projekt nicht. Ohne sie wird ein Live-Lauf verweigert; ein Trockenlauf läuft und meldet `disclosure_incomplete`, denn dort soll so etwas auffallen.
 

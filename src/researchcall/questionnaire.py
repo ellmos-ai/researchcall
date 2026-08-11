@@ -91,6 +91,42 @@ STOP_RIGHT_SENTENCE = {
     ),
 }
 
+#: Scope and duration. Measured live 2026-08-11: the file path announced neither,
+#: because it carries no opening blocks — the workbench path did. A promise the
+#: person needs before agreeing must not depend on which path built the study.
+#: "up to" is deliberate: with filters, any exact count can become a lie, and
+#: asking fewer questions than announced breaks nothing while asking more breaks
+#: the basis of the consent.
+SCOPE_DURATION = {
+    "de": (
+        "Die Befragung dauert etwa {minutes} Minuten und umfasst bis zu {count} Fragen."
+    ),
+    "en": (
+        "The survey takes about {minutes} minutes and has up to {count} questions."
+    ),
+}
+
+#: What happens with the answers, in one sentence. The long privacy notice stays
+#: what it is — a paragraph naming data categories, recording, deletion route and
+#: contact in full. Read aloud it is a burden nobody follows; shortening it on the
+#: fly would be paraphrasing, which is forbidden everywhere else here.
+PRIVACY_SHORT_PREFIX = {"de": "Zum Datenschutz: ", "en": "About your data: "}
+
+#: Deletion, as the code actually performs it: on request, not on every hang-up.
+#: Ending the call leaves partial answers standing; only a withdrawal purges them
+#: (runner._purge_frame). A sentence promising more than that would be worse than
+#: none.
+DELETION_ON_REQUEST = {
+    "de": (
+        "Wenn Sie möchten, dass Ihre bisherigen Antworten gelöscht werden, sagen "
+        "Sie es mir — dann geschieht das sofort."
+    ),
+    "en": (
+        "If you want the answers you have given so far deleted, just say so — it "
+        "happens immediately."
+    ),
+}
+
 WITHDRAWAL_ROUTE = {
     "de": (
         "Wenn Sie Ihre Antworten später zurückziehen möchten, wenden Sie sich "
@@ -105,7 +141,7 @@ WITHDRAWAL_ROUTE = {
 #: What a study must name before it may call anybody. Both are spoken aloud, so
 #: neither can be guessed from free text: whether a privacy paragraph "contains"
 #: a withdrawal route is a judgement, and this project does not make those.
-DISCLOSURE_SETTINGS = ("commissioner", "withdrawal_contact")
+DISCLOSURE_SETTINGS = ("commissioner", "privacy_short", "withdrawal_contact")
 
 #: Said aloud where a setting is missing. Loud on purpose: a dry run may run
 #: with it, a live call may not.
@@ -176,6 +212,35 @@ def withdrawal_route_sentence(questionnaire: dict[str, Any]) -> str:
         questionnaire,
         withdrawal_contact=_setting(questionnaire, "withdrawal_contact"),
     )
+
+
+def scope_sentence(questionnaire: dict[str, Any]) -> str | None:
+    """How long it takes and how many questions there are — or nothing.
+
+    ``announce_duration`` mirrors ``ethics.time_estimate``, which a researcher may
+    switch off. Speaking it regardless would turn a documented, effective setting
+    into decoration — the one thing the effect register exists to prevent.
+    """
+    if not questionnaire.get("announce_duration", True):
+        return None
+    questions = questionnaire.get("questions") or []
+    minutes = questionnaire.get("estimated_minutes")
+    if not isinstance(minutes, int) or minutes <= 0:
+        from .instrument import estimate_minutes_for_questions
+
+        minutes = estimate_minutes_for_questions(questions)
+    return _sentence(SCOPE_DURATION, questionnaire, minutes=minutes, count=len(questions))
+
+
+def privacy_sentence(questionnaire: dict[str, Any]) -> str:
+    """The one-sentence data statement, spoken before consent is asked."""
+    base = _language_base(questionnaire.get("language", ""))
+    prefix = PRIVACY_SHORT_PREFIX.get(base, PRIVACY_SHORT_PREFIX["en"])
+    return prefix + _setting(questionnaire, "privacy_short")
+
+
+def deletion_sentence(questionnaire: dict[str, Any]) -> str:
+    return _sentence(DELETION_ON_REQUEST, questionnaire)
 
 
 def missing_disclosure_settings(questionnaire: dict[str, Any]) -> list[str]:
@@ -364,11 +429,14 @@ def build_task(questionnaire: dict[str, Any]) -> str:
     lines.append(
         f'DISCLOSURE, say exactly and before anything else: "{ai_disclosure_sentence(questionnaire)}"'
     )
-    stop_right = stop_right_sentence(questionnaire.get("language", ""))
-    if stop_right not in str(questionnaire.get("consent_text", "")):
-        # The workbench already carries this sentence inside the consent text;
-        # saying it twice would be harmless but sloppy. The test is literal.
-        lines.append(f'RIGHT TO STOP (say exactly): "{stop_right}"')
+    scope = scope_sentence(questionnaire)
+    if scope is not None:
+        lines.append(f'SCOPE (say exactly): "{scope}"')
+    lines.append(f'DATA (say exactly): "{privacy_sentence(questionnaire)}"')
+    lines.append(
+        f'RIGHT TO STOP (say exactly): "{stop_right_sentence(questionnaire.get("language", ""))}"'
+    )
+    lines.append(f'DELETION (say exactly): "{deletion_sentence(questionnaire)}"')
 
     opening = questionnaire.get("opening") or []
     if opening:
@@ -430,6 +498,14 @@ def build_task(questionnaire: dict[str, Any]) -> str:
                 "  Allowed answer categories (interpretation labels; do not read aloud): "
                 + ", ".join(_task_label(category) for category in question["categories"])
                 + "."
+            )
+            lines.append(
+                "  If the answer does not fit any category, ask this question at most "
+                "twice in total. On the second attempt do not repeat the question: "
+                "read the answer options back neutrally instead, without rephrasing "
+                "the question itself. If it still does not fit, do not repeat it a "
+                "third time — record what was said in raw_answers, leave the entry in "
+                "answers out, and move on."
             )
         for follow_up in question.get("follow_ups", []):
             lines.append(
