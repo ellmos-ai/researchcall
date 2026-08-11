@@ -99,9 +99,69 @@ prüfbar, ob richtig kategorisiert wurde.
   ein Anruf ist dann nicht auslösbar. Sauberer Schutz, auf den man sich verlassen kann.
 - Pläne haben eine TTL von 24 Stunden.
 
+## 9. Live-gemessene Statusmatrix (live-measured status matrix), 2026-08-11
+
+Gemessen über `GET /v1/calls/{id}` gegen die echte REST-API. **Korrigiert §3** für
+diesen Weg und beantwortet zwei der bis dahin offenen Fragen.
+
+**a) Mailbox/Anrufassistent nimmt ab → der Anruf gilt als erledigt.**
+
+```
+status=completed · task_completed=true · completion_confidence={score:0.78,label:"high"}
+failure_code=null · failure_message=null
+evidence[0]="Die Ansage der Mailbox bat darum, nach dem Signalton eine Nachricht zu hinterlassen."
+```
+
+**Es gibt live KEINEN `VOICEMAIL`-Status.** Der dokumentierte Endstatus existiert im
+Schema, aber eine Mailbox kommt als `completed` zurück. Ungeprüft übernommen hebt das
+die Ausschöpfung um Anrufe, die niemand angenommen hat.
+
+**b) Angerufener lehnt ab → generischer Fehler, echter Ausgang im Freitext.**
+
+```
+status=failed · task_completed=false
+failure_code="call_failed"
+failure_message="calling task status=DECLINED (Hangup by: user)"
+attempts[0].transcript_turns=[]
+```
+
+Das System wählt automatisch **bis zu 3×**, meldet aber nur **einen** `attempt`.
+
+**c) Das Transkript kommt als Liste, nicht als String.**
+
+Es steht in `recipients[].attempts[].transcript_turns`:
+
+```json
+{"offset_seconds": 4, "speaker": "user", "text": "…"}
+```
+
+Ein `result.transcript`-String auf oberster Ebene **kann fehlen**. Wer nur den String
+liest, bekommt gar kein Transkript — still, ohne Fehler.
+
+**Folgen im Code** (`calls.py`, Transportschicht):
+
+- Turns werden gelesen und als `[mm:ss] SPRECHER: Text` gerendert, damit der
+  Gate-Phrasen-Audit und der Wortlaut-Abgleich wieder laufen; der String bleibt
+  Rückfallweg. Jeder Versuch vermerkt in `transcript_location`, welche der beiden
+  Quellen er benutzt hat.
+- Eine **dokumentierte Heuristik** liest Mailbox-Ansagen aus den Turns der Gegenseite
+  und stuft solche Anrufe auf `VOICEMAIL` zurück. Sie ist bewusst konservativ: nur
+  Sprecherzeilen der Gegenseite, schwache Wendungen („nicht erreichbar") brauchen
+  Bestätigung, und ein Ergebnis mit erteilter Einwilligung wird **nie** umgestuft.
+  Ein Mensch, der „Hallo?" sagt, bleibt `COMPLETED`.
+- `failure_message` wird auf `status=…` geparst; `DECLINED` wird als Verweigerung
+  geführt statt als technischer Fehler. Der fremde Freitext selbst wird **nicht**
+  gespeichert, nur `failure_code` und die Herkunft der Statusentscheidung.
+- **Nebenwirkung, bewusst in Kauf genommen:** `VOICEMAIL` steht in
+  `AVAILABILITY_STATUSES` (`runner.py`). Ein als Mailbox erkannter Anruf wird unter
+  Wiederholungsregeln also **erneut gewählt** und in ein anderes Zeitfenster verschoben —
+  als `COMPLETED` wäre er nie wiederholt worden. Inhaltlich richtig („niemand erreicht"),
+  aber es kostet Anrufe: `attempts_per_person > 0` erhöht damit das Anrufvolumen.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency
   controls" sind dokumentiert, die Grenze nicht. **Im Code beide Fälle offenhalten.**
-- Verhalten bei Voicemail, Besetzt, Nicht-Abheben — bisher nur `COMPLETED` gesehen.
+- Besetzt und Nicht-Abheben — noch nicht live gesehen. Mailbox und Ablehnung sind seit
+  2026-08-11 gemessen (§9), kommen live aber als `completed` bzw. `failed` zurück.
 - Ob REST- und MCP-Weg dasselbe Kontingent teilen.

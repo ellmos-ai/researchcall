@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -35,6 +36,41 @@ FIXTURE_REFUSALS = (
     "(fixture) does not trust automated calls",
     "(fixture) topic not relevant to me",
 )
+
+
+#: Sentences an answering machine says and a person does not. One of them, in
+#: the callee's own words, is enough to read the call as a mailbox pickup.
+VOICEMAIL_MARKERS = (
+    "nachricht nach dem signalton",
+    "nachricht nach dem ton",
+    "hinterlassen sie eine nachricht",
+    "hinterlassen sie mir eine nachricht",
+    "nach dem signalton",
+    "nach dem piepton",
+    "mailbox",
+    "sprachbox",
+    "anrufbeantworter",
+    "voicemail",
+    "leave a message",
+    "after the tone",
+    "after the beep",
+    "answering machine",
+    "record your message",
+)
+
+#: Wording a machine announcement uses that a person also uses about themselves
+#: ("I'm hard to reach right now"). Alone it decides nothing: it needs a second
+#: signal, either another marker or the agent's own evidence note.
+WEAK_VOICEMAIL_MARKERS = (
+    "nicht erreichbar",
+    "zurzeit nicht erreichbar",
+    "not available",
+    "currently unavailable",
+)
+
+#: CALL-E reports a refused call as a generic failure and keeps the real ending
+#: in a free-text field: "calling task status=DECLINED (Hangup by: user)".
+FAILURE_STATUS_RE = re.compile(r"status=([A-Z_]+)")
 
 
 def _passes_filter(question: dict[str, Any], answers: dict[str, Any]) -> bool:
@@ -83,6 +119,67 @@ def _stand_in(
 
 def _refusal_reason(sample_id: int) -> str:
     return FIXTURE_REFUSALS[sample_id % len(FIXTURE_REFUSALS)]
+
+
+def _turn_speaker(turn: dict[str, Any]) -> str:
+    """``BOT`` for the agent, ``USER`` for whoever answered.
+
+    The measured payload labels turns ``bot`` and ``user``. Everything that is
+    not the agent is folded into ``USER`` on purpose: the after-call audits read
+    the rendered lines through ``runner.TRANSCRIPT_LINE_RE``, which accepts these
+    two speakers only, so an unexpected third label would not just look odd — it
+    would switch the wording and gate checks off for the whole call.
+    """
+    return "BOT" if str(turn.get("speaker") or "").strip().lower() == "bot" else "USER"
+
+
+def _turn_text(turn: dict[str, Any]) -> str:
+    return str(turn.get("text") or "").strip()
+
+
+def _transcript_from_turns(turns: list[dict[str, Any]]) -> str:
+    """Render recorded turns as the ``[mm:ss] SPEAKER: Text`` lines the audits read."""
+    lines = []
+    for turn in turns:
+        try:
+            seconds = max(0, int(float(turn.get("offset_seconds") or 0)))
+        except (TypeError, ValueError):
+            seconds = 0
+        lines.append(
+            f"[{seconds // 60:02d}:{seconds % 60:02d}] "
+            f"{_turn_speaker(turn)}: {_turn_text(turn)}"
+        )
+    return "\n".join(lines)
+
+
+def _voicemail_markers(
+    turns: list[dict[str, Any]], evidence: list[str]
+) -> list[str] | None:
+    """Whether the callee side of this call was a machine, by literal recognition.
+
+    A documented heuristic, not a verdict: it reads only what the callee said,
+    looks for sentences a mailbox announcement uses, and returns the markers it
+    found so the attempt record carries its own grounds. Weak wording that a
+    person also uses about themselves needs corroboration — from a second marker
+    or from the agent's evidence note. Anything less certain stays completed,
+    because inflating the nonresponse column is the cheaper mistake.
+    """
+    spoken = " ".join(
+        _turn_text(turn).lower() for turn in turns if _turn_speaker(turn) != "BOT"
+    )
+    if not spoken.strip():
+        return None
+    strong = [marker for marker in VOICEMAIL_MARKERS if marker in spoken]
+    if strong:
+        return strong
+    weak = [marker for marker in WEAK_VOICEMAIL_MARKERS if marker in spoken]
+    if not weak:
+        return None
+    noted = " ".join(str(item).lower() for item in evidence)
+    corroborated = len(weak) > 1 or any(
+        marker in noted for marker in VOICEMAIL_MARKERS
+    )
+    return weak if corroborated else None
 
 
 @dataclass(frozen=True)
@@ -348,10 +445,106 @@ class LiveCallClient:
         }
 
     @staticmethod
-    def _transcript(value: dict[str, Any]) -> str | None:
+    def _containers(value: dict[str, Any]) -> list[dict[str, Any]]:
+        """The response object and its nested ``result``, in that order."""
+        containers = [value]
+        if isinstance(value.get("result"), dict):
+            containers.append(value["result"])
+        return containers
+
+    @classmethod
+    def _recipient_attempts(cls, value: dict[str, Any]) -> list[dict[str, Any]]:
+        """The attempts CALL-E reports for the first recipient.
+
+        One created call may contain several dial attempts — the service redials
+        on its own. They are read as a list rather than assumed to be one, and
+        their number is recorded, so a run that used only the last of them says
+        so instead of quietly dropping the others.
+        """
+        for container in cls._containers(value):
+            recipients = container.get("recipients")
+            if (
+                isinstance(recipients, list)
+                and recipients
+                and isinstance(recipients[0], dict)
+            ):
+                attempts = recipients[0].get("attempts")
+                if isinstance(attempts, list):
+                    return [item for item in attempts if isinstance(item, dict)]
+        return []
+
+    @staticmethod
+    def _turns(attempts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """The turns of the last attempt that recorded any — the one that ended the call."""
+        for attempt in reversed(attempts):
+            turns = attempt.get("transcript_turns")
+            if isinstance(turns, list):
+                usable = [
+                    turn
+                    for turn in turns
+                    if isinstance(turn, dict) and _turn_text(turn)
+                ]
+                if usable:
+                    return usable
+        return []
+
+    @classmethod
+    def _evidence(cls, value: dict[str, Any]) -> list[str]:
+        for container in cls._containers(value):
+            evidence = container.get("evidence")
+            if isinstance(evidence, list):
+                return [str(item) for item in evidence]
+        return []
+
+    @staticmethod
+    def _transcript(
+        value: dict[str, Any], turns: list[dict[str, Any]]
+    ) -> tuple[str | None, str | None]:
+        """The transcript and where it came from.
+
+        Measured on 2026-08-11: a completed call carries its transcript as a
+        ``transcript_turns`` list under the recipient's attempt, and the
+        top-level ``result.transcript`` string can be absent entirely. Reading
+        only the string left ``outcome.transcript`` empty, and an empty
+        transcript switches off both after-call audits without saying so. The
+        string remains the fallback because the earlier measurement returned it.
+        """
+        if turns:
+            return (
+                _transcript_from_turns(turns),
+                "recipients[].attempts[].transcript_turns",
+            )
         result = value.get("result")
         if isinstance(result, dict) and isinstance(result.get("transcript"), str):
-            return result["transcript"]
+            return result["transcript"], "result.transcript"
+        return None, None
+
+    @classmethod
+    def _failure_status(cls, value: dict[str, Any]) -> str | None:
+        """The terminal status hidden in the failure message, if it names one.
+
+        A refusal arrives as ``status=FAILED`` with the real ending in free text.
+        Reporting it as a generic failure would collapse an active refusal into
+        the technical-error column — and a refusal that is dialled again is
+        harassment, so the difference decides behaviour, not just presentation.
+        The message itself is parsed and discarded: it is foreign free text, and
+        nothing foreign is written into the attempt record.
+        """
+        for container in cls._containers(value):
+            message = container.get("failure_message")
+            if not isinstance(message, str):
+                continue
+            match = FAILURE_STATUS_RE.search(message)
+            if match and match.group(1) in TERMINAL_STATUSES:
+                return match.group(1)
+        return None
+
+    @classmethod
+    def _failure_code(cls, value: dict[str, Any]) -> str | None:
+        for container in cls._containers(value):
+            code = container.get("failure_code")
+            if isinstance(code, str) and code:
+                return code
         return None
 
     @staticmethod
@@ -424,18 +617,49 @@ class LiveCallClient:
             activity_fingerprint = new_fingerprint
             status = self._status(latest)
             if status in TERMINAL_STATUSES:
-                transcript = self._transcript(latest)
+                attempts = self._recipient_attempts(latest)
+                turns = self._turns(attempts)
+                transcript, transcript_location = self._transcript(latest, turns)
+                structured = self._structured_result(latest)
                 detail: dict[str, Any] = {
                     "transport": "live-api",
                     "progress_source": "activity",
-                    "transcript_location": "result.transcript",
+                    "transcript_location": transcript_location,
                 }
+                if attempts:
+                    detail["recipient_attempts"] = len(attempts)
                 if progress is not None:
                     detail.update(progress)
+
+                code = self._failure_code(latest)
+                if code:
+                    detail["failure_code"] = code
+                if status == "FAILED":
+                    refined = self._failure_status(latest)
+                    if refined is not None and refined != "FAILED":
+                        detail["status_source"] = "failure_message"
+                        detail["status_reported"] = status
+                        status = refined
+                elif status == "COMPLETED" and not (
+                    isinstance(structured, dict)
+                    and structured.get("consent") == "granted"
+                ):
+                    # A mailbox that let the agent talk comes back as a completed
+                    # task. Counted as an interview it would raise the completion
+                    # yield with a call nobody answered. A result that reports
+                    # granted consent is never touched: no machine consents, and
+                    # discarding a real interview is the more expensive error.
+                    markers = _voicemail_markers(turns, self._evidence(latest))
+                    if markers:
+                        detail["status_source"] = "voicemail-heuristic"
+                        detail["status_reported"] = status
+                        detail["voicemail_markers"] = markers
+                        status = "VOICEMAIL"
+
                 return CallOutcome(
                     status=status,
                     run_id=run_id,
-                    structured_result=self._structured_result(latest),
+                    structured_result=structured,
                     detail=detail,
                     transcript=transcript,
                 )

@@ -23,7 +23,12 @@ from researchcall.questionnaire import (
     result_schema,
 )
 from researchcall.reporting import build_report
-from researchcall.runner import run_day, withdraw_external_ref
+from researchcall.runner import (
+    TRANSCRIPT_LINE_RE,
+    ContactRules,
+    run_day,
+    withdraw_external_ref,
+)
 from researchcall.safety import mask_phone, validate_e164
 from researchcall.sampling import (
     DEFAULT_WINDOWS,
@@ -261,7 +266,292 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertNotIn(transcript, detail_json)
         report = build_report(self.connection, get_study(self.connection, "study"))
         self.assertIn("Categorized answers with retained raw source text: 3", report)
-        self.assertIn("Nested `result.transcript` records audited in memory: 1", report)
+        self.assertIn("Transcript records audited in memory: 1", report)
+
+    # --- Live payload shapes measured against GET /v1/calls/{id} on 2026-08-11 ---
+
+    def live_client(self, final_payload: dict[str, object]) -> CallOutcome:
+        """One live call whose polling returns *final_payload* as terminal state."""
+        client = LiveCallClient(
+            api_key="fixture-token",
+            base_url="https://example.invalid",
+            first_poll_seconds=0,
+            poll_seconds=0,
+            poll_timeout_seconds=1,
+        )
+        responses = iter([{"id": "rest-call-1"}, final_payload])
+
+        def fake_request(*args: object, **kwargs: object) -> dict[str, object]:
+            return next(responses)
+
+        with patch.object(client, "_request", side_effect=fake_request):
+            return client.call(
+                {"sample_id": 1, "phone_e164": "+15550123456"},
+                self.questionnaire,
+                "stable-key",
+            )
+
+    def interview_turns(self, structured: dict[str, object]) -> list[dict[str, object]]:
+        """The turn list a completed interview leaves behind, as the API returns it."""
+        turns: list[dict[str, object]] = [
+            {
+                "offset_seconds": 0,
+                "speaker": "bot",
+                "text": self.questionnaire["consent_text"],
+            },
+            {"offset_seconds": 4, "speaker": "user", "text": "Ja, gerne."},
+        ]
+        offset = 10
+        for question in self.questionnaire["questions"]:
+            turns.append(
+                {"offset_seconds": offset, "speaker": "bot", "text": question["wording"]}
+            )
+            turns.append(
+                {
+                    "offset_seconds": offset + 3,
+                    "speaker": "user",
+                    "text": structured["raw_answers"][question["id"]],
+                }
+            )
+            offset += 10
+        return turns
+
+    def completed_payload(
+        self, structured: dict[str, object] | None, turns: list[dict[str, object]]
+    ) -> dict[str, object]:
+        recipient: dict[str, object] = {
+            "status": "completed",
+            "attempts": [{"status": "completed", "transcript_turns": turns}],
+        }
+        if structured is not None:
+            recipient["structured_result"] = structured
+        return {
+            "status": "completed",
+            "task_completed": True,
+            "transcript": None,
+            "recipients": [recipient],
+        }
+
+    def fixture_structured_result(self) -> dict[str, object]:
+        return FixtureCallClient.from_file(OUTCOMES).call(
+            {"sample_id": 1}, self.questionnaire, "unused"
+        ).structured_result
+
+    def test_transcript_turns_are_read_and_rendered_as_speaker_lines(self) -> None:
+        structured = self.fixture_structured_result()
+        outcome = self.live_client(
+            self.completed_payload(structured, self.interview_turns(structured))
+        )
+
+        self.assertEqual(outcome.status, "COMPLETED")
+        self.assertIsNotNone(outcome.transcript)
+        lines = outcome.transcript.splitlines()
+        self.assertEqual(
+            lines[0], f'[00:00] BOT: {self.questionnaire["consent_text"]}'
+        )
+        self.assertEqual(lines[1], "[00:04] USER: Ja, gerne.")
+        self.assertTrue(all(TRANSCRIPT_LINE_RE.fullmatch(line) for line in lines))
+        self.assertEqual(
+            outcome.detail["transcript_location"],
+            "recipients[].attempts[].transcript_turns",
+        )
+        self.assertEqual(outcome.detail["recipient_attempts"], 1)
+
+    def test_turn_transcript_actually_reaches_the_wording_and_gate_audits(self) -> None:
+        """The point of reading turns: both after-call audits run again.
+
+        Before the transport understood ``transcript_turns``, ``outcome.transcript``
+        stayed ``None`` on a live call and the two guarded blocks in
+        ``_finish_attempt`` silently did nothing. Asserting on the persisted
+        attempt is the only way to see that they fire.
+        """
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        sample = self.connection.execute(
+            "SELECT id, time_window FROM sample"
+        ).fetchone()
+        structured = self.fixture_structured_result()
+        outcome = self.live_client(
+            self.completed_payload(structured, self.interview_turns(structured))
+        )
+
+        client = FixtureCallClient.from_file(OUTCOMES)
+        with patch.object(client, "call", return_value=outcome):
+            totals = run_day(
+                self.connection,
+                get_study(self.connection, "study"),
+                sample["time_window"],
+                1,
+                client,
+            )
+
+        self.assertEqual(totals["COMPLETED"], 1)
+        detail = json.loads(
+            self.connection.execute(
+                "SELECT detail_json FROM attempt WHERE sample_id = ?", (sample["id"],)
+            ).fetchone()["detail_json"]
+        )
+        self.assertEqual(detail["transcript_format"], "timestamped-speaker-lines")
+        self.assertTrue(detail["transcript_wording_matches"])
+        self.assertEqual(detail["gates_seen"], ["consent_question"])
+        self.assertEqual(detail["gates_missed"], [])
+        self.assertFalse(detail["transcript_persisted"])
+
+    def test_mailbox_pickup_is_not_counted_as_an_interview(self) -> None:
+        payload = self.completed_payload(
+            None,
+            [
+                {
+                    "offset_seconds": 0,
+                    "speaker": "bot",
+                    "text": self.questionnaire["consent_text"],
+                },
+                {
+                    "offset_seconds": 4,
+                    "speaker": "user",
+                    "text": (
+                        "Die angerufene Person ist nicht erreichbar. bitte "
+                        "hinterlassen sie eine nachricht nach dem signalton"
+                    ),
+                },
+            ],
+        )
+        payload["evidence"] = [
+            "Die Ansage der Mailbox bat darum, nach dem Signalton eine Nachricht zu hinterlassen."
+        ]
+
+        outcome = self.live_client(payload)
+
+        self.assertEqual(outcome.status, "VOICEMAIL")
+        self.assertEqual(outcome.detail["status_source"], "voicemail-heuristic")
+        self.assertIn(
+            "hinterlassen sie eine nachricht", outcome.detail["voicemail_markers"]
+        )
+
+    def test_a_person_who_is_hard_to_reach_stays_a_completed_interview(self) -> None:
+        """The negative case the heuristic must never get wrong.
+
+        A human saying they are badly reachable carries the weak marker but
+        nothing a machine would say. In doubt the call stays COMPLETED.
+        """
+        outcome = self.live_client(
+            self.completed_payload(
+                None,
+                [
+                    {"offset_seconds": 0, "speaker": "bot", "text": "Guten Tag."},
+                    {
+                        "offset_seconds": 3,
+                        "speaker": "user",
+                        "text": "Hallo? Ja, ich bin gerade schlecht erreichbar, aber fragen Sie.",
+                    },
+                ],
+            )
+        )
+
+        self.assertEqual(outcome.status, "COMPLETED")
+        self.assertNotIn("voicemail_markers", outcome.detail)
+
+    def test_a_consented_interview_is_never_reclassified_as_voicemail(self) -> None:
+        """The expensive error: throwing away answers a person actually gave."""
+        structured = self.fixture_structured_result()
+        turns = self.interview_turns(structured)
+        turns.append(
+            {
+                "offset_seconds": 60,
+                "speaker": "user",
+                "text": "Nein, ich habe gar keinen Anrufbeantworter, rufen Sie ruhig an.",
+            }
+        )
+
+        outcome = self.live_client(self.completed_payload(structured, turns))
+
+        self.assertEqual(outcome.status, "COMPLETED")
+        self.assertNotIn("voicemail_markers", outcome.detail)
+
+    def test_voicemail_leaves_no_response_row_and_is_reported_as_a_loss(self) -> None:
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        sample = self.connection.execute(
+            "SELECT id, time_window FROM sample"
+        ).fetchone()
+        outcome = CallOutcome(
+            status="VOICEMAIL",
+            run_id="rest-call-voicemail",
+            structured_result=None,
+            detail={"transport": "live-api", "status_source": "voicemail-heuristic"},
+            transcript="[00:04] USER: bitte hinterlassen sie eine nachricht nach dem signalton",
+        )
+        client = FixtureCallClient.from_file(OUTCOMES)
+        with patch.object(client, "call", return_value=outcome):
+            totals = run_day(
+                self.connection,
+                get_study(self.connection, "study"),
+                sample["time_window"],
+                1,
+                client,
+            )
+
+        self.assertEqual(totals["VOICEMAIL"], 1)
+        self.assertEqual(
+            self.connection.execute("SELECT COUNT(*) AS n FROM response").fetchone()["n"],
+            0,
+        )
+        report = build_report(self.connection, get_study(self.connection, "study"))
+        self.assertIn("- Completed interviews: 0", report)
+        self.assertIn("VOICEMAIL", report)
+
+    def test_declined_is_recovered_from_the_failure_message(self) -> None:
+        outcome = self.live_client(
+            {
+                "status": "failed",
+                "task_completed": False,
+                "failure_code": "call_failed",
+                "failure_message": "calling task status=DECLINED (Hangup by: user)",
+                "recipients": [
+                    {
+                        "status": "failed",
+                        "attempts": [{"status": "failed", "transcript_turns": []}],
+                    }
+                ],
+            }
+        )
+
+        self.assertEqual(outcome.status, "DECLINED")
+        self.assertEqual(outcome.detail["failure_code"], "call_failed")
+        self.assertEqual(outcome.detail["status_source"], "failure_message")
+        self.assertIsNone(outcome.transcript)
+        # The foreign free-text message is parsed, never stored.
+        self.assertNotIn("Hangup by", json.dumps(outcome.detail))
+
+    def test_a_refusal_recovered_this_way_is_not_dialled_again(self) -> None:
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        sample = self.connection.execute(
+            "SELECT id, time_window FROM sample"
+        ).fetchone()
+        outcome = CallOutcome(
+            status="DECLINED",
+            run_id="rest-call-declined",
+            structured_result=None,
+            detail={"transport": "live-api", "status_source": "failure_message"},
+        )
+        rules = ContactRules(attempts_per_person=2)
+        client = FixtureCallClient.from_file(OUTCOMES)
+        study = get_study(self.connection, "study")
+        with patch.object(client, "call", return_value=outcome):
+            first = run_day(
+                self.connection, study, sample["time_window"], 3, client, rules
+            )
+            second = run_day(
+                self.connection, study, sample["time_window"], 3, client, rules
+            )
+
+        self.assertEqual(first["DECLINED"], 1)
+        self.assertEqual(sum(second.values()), 0)
+        self.assertEqual(
+            self.connection.execute("SELECT COUNT(*) AS n FROM attempt").fetchone()["n"],
+            1,
+        )
 
     def test_random_draw_assigns_windows_and_every_sample_is_attempted_once(self) -> None:
         self.import_rows()

@@ -399,7 +399,7 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
             f"- Consented interview results available: {response_count}",
             f"- `asked_verbatim=true` reported: {reported_true}",
             f"- Actual returned wording exactly matched the questionnaire: {exact_matches}",
-            f"- Nested `result.transcript` records audited in memory: {transcript_audits}",
+            f"- Transcript records audited in memory: {transcript_audits}",
             f"- Transcript audits containing every expected quoted sentence: {transcript_exact}",
             "",
         ]
@@ -416,7 +416,7 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
         )
     if live_observed:
         lines.append(
-            "Live API results are present. Schema wording fields are agent-reported; the separate transcript audit uses the measured `[mm:ss] SPEAKER: Text` string from `result.transcript`. Full transcripts are not persisted."
+            "Live API results are present. Schema wording fields are agent-reported; the separate transcript audit reads the turns the recipient's attempt recorded (`transcript_turns`), or the `result.transcript` string where the API returns one, and renders them as `[mm:ss] SPEAKER: Text` lines. Each attempt records which of the two it used. Full transcripts are not persisted."
         )
     else:
         lines.append(

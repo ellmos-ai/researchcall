@@ -51,7 +51,12 @@ Telefonanrufe ueber CALL-E ausloesen und Ergebnisse einsammeln.
   ueber die REST-API (`POST /v1/calls`), nicht ueber MCP.
 - REST und MCP fuehren **getrennte ID-Raeume**, teilen sich aber die Abrechnung.
 - `status` taugt nicht als Fortschrittsanzeige; der Verlauf steht in `activity`.
-- Transkript in `result.transcript`, Format `[mm:ss] SPRECHER: Text`.
+- Transkript: Liste `transcript_turns` unter `recipients[].attempts[]` (REST, gemessen
+  2026-08-11); der String `result.transcript` kann fehlen. Beides wird zu
+  `[mm:ss] SPRECHER: Text` gerendert.
+- Eine Mailbox meldet `completed`, eine Ablehnung meldet `failed` mit `status=DECLINED`
+  im Freitext `failure_message`. Beides wird vor der Auswertung berichtigt —
+  siehe FINDINGS.md, Abschnitt 9.
 - ~40 Sekunden Vorlauf je Anruf. Parallelitaet ungeprueft.
 - Kosten 0,05 USD je Anruf. Der Sprach-Agent laeuft bei CALL-E/AiRudder in Singapur —
   alles, was in den Auftrag geschrieben wird, verlaesst das Haus.
