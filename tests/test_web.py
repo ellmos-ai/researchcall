@@ -631,6 +631,34 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertLess(data_panel, content_end)
         self.assertEqual(page.count("<main>"), 1)
 
+    def test_the_transcript_retention_answer_travels_with_the_study(self) -> None:
+        """What the researcher answers in station 6 has to reach the run.
+
+        The default keeps the transcript, matching the form definition and the
+        user decision of 2026-08-11; unticking the box has to switch it off for
+        real, not only in the saved answer.
+        """
+        from researchcall.web import field_phase
+
+        self.finish_all()
+        questionnaire, _ = field_phase.build(
+            Workspace.load(self.directory), self.fields
+        )
+        self.assertTrue(questionnaire["run_rules"]["keep_transcript"])
+
+        body = (
+            self.payload("06-fieldwork", **{"fieldwork.keep_transcript": ""})
+            + "&action=complete"
+        )
+        response = self.client.post(
+            "/station/06-fieldwork?lang=en", content=body, headers=FORM_ENCODED
+        )
+        self.assertEqual(response.status_code, 200)
+        questionnaire, _ = field_phase.build(
+            Workspace.load(self.directory), self.fields
+        )
+        self.assertFalse(questionnaire["run_rules"]["keep_transcript"])
+
     def test_the_report_says_so_when_no_field_phase_has_run(self) -> None:
         self.assertIn("nothing to report", self.client.get("/report?lang=en").text)
         self.assertEqual(self.client.get("/report.md").status_code, 404)

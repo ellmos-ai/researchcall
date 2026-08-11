@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 
@@ -17,6 +18,11 @@ sys.path.insert(0, str(ROOT / "src"))
 from researchcall import cli
 from researchcall.calls import CallOutcome, FixtureCallClient, LiveCallClient
 from researchcall.database import connect, create_study, get_study, initialize
+from researchcall.dataphase import (
+    anonymise_deliberately,
+    call_detail,
+    seal_dataset,
+)
 from researchcall.questionnaire import (
     build_task,
     load_questionnaire_file,
@@ -219,24 +225,56 @@ class ResearchCallTestCase(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "CALLE_API_KEY"):
                 LiveCallClient.from_environment()
 
-    def test_transcript_is_audited_in_memory_but_not_persisted(self) -> None:
+    def call_with_transcript(
+        self,
+        transcript_lines: list[str] | None = None,
+        keep_transcript: bool | None = None,
+    ) -> tuple[dict[str, Any], str]:
+        """Run one call whose transcript is given, and return (detail, transcript).
+
+        The retention decision travels with the study, so it is written into the
+        stored questionnaire before the run — the same way the workbench records
+        every other run rule.
+        """
         self.import_rows(1)
         draw_sample(self.connection, self.study_id, 1, 3)
         sample = self.connection.execute(
             "SELECT id, time_window FROM sample"
         ).fetchone()
+        if keep_transcript is not None:
+            self.connection.execute(
+                "UPDATE study SET questionnaire_json = ? WHERE id = ?",
+                (
+                    json.dumps(
+                        {
+                            **self.questionnaire,
+                            "run_rules": {"keep_transcript": keep_transcript},
+                        },
+                        ensure_ascii=False,
+                    ),
+                    self.study_id,
+                ),
+            )
+            self.connection.commit()
         fixture_client = FixtureCallClient.from_file(OUTCOMES)
         fixture_outcome = fixture_client.call(
             {"sample_id": sample["id"]}, self.questionnaire, "unused"
         )
-        transcript_lines = [
-            f'[00:00] BOT: {self.questionnaire["consent_text"]}',
-            '[00:04] USER: Ja.',
-        ]
-        for index, question in enumerate(self.questionnaire["questions"], start=1):
-            transcript_lines.append(f"[00:{index * 5:02d}] BOT: {question['wording']}")
-            raw_answer = fixture_outcome.structured_result["raw_answers"][question["id"]]
-            transcript_lines.append(f"[00:{index * 5 + 2:02d}] USER: {raw_answer}")
+        if transcript_lines is None:
+            transcript_lines = [
+                f'[00:00] BOT: {self.questionnaire["consent_text"]}',
+                "[00:04] USER: Ja.",
+            ]
+            for index, question in enumerate(self.questionnaire["questions"], start=1):
+                transcript_lines.append(
+                    f"[00:{index * 5:02d}] BOT: {question['wording']}"
+                )
+                raw_answer = fixture_outcome.structured_result["raw_answers"][
+                    question["id"]
+                ]
+                transcript_lines.append(
+                    f"[00:{index * 5 + 2:02d}] USER: {raw_answer}"
+                )
         transcript = "\n".join(transcript_lines)
         live_outcome = CallOutcome(
             status="COMPLETED",
@@ -245,28 +283,123 @@ class ResearchCallTestCase(unittest.TestCase):
             detail={"transport": "live-api"},
             transcript=transcript,
         )
-
         with patch.object(fixture_client, "call", return_value=live_outcome):
-            totals = run_day(
+            run_day(
                 self.connection,
                 get_study(self.connection, "study"),
                 sample["time_window"],
                 1,
                 fixture_client,
             )
-
-        self.assertEqual(totals["COMPLETED"], 1)
         detail_json = self.connection.execute(
             "SELECT detail_json FROM attempt WHERE sample_id = ?", (sample["id"],)
         ).fetchone()["detail_json"]
-        detail = json.loads(detail_json)
+        return json.loads(detail_json), transcript
+
+    def test_transcript_is_audited_and_kept_with_the_attempt(self) -> None:
+        """User decision of 2026-08-11: transcripts are stored, not discarded.
+
+        The review queue promises transcript and answer side by side, so the
+        verbatim text has to survive the call. It reaches the review surface
+        through the attempt detail, which is also what a withdrawal erases.
+        """
+        detail, transcript = self.call_with_transcript()
+
         self.assertEqual(detail["transcript_format"], "timestamped-speaker-lines")
         self.assertTrue(detail["transcript_wording_matches"])
-        self.assertFalse(detail["transcript_persisted"])
-        self.assertNotIn(transcript, detail_json)
+        self.assertTrue(detail["transcript_persisted"])
+        self.assertEqual(detail["transcript"], transcript)
+        sample_id = int(
+            self.connection.execute("SELECT id FROM sample").fetchone()["id"]
+        )
+        shown = call_detail(self.connection, self.study_id, sample_id)
+        self.assertEqual(shown["attempts"][0]["transcript"], transcript)
         report = build_report(self.connection, get_study(self.connection, "study"))
         self.assertIn("Categorized answers with retained raw source text: 3", report)
         self.assertIn("Transcript records audited in memory: 1", report)
+
+    def test_a_switched_off_retention_stores_nothing_but_still_audits(self) -> None:
+        """`fieldwork.keep_transcript: false` is a real switch, not decoration."""
+        detail, transcript = self.call_with_transcript(keep_transcript=False)
+
+        self.assertNotIn("transcript", detail)
+        self.assertFalse(detail["transcript_persisted"])
+        self.assertEqual(detail["transcript_format"], "timestamped-speaker-lines")
+        self.assertTrue(detail["transcript_wording_matches"])
+        self.assertEqual(detail["gates_seen"], ["consent_question"])
+        self.assertNotIn(transcript.splitlines()[1], json.dumps(detail))
+
+    def test_a_stored_transcript_never_carries_an_unmasked_number(self) -> None:
+        detail, _ = self.call_with_transcript(
+            [
+                "[00:00] BOT: Sie erreichen uns unter +15550123456.",
+                "[00:05] USER: Meine Nummer ist +49 151 23456789, rufen Sie da an.",
+                "[00:09] USER: Oder 015123456789.",
+            ]
+        )
+
+        stored = json.dumps(detail, ensure_ascii=False)
+        self.assertNotIn("+15550123456", stored)
+        self.assertNotIn("+49 151 23456789", stored)
+        self.assertNotIn("015123456789", stored)
+        self.assertIn("[number removed]", detail["transcript"])
+        # No dangling plus sign: the dialed number is removed as one piece,
+        # whichever of its two written forms the transcript happens to carry.
+        self.assertNotIn("+[number removed]", detail["transcript"])
+
+    def test_redaction_leaves_ordinary_numbers_in_answers_alone(self) -> None:
+        """The masking must not quietly rewrite the raw answers it protects.
+
+        `keep_raw_answer` is locked in the form definitions: the raw wording is
+        the only thing that makes a returned category auditable. A redaction that
+        eats years, times or frequencies would destroy exactly that, silently.
+        """
+        spoken = (
+            "[00:04] USER: Seit 2019, zwei bis drei Mal pro Woche, "
+            "meist gegen 17:37 Uhr, Hausnummer 12, Linie 3."
+        )
+        detail, _ = self.call_with_transcript(
+            [f'[00:00] BOT: {self.questionnaire["consent_text"]}', spoken]
+        )
+
+        self.assertIn(spoken, detail["transcript"])
+
+    def test_withdrawal_erases_the_stored_transcript(self) -> None:
+        detail, transcript = self.call_with_transcript()
+        self.assertIn("transcript", detail)
+        frame = self.connection.execute(
+            "SELECT external_ref FROM frame LIMIT 1"
+        ).fetchone()
+
+        withdraw_external_ref(self.connection, self.study_id, frame["external_ref"])
+
+        stored = " ".join(
+            str(row["detail_json"])
+            for row in self.connection.execute("SELECT detail_json FROM attempt")
+        )
+        self.assertNotIn(transcript, stored)
+        self.assertNotIn("Ja.", stored)
+
+    def test_deliberate_anonymisation_erases_the_stored_transcript(self) -> None:
+        """Cutting the link removes the spoken words too — even after sealing."""
+        _, transcript = self.call_with_transcript()
+        frame = self.connection.execute(
+            "SELECT external_ref FROM frame LIMIT 1"
+        ).fetchone()
+        seal_dataset(self.connection, self.study_id, "field phase finished")
+
+        anonymise_deliberately(
+            self.connection,
+            self.study_id,
+            frame["external_ref"],
+            "participant asked for the link to be cut",
+        )
+
+        stored = " ".join(
+            str(row["detail_json"])
+            for row in self.connection.execute("SELECT detail_json FROM attempt")
+        )
+        self.assertNotIn(transcript, stored)
 
     # --- Live payload shapes measured against GET /v1/calls/{id} on 2026-08-11 ---
 
@@ -395,7 +528,7 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertTrue(detail["transcript_wording_matches"])
         self.assertEqual(detail["gates_seen"], ["consent_question"])
         self.assertEqual(detail["gates_missed"], [])
-        self.assertFalse(detail["transcript_persisted"])
+        self.assertTrue(detail["transcript_persisted"])
 
     def test_mailbox_pickup_is_not_counted_as_an_interview(self) -> None:
         payload = self.completed_payload(

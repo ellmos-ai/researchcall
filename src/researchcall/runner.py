@@ -14,7 +14,7 @@ from .instrument import for_call
 from .phrases import audit_transcript, phrases_from_questionnaire
 from .questionnaire import validate_structured_result, wording_matches
 from .review import open_review, reasons_for_attempt
-from .safety import idempotency_key, validate_e164
+from .safety import idempotency_key, redact_phone_numbers, validate_e164
 
 
 TRANSCRIPT_LINE_RE = re.compile(
@@ -69,6 +69,18 @@ class CallClient(Protocol):
         questionnaire: dict[str, Any],
         idempotency_key: str,
     ) -> CallOutcome: ...
+
+
+def _keeps_transcript(questionnaire: dict[str, Any]) -> bool:
+    """Whether this study keeps the spoken words, per ``fieldwork.keep_transcript``.
+
+    The switch is answered in the workbench and travels with the study in
+    ``run_rules``. It defaults to keeping: a study drawn before the decision
+    existed, or run from the command line without the workbench, gets the same
+    behaviour as the form definition's own default.
+    """
+    rules = questionnaire.get("run_rules") or {}
+    return bool(rules.get("keep_transcript", True))
 
 
 def _detail_of(raw: Any) -> dict[str, Any]:
@@ -299,7 +311,18 @@ def _finish_attempt(
         detail["transcript_format"] = (
             "timestamped-speaker-lines" if format_valid else "unrecognized"
         )
-        detail["transcript_persisted"] = False
+        # The verbatim transcript is kept with the attempt, which is what the
+        # review queue reads: a person judging a call sees the spoken words
+        # beside the coded answer instead of a verdict alone. It travels with
+        # the rest of the record, so a withdrawal erases it along with the
+        # answers. Numbers are removed first — a transcript is the one place a
+        # dialable number can arrive as spoken text.
+        keep = _keeps_transcript(questionnaire)
+        detail["transcript_persisted"] = keep
+        if keep:
+            detail["transcript"] = redact_phone_numbers(
+                outcome.transcript, str(sample.get("phone_e164") or "")
+            )
         if format_valid and structured is not None and response_error is None:
             bot_utterances = [
                 match.group("text")

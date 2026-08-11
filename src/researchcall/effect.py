@@ -175,9 +175,10 @@ EFFECTS: dict[str, tuple[str, str]] = {
     ),
     "fieldwork.keep_raw_answer": (FRAME, "Raw wording is always kept beside the coding."),
     "fieldwork.keep_transcript": (
-        DECLARED,
-        "Transcripts are never written to disk in this build, so there is nothing "
-        "here to switch off; the audit already happens in memory only.",
+        ANALYSIS,
+        "On, the verbatim transcript is stored with the attempt and shown beside "
+        "the answer in the review; off, only the audit flags remain. Numbers are "
+        "removed either way, and a withdrawal erases the text with the record.",
     ),
     "fieldwork.poll_interval_seconds": (
         DECLARED,

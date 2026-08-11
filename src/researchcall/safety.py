@@ -44,6 +44,34 @@ def mask_phone(phone: str) -> str:
     return f"+***{visible}"
 
 
+#: Deliberately narrow: an E.164-shaped sequence, or a bare run of at least nine
+#: digits. Everything a respondent plausibly says stays untouched — a year, a
+#: time of day, a house number, "two to three times a week". Widening this would
+#: quietly rewrite the raw answers that make a returned category auditable, and
+#: keeping those intact is a locked decision in the form definitions.
+PHONE_IN_TEXT_RE = re.compile(r"\+\d[\d\s./()-]{5,17}\d|(?<!\d)\d{9,15}(?!\d)")
+
+NUMBER_REMOVED = "[number removed]"
+
+
+def redact_phone_numbers(text: str, known: str = "") -> str:
+    """Remove dialable numbers from free text that is about to be stored.
+
+    Transcripts are kept from 2026-08-11 on, which makes them the one place a
+    number can reach the database as spoken words. The dialed number is known at
+    that moment, so it is removed by name as well as by pattern: an agent that
+    reads it back without a plus sign would otherwise slip past the shape rule.
+    """
+    if not text:
+        return text
+    # Longest first, and in a fixed order: replacing the bare digits before the
+    # form with the plus sign would leave a dangling "+" behind, and the result
+    # would depend on iteration order rather than on the text.
+    for variant in sorted({known, known.lstrip("+")} - {""}, key=len, reverse=True):
+        text = text.replace(variant, NUMBER_REMOVED)
+    return PHONE_IN_TEXT_RE.sub(NUMBER_REMOVED, text)
+
+
 def idempotency_key(study_key: str, sample_id: int, attempt_no: int = 1) -> str:
     """A stable key per attempt.
 

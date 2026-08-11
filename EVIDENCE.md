@@ -786,3 +786,51 @@ of the rail. The isolated server was stopped after the readback.
 - No CALL-E credential, real call, live transport, webhook, or external network
   request was used.
 - No push, publication, upload, release, or DevPost action was performed.
+
+## Transport correction and transcript retention — 2026-08-11
+
+Two changes in this repository, both driven from outside the code: the first by
+measurements against the live REST API (recorded in `FINDINGS.md`, section 9),
+the second by a user decision, quoted verbatim:
+
+> „natürlich müssen transkripte gespeichert werden bei researchcall, wir
+> anonymisieren bereits die zuordnung später"
+
+Executed here, no CALL-E credential, no call, no network request:
+
+```text
+python -m pytest -q      # before:  191 passed, 506 subtests
+python -m pytest -q      # transport fixes:  199 passed, 506 subtests
+python -m pytest -q      # transcript retention: 206 passed, 506 subtests
+python -m ruff check src/researchcall/calls.py src/researchcall/reporting.py
+                         # All checks passed
+```
+
+What the new tests establish:
+
+- A live transcript arriving as `transcript_turns` reaches both after-call
+  audits; the assertion is made on the persisted attempt, not on the outcome
+  object, because a transcript that reaches no audit would otherwise pass.
+- A mailbox pickup returning `status=completed` is filed as `VOICEMAIL`, and a
+  consented interview is never reclassified.
+- `DECLINED` is recovered from `failure_message` and such a record is not
+  dialled again.
+- The verbatim transcript is stored with its attempt, is shown by the review
+  surface, carries no unmasked number, leaves ordinary numbers in answers
+  untouched, and is erased by withdrawal and by deliberate anonymisation —
+  the latter tested on a sealed dataset.
+- `fieldwork.keep_transcript=false` stores nothing and still audits.
+
+Note on the record above: the test named
+`test_transcript_is_audited_in_memory_but_not_persisted`, whose output appears
+twice earlier in this file, was renamed to
+`test_transcript_is_audited_and_kept_with_the_attempt` on 2026-08-11 and its
+assertion inverted. The earlier output remains as it was recorded; it documents
+the behaviour of that run, not of the current build.
+
+## Not executed in this round
+
+- No CALL-E credential, real call, live transport, webhook, or external network
+  request. The live payload shapes used in the tests come from the operator's
+  measurements in `FINDINGS.md`, section 9.
+- No push, publication, upload, release, or DevPost action.

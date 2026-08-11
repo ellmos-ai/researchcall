@@ -256,8 +256,11 @@ researchcall --db survey.db withdraw --study mobility-2026 --external-ref partic
 ```
 
 Berichte enthalten nur Kennungen und Aggregate, nie Namen oder unmaskierte Rufnummern. Das
-Werkzeug speichert kein Transkript und sendet keine Vorgeschichte, keine Namen, keine Adressen
-und keine ungenutzten Rahmenattribute an CALL-E.
+Transkript wird seit dem 2026-08-11 beim Versuch gespeichert, damit die Prüfung die gesprochenen
+Worte neben der kodierten Antwort lesen kann; `fieldwork.keep_transcript` schaltet das je Studie
+ab. Wählbare Nummern werden vor dem Speichern aus dem Text entfernt, kein Bericht und kein Export
+druckt Transkripttext, und ein Widerruf löscht ihn mit den Antworten. An CALL-E gehen weiterhin
+keine Vorgeschichte, keine Namen, keine Adressen und keine ungenutzten Rahmenattribute.
 
 ## Sicherheitsgatter für Live-Anrufe
 
@@ -284,7 +287,8 @@ eine bereinigte Ereigniszahl aus, keinen Text, keine Nummern, keine Antworten. D
 wird nach Abschluss aus den Gesprächszügen des Versuchs gelesen
 (`recipients[].attempts[].transcript_turns`), ersatzweise aus dem String `result.transcript`
 (das oberste Feld `transcript` war in beiden Messungen `null`); beides wird zu denselben
-`[mm:ss] SPRECHER: Text`-Zeilen gerendert, im Arbeitsspeicher geprüft und **nicht** gespeichert.
+`[mm:ss] SPRECHER: Text`-Zeilen gerendert, geprüft und — nummernbereinigt — beim Versuch
+gespeichert.
 
 Zwei Ausgänge werden vor dem Zählen berichtigt, weil der Dienst sie so meldet, dass die
 Ausschöpfung sonst falsch aussieht: Eine Mailbox, die abnimmt, kommt als `completed` zurück —

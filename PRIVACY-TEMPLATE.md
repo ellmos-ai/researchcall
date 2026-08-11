@@ -39,7 +39,7 @@ Research participation consent and GDPR consent are not automatically the same i
 
 - **Web workbench:** fixture-only; it stores one filesystem workspace on the application host and cannot place a live call.
 - **Dry-run CLI:** uses local fixtures and SQLite.
-- **Live CLI, if enabled:** sends the selected raw phone number, exact questionnaire/consent task, result schemas, locale and pseudonymous sample ID to the configured CALL-E endpoint. It receives structured results and a transcript. The full transcript is checked in memory but is not persisted by ResearchCall.
+- **Live CLI, if enabled:** sends the selected raw phone number, exact questionnaire/consent task, result schemas, locale and pseudonymous sample ID to the configured CALL-E endpoint. It receives structured results and a transcript. The transcript is checked and then stored with the attempt in the local database so a reviewer can read it beside the coded answer; `fieldwork.keep_transcript` switches that off per study. Dialable numbers are removed from the text before storing, and a withdrawal erases it with the rest of the record.
 
 Deployment/study choice: `[REPLACE: modes actually used]`.
 
@@ -66,7 +66,8 @@ Sampling-frame data come from `[REPLACE: source and whether publicly accessible]
 | Imported external reference and phone | `[REPLACE; implement/test schedule]` |
 | Attempt/run metadata | `[REPLACE]` |
 | Structured answers and raw free text | `[REPLACE]` |
-| Full transcript at CALL-E | `[REPLACE from verified provider terms; ResearchCall does not persist it locally]` |
+| Full transcript at CALL-E | `[REPLACE from verified provider terms]` |
+| Transcript stored locally | `[REPLACE: retention and deletion point; ResearchCall keeps it with the attempt unless `fieldwork.keep_transcript` is off, and erases it on withdrawal]` |
 | Workbench JSON, reports and exports | `[REPLACE]` |
 | Logs and backups | `[REPLACE: fields, cycle and irreversible deletion point]` |
 
