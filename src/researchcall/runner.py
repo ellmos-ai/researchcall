@@ -10,6 +10,9 @@ from typing import Any, Protocol
 from .calls import CallOutcome, TERMINAL_STATUSES
 from .coding import apply_unlisted_policy
 from .database import load_questionnaire, transaction, utc_now
+from .field_trial import marks as field_trial_marks
+from .field_trial import routed as field_trial_routed
+from .field_trial import trial_phone
 from .instrument import for_call
 from .phrases import audit_transcript, phrases_from_questionnaire
 from .questionnaire import (
@@ -303,6 +306,7 @@ def _finish_attempt(
             response_error = str(error)
 
     detail = dict(outcome.detail)
+    detail.update(field_trial_marks(sample.get("field_trial_number")))
     if coding_notes:
         detail["coded_by_rule"] = coding_notes
     if structured is not None and response_error is None:
@@ -329,8 +333,14 @@ def _finish_attempt(
         keep = _keeps_transcript(questionnaire)
         detail["transcript_persisted"] = keep
         if keep:
-            detail["transcript"] = redact_phone_numbers(
+            text = redact_phone_numbers(
                 outcome.transcript, str(sample.get("phone_e164") or "")
+            )
+            # In a field trial the line that was actually dialled is a real
+            # person's private number, so it is named explicitly rather than
+            # left to the shape rule.
+            detail["transcript"] = redact_phone_numbers(
+                text, str(sample.get("field_trial_number") or "")
             )
         if format_valid and structured is not None and response_error is None:
             bot_utterances = [
@@ -497,6 +507,9 @@ def run_day(
 ) -> Counter[str]:
     if limit <= 0:
         raise ValueError("Daily quota must be positive")
+    # Read once, before a single record is claimed: a set-but-unusable trial
+    # number must stop the run at the start, not halfway through it.
+    field_trial_number = trial_phone()
     questionnaire = load_questionnaire(study)
     run_started_at = utc_now()
     totals: Counter[str] = Counter()
@@ -505,9 +518,12 @@ def run_day(
         sample = _claim_next(connection, study, time_window, rules, run_started_at)
         if sample is None:
             break
+        sample["field_trial_number"] = field_trial_number
         try:
             outcome = client.call(
-                sample, for_call(questionnaire, sample["sample_id"]), sample["idempotency_key"]
+                field_trial_routed(sample, field_trial_number),
+                for_call(questionnaire, sample["sample_id"]),
+                sample["idempotency_key"],
             )
             _finish_attempt(connection, sample, questionnaire, outcome)
         except KeyboardInterrupt as error:

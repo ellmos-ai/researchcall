@@ -126,9 +126,28 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
     rules = questionnaire.get("run_rules") or {}
     allowed = 1 + int(rules.get("attempts_per_person", 0) or 0)
 
+    # A rehearsal must not read like a study. When calls were routed to one
+    # briefed line, that stands above every rate below, not in a footnote:
+    # the records are separate people, the person on the phone was not.
+    routed = [
+        _detail(row["detail_json"]) for row in attempt_rows
+    ]
+    routed = [detail for detail in routed if detail.get("field_trial_routed")]
+    trial_note: list[str] = []
+    if routed:
+        line = str(routed[-1].get("field_trial_number") or "a briefed test number")
+        trial_note = [
+            f"> **Field trial: {len(routed)} of {len(attempt_rows)} attempts were "
+            f"routed to one briefed test line ({line}).** Every record below is a "
+            f"separate drawn person, but the same human answered each call. Read "
+            f"the rates as a rehearsal of the procedure, never as survey results.",
+            "",
+        ]
+
     lines = [
         f"# ResearchCall report: {study['title']}",
         "",
+        *trial_note,
         "## Fieldwork summary",
         "",
         f"- Drawn records: {len(samples)}",

@@ -35,11 +35,26 @@ OPTIONAL_RESULT_FIELDS = {"refusal_reason", "callback_wanted"}
 #: :func:`validate_structured_result` instead, where the consent value is known.
 SCHEMA_REQUIRED_RESULT_FIELDS = REQUIRED_RESULT_FIELDS - {"spoken_consent_wording"}
 
+#: Spoken language by code. Measured in a sister project on 2026-08-11: a
+#: sentence quoted in English is spoken in English even when the call locale
+#: says German — the agent quotes what it is given. Everything quoted here comes
+#: from the researcher's own instrument and is therefore already in the study
+#: language, but the framing around it is English, so the task says out loud
+#: which language the conversation is held in. The code alone would not do: it
+#: would put "conduct the conversation in de" into the instruction.
+LANGUAGE_NAMES = {"de": "German", "en": "English"}
+
 #: What an answer becomes when it fits none of the fixed categories and the
 #: analysis rule says to keep it as "other". It is deliberately not a category of
 #: the instrument: the instrument stays as it was written, and the report can
 #: show how often the rule had to be applied.
 UNLISTED_CODE = "__unlisted__"
+
+
+def language_name(code: str) -> str:
+    """The spoken language, written out for the instruction."""
+    base = str(code or "").lower().split("-")[0]
+    return LANGUAGE_NAMES.get(base, f"the language with the code {code}")
 
 
 def _task_label(value: str) -> str:
@@ -210,6 +225,9 @@ def build_task(questionnaire: dict[str, Any]) -> str:
         "Conduct one standardized scientific telephone interview.",
         "STRICT STANDARDIZATION: Say every quoted sentence exactly as written. Do not paraphrase, summarize, embellish, or add spontaneous probes.",
         "Ask for consent first. If consent is not granted, thank the person and end the interview without asking survey questions.",
+        f"CONVERSATION LANGUAGE: Conduct the entire call in "
+        f"{language_name(questionnaire.get('language', ''))}; every sentence spoken "
+        f"aloud must be in that language, including the parts you phrase yourself.",
     ]
 
     opening = questionnaire.get("opening") or []

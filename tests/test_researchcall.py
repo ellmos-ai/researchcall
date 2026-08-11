@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from researchcall import cli
 from researchcall.calls import CallOutcome, FixtureCallClient, LiveCallClient
 from researchcall.database import connect, create_study, get_study, initialize
+from researchcall.field_trial import ENV_VAR as FIELD_TRIAL_ENV
 from researchcall.dataphase import (
     anonymise_deliberately,
     call_detail,
@@ -428,6 +429,187 @@ class ResearchCallTestCase(unittest.TestCase):
             for row in self.connection.execute("SELECT detail_json FROM attempt")
         )
         self.assertNotIn(transcript, stored)
+
+    # --- Field trial: many played people, one consenting number ---------------
+
+    def dialing_client(self, transcript: str | None = None) -> Any:
+        """A client that records the number it was handed, and answers COMPLETED."""
+        questionnaire = self.questionnaire
+        fixture = FixtureCallClient.from_file(OUTCOMES)
+
+        class RecordingClient:
+            dialed: list[str] = []
+
+            def call(self, sample, asked, idempotency_key):
+                RecordingClient.dialed.append(sample["phone_e164"])
+                structured = fixture.call(
+                    {"sample_id": 1}, questionnaire, idempotency_key
+                ).structured_result
+                return CallOutcome(
+                    status="COMPLETED",
+                    run_id=f"trial-{sample['sample_id']}",
+                    structured_result=structured,
+                    detail={"transport": "live-api"},
+                    transcript=transcript,
+                )
+
+        RecordingClient.dialed = []
+        return RecordingClient()
+
+    def test_a_field_trial_dials_one_number_while_the_people_stay_apart(self) -> None:
+        """Three drawn people, one consenting line — and still three records.
+
+        The frame refuses the same number twice, on purpose, so a trial cannot
+        be built by importing one number three times. The substitution therefore
+        happens on the wire only: identities, samples and attempts stay separate.
+        """
+        self.import_rows(3)
+        draw_sample(self.connection, self.study_id, 3, 5)
+        client = self.dialing_client()
+        with patch.dict("os.environ", {FIELD_TRIAL_ENV: "+4915100000000"}, clear=False):
+            for window in DEFAULT_WINDOWS:
+                run_day(
+                    self.connection,
+                    get_study(self.connection, "study"),
+                    window,
+                    3,
+                    client,
+                )
+
+        self.assertEqual(client.dialed, ["+4915100000000"] * 3)
+        frame_numbers = {
+            row["phone_e164"]
+            for row in self.connection.execute("SELECT phone_e164 FROM frame")
+        }
+        self.assertEqual(len(frame_numbers), 3)
+        details = [
+            json.loads(row["detail_json"])
+            for row in self.connection.execute("SELECT detail_json FROM attempt")
+        ]
+        self.assertEqual(len(details), 3)
+        for detail in details:
+            self.assertTrue(detail["field_trial_routed"])
+            self.assertEqual(detail["field_trial_number"], "+***00")
+            self.assertNotIn("+4915100000000", json.dumps(detail))
+
+    def test_an_unusable_field_trial_number_refuses_the_whole_run(self) -> None:
+        """Fail-closed: the one case where guessing would dial a stranger."""
+        self.import_rows(2)
+        draw_sample(self.connection, self.study_id, 2, 5)
+        client = self.dialing_client()
+        with patch.dict("os.environ", {FIELD_TRIAL_ENV: "0151 nonsense"}, clear=False):
+            with self.assertRaisesRegex(ValueError, FIELD_TRIAL_ENV):
+                run_day(
+                    self.connection,
+                    get_study(self.connection, "study"),
+                    DEFAULT_WINDOWS[0],
+                    2,
+                    client,
+                )
+
+        self.assertEqual(client.dialed, [])
+        self.assertEqual(
+            self.connection.execute("SELECT COUNT(*) AS n FROM attempt").fetchone()["n"],
+            0,
+        )
+
+    def test_a_played_withdrawal_does_not_end_the_field_trial(self) -> None:
+        """The played person withdraws, the human on the line does not.
+
+        In a field trial one human plays every respondent. A withdrawal is part
+        of the role, so it purges that record — and the run goes on. Stopping
+        every further call would make the trial untestable at exactly the
+        outcome it most needs to rehearse. The real human's way out is not this
+        flag: it is Ctrl-C, the quota, or removing the variable.
+        """
+        self.import_rows(2)
+        draw_sample(self.connection, self.study_id, 2, 5)
+        fixture = FixtureCallClient.from_file(OUTCOMES)
+        structured = fixture.call({"sample_id": 1}, self.questionnaire, "unused").structured_result
+        withdrawing = json.loads(json.dumps(structured))
+        withdrawing["withdrawal_requested"] = True
+        outcomes = iter(
+            [
+                CallOutcome("COMPLETED", "trial-1", withdrawing, {"transport": "live-api"}),
+                CallOutcome("COMPLETED", "trial-2", structured, {"transport": "live-api"}),
+            ]
+        )
+
+        class SequenceClient:
+            dialed: list[str] = []
+
+            def call(self, sample, asked, idempotency_key):
+                SequenceClient.dialed.append(sample["phone_e164"])
+                return next(outcomes)
+
+        client = SequenceClient()
+        with patch.dict("os.environ", {FIELD_TRIAL_ENV: "+4915100000000"}, clear=False):
+            for window in DEFAULT_WINDOWS:
+                run_day(
+                    self.connection,
+                    get_study(self.connection, "study"),
+                    window,
+                    2,
+                    client,
+                )
+
+        self.assertEqual(SequenceClient.dialed, ["+4915100000000"] * 2)
+        self.assertEqual(
+            self.connection.execute("SELECT COUNT(*) AS n FROM attempt").fetchone()["n"],
+            2,
+        )
+
+    def test_a_field_trial_report_does_not_look_like_an_ordinary_study(self) -> None:
+        self.import_rows(2)
+        draw_sample(self.connection, self.study_id, 2, 5)
+        client = self.dialing_client()
+        with patch.dict("os.environ", {FIELD_TRIAL_ENV: "+4915100000000"}, clear=False):
+            for window in DEFAULT_WINDOWS:
+                run_day(
+                    self.connection, get_study(self.connection, "study"), window, 2, client
+                )
+
+        report = build_report(self.connection, get_study(self.connection, "study"))
+        self.assertIn("field trial", report.lower())
+        self.assertIn("2", report)
+        self.assertNotIn("+4915100000000", report)
+
+    def test_the_trial_number_never_reaches_the_stored_transcript(self) -> None:
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 5)
+        client = self.dialing_client(
+            transcript=(
+                "[00:00] BOT: Guten Tag.\n"
+                "[00:05] USER: Rufen Sie mich unter +4915100000000 zurueck."
+            )
+        )
+        with patch.dict("os.environ", {FIELD_TRIAL_ENV: "+4915100000000"}, clear=False):
+            for window in DEFAULT_WINDOWS:
+                run_day(
+                    self.connection, get_study(self.connection, "study"), window, 1, client
+                )
+
+        stored = " ".join(
+            str(row["detail_json"])
+            for row in self.connection.execute("SELECT detail_json FROM attempt")
+        )
+        self.assertNotIn("4915100000000", stored)
+        self.assertIn("[number removed]", stored)
+
+    def test_the_task_names_the_language_every_spoken_sentence_must_use(self) -> None:
+        """Measured in a sister project on 2026-08-11: quoted English stays English.
+
+        The voice agent speaks a quoted sentence exactly as written, whatever
+        the locale says. Everything quoted here comes from the researcher's own
+        instrument, but the framing around it is English, so the task has to
+        name the language the conversation is held in.
+        """
+        task = build_task(self.questionnaire)
+        self.assertIn("German", task)
+        self.assertIn("every sentence spoken aloud", task)
+
+        english = dict(self.questionnaire, language="en")
+        self.assertIn("English", build_task(english))
 
     # --- Schema shapes the API accepts (upstream issue #120) ------------------
 
@@ -940,6 +1122,21 @@ class ResearchCallTestCase(unittest.TestCase):
                 self.study_id,
                 [("person-a", "+15550123456"), ("person-b", "+15550123456")],
             )
+
+    def test_the_command_line_says_out_loud_that_a_trial_is_routing(self) -> None:
+        """An operator must never learn from the report that it was a rehearsal."""
+        workspace = Path(self.tempdir.name) / "trial-demo"
+        stdout = io.StringIO()
+        with patch.dict(
+            "os.environ", {FIELD_TRIAL_ENV: "+4915100000000"}, clear=False
+        ), contextlib.redirect_stdout(stdout):
+            code = cli.main(["demo", "--workspace", str(workspace), "--seed", "42"])
+
+        output = stdout.getvalue()
+        self.assertEqual(code, 0)
+        self.assertIn("field_trial=on", output)
+        self.assertIn("+***00", output)
+        self.assertNotIn("+4915100000000", output)
 
     def test_demo_runs_end_to_end_without_network(self) -> None:
         workspace = Path(self.tempdir.name) / "demo"

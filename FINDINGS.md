@@ -207,6 +207,27 @@ false`, `enum`, verschachtelte Objekte), ist ungeprüft — das Issue nennt nur 
 Union-Types. Ein Regressionstest läuft rekursiv über beide gesendeten Schemas und
 schlägt bei jedem Union-Type, `"type": "null"` und `null` in einem `enum` an.
 
+## 11. Wörtlich vorgegebene Sätze werden in ihrer eigenen Sprache gesprochen (Fremdbefund)
+
+**Quelle: Feldversuch im Schwesterprojekt hungrycall am 2026-08-11.** Wie §10 nicht
+selbst gemessen — hier wurde kein Anruf gemacht.
+
+Der Befund: Ein in Anführungszeichen vorgegebener **englischer** Satz wurde in einem
+ansonsten **deutschen** Anruf **englisch gesprochen**. Das `locale`-Feld des Auftrags
+ändert daran nichts. Das passt zu §4 (was in Anführungszeichen steht, wird zitiert) —
+und heißt: Der Agent übernimmt die Sprache des zitierten Satzes, nicht die des Anrufs.
+
+**Folge für ResearchCall:** Alle wörtlich zu sprechenden Teile (Einwilligungssatz,
+Fragen, Follow-ups) stammen ohnehin aus dem Instrument des Forschers und sind damit
+in der Studiensprache. Gefährlich ist das **englische Rahmenwerk** um sie herum: Der
+Auftragstext ist englisch, und was der Agent selbst formuliert (Begrüßung, Überleitung,
+Verabschiedung), folgt keiner Vorgabe. Deshalb sagt der Auftrag jetzt ausdrücklich,
+in welcher Sprache das Gespräch geführt wird — mit ausgeschriebenem Sprachnamen, nicht
+mit dem Code, sonst stünde dort „conduct the call in de".
+
+**Ungeprüft:** Ob die Direktive genügt oder ob auch die englischen Rahmenanweisungen
+übersetzt werden müssen. Das zeigt erst der erste Live-Anruf.
+
 ## Weiterhin ungeprüft
 
 - **Parallelität.** Ob mehrere Anrufe gleichzeitig laufen, ist offen. „concurrency

@@ -10,9 +10,11 @@ from typing import Sequence
 
 from .calls import OBSERVED_SETUP_SECONDS, FixtureCallClient, LiveCallClient
 from .database import connect, create_study, get_study, initialize
+from .field_trial import trial_phone
 from .questionnaire import load_questionnaire_file, validate_questionnaire
 from .reporting import build_report
 from .runner import run_day, withdraw_external_ref
+from .safety import mask_phone
 from .sampling import (
     DEFAULT_WINDOWS,
     draw_sample,
@@ -130,8 +132,22 @@ def _run_demo(workspace: Path, seed: int) -> None:
     print(f"report={report_path}")
 
 
+def _announce_field_trial() -> None:
+    """Say it before anything dials, and say it in every mode.
+
+    A rehearsal that looks like a study on screen is worse than no rehearsal:
+    the operator would have to read the report to find out which line was
+    actually called. The masked number is printed so the setting can be checked
+    against the briefed phone without putting it on screen.
+    """
+    number = trial_phone()
+    if number is not None:
+        print(f"field_trial=on routed_to={mask_phone(number)} people=unchanged")
+
+
 def run(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    _announce_field_trial()
     if args.command == "init":
         initialize(args.db)
         print(f"initialized={args.db}")
