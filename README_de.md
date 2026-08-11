@@ -294,6 +294,10 @@ Der Einwilligungssatz ist die **Frage**, mehr nicht. Früher trug er das Abbruch
 
 Damit sind die Art.-50-Lücken geschlossen, die `AI-ACT-STELLUNGNAHME.md` als offen führte — der erste echte Anruf machte keine dieser Angaben, und so sieht eine dokumentierte, aber unbehobene Lücke in der Praxis aus.
 
+### Welche Einstellung den Anruf erreicht — und welche nicht
+
+`PROMPT-MAP.md` führt jede Studien-Einstellung gegen den Ort, an dem sie wirkt: ein Satz im Auftrag, eine Regel im Lauf, oder gar nichts. Die Karte hat zwei Spalten statt einer — *landet es im Prompt* und *wird die Einhaltung geprüft* —, denn ein erzeugter Satz kann vom Agenten trotzdem verschluckt werden, und nur Gate-Phrasen werden hinterher gegen das Transkript gehalten. `tests/test_prompt_map.py` misst, was die Karte behauptet, samt vier vollständigen Auftragstexten als Golden-Files.
+
 ### Gesprächssprache
 
 Ein Sprach-Agent spricht einen zitierten Satz in der Sprache, in der er zitiert wurde — unabhängig vom `locale`-Feld (gemessen im Schwesterprojekt, festgehalten in `FINDINGS.md`). Alle zitierten Sätze hier stammen aus dem Instrument des Forschers und sind damit in der Studiensprache. Was ResearchCall drumherum beisteuert — Skalen-Ansage, Recht zu beenden, Einwilligungsfrage, Dauer, Herkunft der Nummer — liegt je Sprache vor, und der Auftrag trägt eine Sprachdirektive, geschrieben in eben dieser Sprache. Deutsch und Englisch sind gleichwertige Wege; eine Studiensprache ohne eigene Fassung bekommt eine englische Direktive, die die Sprache benennt, statt gar keiner. Wo ein Satz App-Teil und Freitext des Forschers mischt, verantwortet der Forscher den Freitext: das Werkzeug garantiert nur seine eigenen Teile.
