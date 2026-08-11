@@ -417,9 +417,12 @@ Beides steht jetzt im Boden: Umfang und Dauer („dauert etwa X Minuten und umfa
 zu** Y Fragen" — bei Filterlogik ist jede exakte Zahl eine mögliche Lüge) und ein
 Datenschutz-Satz aus dem neuen Pflichtfeld `ethics.privacy_short`. Der lange Hinweis
 bleibt daneben bestehen: Er soll Datenarten, Aufzeichnung, Löschweg und Ansprechpartner
-vollständig nennen, und das ist kein Telefonsatz. Die Dauer respektiert weiter ihren
-Schalter (`ethics.time_estimate`) — ein bedingungsloser Satz hätte eine wirksame
-Einstellung zur Attrappe gemacht.
+vollständig nennen, und das ist kein Telefonsatz. Die Dauer ist **Pflicht**: Auf die Frage, ob ein
+bedingungsloser Satz nicht den Schalter `ethics.time_estimate` zur Attrappe macht, hat
+der Nutzer entschieden — „wir hatten außerdem mal eine voraussichtliche dauer als
+PFLICHT" —, also wurde der **Schalter geschlossen** (`locked: true`, Effektklasse FRAME)
+statt den Satz zu bedingen. Das ist die saubere Auflösung: Eine Zusage, die immer fällt,
+darf kein Bedienelement haben.
 
 **E — Die Löschung blieb ungesagt.** Der Code löscht bei `withdrawal_requested`
 vollständig, sagt es der Person aber nicht. Neu im Boden: „Wenn Sie möchten, dass Ihre

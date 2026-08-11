@@ -65,8 +65,9 @@ EFFECTS: dict[str, tuple[str, str]] = {
     # --- 03 ethics -----------------------------------------------------------
     "ethics.instruction": (SCRIPT, "First spoken block, quoted word for word."),
     "ethics.time_estimate": (
-        SCRIPT,
-        "Speaks a duration computed from the instrument, not a typed guess.",
+        FRAME,
+        "Locked on user decision of 2026-08-11: every call states the duration "
+        "and the number of questions, computed from the instrument.",
     ),
     "ethics.privacy_text": (
         SCRIPT,

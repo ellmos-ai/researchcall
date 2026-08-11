@@ -270,7 +270,9 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertIn("Netzwerk deaktiviert · Fixture-Transport · keine echten Anrufe", german)
 
     def test_test_mode_never_supplies_or_reveals_a_locked_field(self) -> None:
-        self.assertEqual(len(self.locked), 11)
+        # 12 since 2026-08-11: the duration became a locked promise rather
+        # than a switch (user decision, FINDINGS section 14).
+        self.assertEqual(len(self.locked), 12)
         examples = test_mode.example_values(self.fields)
         self.assertEqual(set(examples), {field.path for field in self.fields if not field.locked})
         self.assertTrue(set(examples).isdisjoint(self.locked))

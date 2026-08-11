@@ -18,15 +18,15 @@
   station: 03-ethics
   label: "Zeitschätzung nennen"
   label_en: "State the expected duration"
-  question: "Soll die erwartete Dauer vor der Teilnahmeentscheidung genannt werden?"
-  question_en: "Should the expected duration be stated before the participation decision?"
+  question: ""
+  question_en: ""
   type: bool
   options: []
   default: true
-  help: "Die genannte Dauer ist ein Versprechen; der Fragebogen muss dazu passen."
-  help_en: "The stated duration is a promise; the questionnaire has to match it."
-  required: false
-  locked: false
+  help: "Nicht abschaltbar: Dauer und Fragenzahl werden vor der Teilnahmeentscheidung genannt."
+  help_en: "Not switchable: duration and number of questions are stated before the participation decision."
+  required: true
+  locked: true
 
 - field: ethics.commissioner
   station: 03-ethics
