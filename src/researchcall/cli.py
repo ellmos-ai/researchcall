@@ -62,6 +62,16 @@ def _parser() -> argparse.ArgumentParser:
     daily.add_argument("--fixture", type=Path, default=_fixture_path("outcomes.json"))
     daily.add_argument("--live", action="store_true")
     daily.add_argument(
+        "--rehearsal",
+        action="store_true",
+        help=(
+            "Run the machinery without spending the person: the attempt is "
+            "recorded and audited, but the record stays callable for its real "
+            "call, no number enters the dialed register, and a fixture's "
+            "withdrawal does not purge anybody. Refused together with --live."
+        ),
+    )
+    daily.add_argument(
         "--confirm-live",
         help='Live intent gate. Must exactly equal "CALL N", where N is --limit.',
     )
@@ -185,6 +195,11 @@ def run(argv: Sequence[str] | None = None) -> int:
         elif args.command == "run-day":
             study = get_study(connection, args.study)
             validate_questionnaire(json.loads(study["questionnaire_json"]))
+            if args.live and args.rehearsal:
+                raise ValueError(
+                    "--rehearsal is for the fixture transport; a live call is "
+                    "never a rehearsal"
+                )
             if args.live:
                 expected = f"CALL {args.limit}"
                 if args.confirm_live != expected:
@@ -205,7 +220,16 @@ def run(argv: Sequence[str] | None = None) -> int:
             else:
                 client = FixtureCallClient.from_file(args.fixture)
                 mode = "dry-run"
-            totals = run_day(connection, study, args.window, args.limit, client)
+            totals = run_day(
+                connection,
+                study,
+                args.window,
+                args.limit,
+                client,
+                rehearsal=args.rehearsal,
+            )
+            if args.rehearsal:
+                mode = "rehearsal"
             print(f"mode={mode} window={args.window} attempts={sum(totals.values())}")
             print("terminal_statuses=" + json.dumps(dict(sorted(totals.items())), separators=(",", ":")))
         elif args.command == "report":

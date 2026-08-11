@@ -14,7 +14,7 @@ from .field_trial import marks as field_trial_marks
 from .field_trial import routed as field_trial_routed
 from .field_trial import trial_phone
 from .instrument import for_call
-from .phrases import audit_transcript, phrases_from_questionnaire
+from .phrases import audit_transcript, bot_utterances, phrases_from_questionnaire
 from .questionnaire import (
     normalize_structured_result,
     validate_structured_result,
@@ -90,6 +90,27 @@ def _keeps_transcript(questionnaire: dict[str, Any]) -> bool:
     return bool(rules.get("keep_transcript", True))
 
 
+#: How much of a rejected result is worth keeping. Enough to see the shape and
+#: a few values, far too little to become a second copy of the interview.
+REJECTED_RESULT_CHARS = 2000
+
+
+def _rejected_shape(
+    result: dict[str, Any], keep_values: bool, known_number: str = ""
+) -> Any:
+    """A rejected result, reduced to what a person needs to judge it."""
+    if not keep_values:
+        return {
+            "fields": sorted(str(key) for key in result),
+            "types": {str(key): type(value).__name__ for key, value in sorted(result.items())},
+            "values_withheld": "fieldwork.keep_transcript is off",
+        }
+    rendered = json.dumps(result, ensure_ascii=False, sort_keys=True)[
+        :REJECTED_RESULT_CHARS
+    ]
+    return redact_phone_numbers(rendered, known_number)
+
+
 def _detail_of(raw: Any) -> dict[str, Any]:
     try:
         value = json.loads(raw or "{}")
@@ -129,6 +150,7 @@ def _claim_next(
     time_window: str,
     rules: ContactRules = DEFAULT_RULES,
     run_started_at: str = "",
+    rehearsal: bool = False,
 ) -> dict[str, Any] | None:
     # Everyone gets a first call before anyone gets a second one. Two queries
     # rather than one keep that order cheap: the common case never looks at the
@@ -138,7 +160,7 @@ def _claim_next(
         SELECT s.id AS sample_id, s.time_window, f.id AS frame_id, f.phone_e164
         FROM sample s
         JOIN frame f ON f.id = s.frame_id
-        LEFT JOIN attempt a ON a.sample_id = s.id
+        LEFT JOIN attempt a ON a.sample_id = s.id AND a.rehearsal = 0
         WHERE s.study_id = ? AND s.time_window = ?
           AND s.excluded_at IS NULL AND f.withdrawn_at IS NULL AND a.id IS NULL
         ORDER BY s.id
@@ -151,15 +173,16 @@ def _claim_next(
         candidates = connection.execute(
             """
             SELECT s.id AS sample_id, s.time_window, f.id AS frame_id, f.phone_e164,
-                   (SELECT COUNT(*) FROM attempt a WHERE a.sample_id = s.id) AS attempts,
                    (SELECT COUNT(*) FROM attempt a WHERE a.sample_id = s.id
-                      AND a.call_status = 'DECLINED') AS callbacks,
+                      AND a.rehearsal = 0) AS attempts,
+                   (SELECT COUNT(*) FROM attempt a WHERE a.sample_id = s.id
+                      AND a.rehearsal = 0 AND a.call_status = 'DECLINED') AS callbacks,
                    (SELECT a.call_status FROM attempt a WHERE a.sample_id = s.id
-                      ORDER BY a.attempt_no DESC LIMIT 1) AS last_status,
+                      AND a.rehearsal = 0 ORDER BY a.attempt_no DESC LIMIT 1) AS last_status,
                    (SELECT a.detail_json FROM attempt a WHERE a.sample_id = s.id
-                      ORDER BY a.attempt_no DESC LIMIT 1) AS last_detail,
+                      AND a.rehearsal = 0 ORDER BY a.attempt_no DESC LIMIT 1) AS last_detail,
                    (SELECT a.started_at FROM attempt a WHERE a.sample_id = s.id
-                      ORDER BY a.attempt_no DESC LIMIT 1) AS last_started_at
+                      AND a.rehearsal = 0 ORDER BY a.attempt_no DESC LIMIT 1) AS last_started_at
             FROM sample s
             JOIN frame f ON f.id = s.frame_id
             WHERE s.study_id = ? AND s.time_window = ?
@@ -189,11 +212,18 @@ def _claim_next(
             """
             INSERT INTO attempt(
                 sample_id, attempt_no, time_window, started_at, call_status,
-                idempotency_key
+                idempotency_key, rehearsal
             )
-            VALUES (?, ?, ?, ?, 'IN_PROGRESS', ?)
+            VALUES (?, ?, ?, ?, 'IN_PROGRESS', ?, ?)
             """,
-            (chosen["sample_id"], attempt_no, time_window, started_at, key),
+            (
+                chosen["sample_id"],
+                attempt_no,
+                time_window,
+                started_at,
+                key,
+                int(rehearsal),
+            ),
         )
         attempt_id = int(
             connection.execute(
@@ -211,6 +241,7 @@ def _claim_next(
             "phone_e164": phone,
             "idempotency_key": key,
             "started_at": started_at,
+            "rehearsal": rehearsal,
         }
 
 
@@ -292,6 +323,10 @@ def _finish_attempt(
     response_error: str | None = None
     matches = False
     coding_notes: list[dict[str, str]] = []
+    if structured is None and outcome.status == "COMPLETED":
+        # A completed call owes a result. Saying nothing about that would let a
+        # call with no data at all look exactly like a clean one.
+        response_error = "The call completed but returned no recipient result"
     if structured is not None:
         # Absence is the wire form, null the stored one: the schema the API
         # accepts has no "or null", so an unanswered entry arrives missing.
@@ -343,11 +378,12 @@ def _finish_attempt(
                 text, str(sample.get("field_trial_number") or "")
             )
         if format_valid and structured is not None and response_error is None:
-            bot_utterances = [
-                match.group("text")
-                for match in parsed_lines
-                if match is not None and match.group("speaker") == "BOT"
-            ]
+            # Joined, not per utterance: the agent splits a required sentence
+            # over several turns (measured 2026-08-11), and checking each turn
+            # on its own would call a character-identical sentence a deviation.
+            # It stays a literal substring test — nothing is loosened but the
+            # line break.
+            spoken = " ".join(bot_utterances(outcome.transcript))
             expected_wording: list[str] = []
             if structured["consent"] != "not_obtained":
                 expected_wording.append(questionnaire["consent_text"])
@@ -358,11 +394,22 @@ def _finish_attempt(
                 and structured["spoken_wording"][question["id"]] is not None
             )
             detail["transcript_wording_matches"] = all(
-                any(expected in utterance for utterance in bot_utterances)
-                for expected in expected_wording
+                expected in spoken for expected in expected_wording
             )
     if response_error:
         detail["structured_result_error"] = response_error
+        if outcome.structured_result is not None:
+            # The one place foreign, unvalidated data is written into the
+            # record: without it a rejection cannot be diagnosed at all, which
+            # is how the first live call ended as an unanswerable question. It
+            # is capped, numbers are stripped, and the answers themselves are
+            # only kept where the study keeps transcripts anyway — otherwise
+            # this path would smuggle back what that switch refuses.
+            detail["structured_result_rejected"] = _rejected_shape(
+                outcome.structured_result,
+                keep_values=_keeps_transcript(questionnaire),
+                known_number=str(sample.get("phone_e164") or ""),
+            )
 
     # Gate phrases: literal recognition over whatever the call left to read.
     # Only run when a transcript exists — a fixture pattern without one has
@@ -390,7 +437,11 @@ def _finish_attempt(
             ),
         )
         if structured is not None and response_error is None:
-            if structured["withdrawal_requested"]:
+            if structured["withdrawal_requested"] and not sample.get("rehearsal"):
+                # A fixture's withdrawal is a rehearsal of one, not a person's
+                # request: purging here would destroy the record before the real
+                # call it was rehearsing for ever happened. The same reasoning as
+                # in the field trial — a played part is not a wish.
                 _purge_frame(connection, sample["frame_id"])
             else:
                 connection.execute(
@@ -417,7 +468,11 @@ def _finish_attempt(
                 )
         # The dialed register: the number was called, and that fact survives
         # everything -- including a later anonymisation of the person.
-        if sample.get("phone_e164") and sample.get("study_id"):
+        if (
+            sample.get("phone_e164")
+            and sample.get("study_id")
+            and not sample.get("rehearsal")
+        ):
             from .dataphase import record_dialed
 
             record_dialed(
@@ -504,7 +559,9 @@ def run_day(
     limit: int,
     client: CallClient,
     rules: ContactRules = DEFAULT_RULES,
+    rehearsal: bool = False,
 ) -> Counter[str]:
+    """One day's calls. ``rehearsal`` exercises everything without spending a person."""
     if limit <= 0:
         raise ValueError("Daily quota must be positive")
     # Read once, before a single record is claimed: a set-but-unusable trial
@@ -515,7 +572,9 @@ def run_day(
     totals: Counter[str] = Counter()
     consecutive_failures = 0
     for _ in range(limit):
-        sample = _claim_next(connection, study, time_window, rules, run_started_at)
+        sample = _claim_next(
+            connection, study, time_window, rules, run_started_at, rehearsal
+        )
         if sample is None:
             break
         sample["field_trial_number"] = field_trial_number

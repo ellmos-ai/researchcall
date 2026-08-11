@@ -17,8 +17,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from researchcall import cli
 from researchcall.calls import CallOutcome, FixtureCallClient, LiveCallClient
-from researchcall.database import connect, create_study, get_study, initialize
+from researchcall.calls import _transcript_from_turns as transcript_from_turns
+from researchcall.database import connect, create_study, get_study, initialize, migrate
 from researchcall.field_trial import ENV_VAR as FIELD_TRIAL_ENV
+from researchcall.phrases import audit_transcript, phrases_from_questionnaire
 from researchcall.dataphase import (
     anonymise_deliberately,
     call_detail,
@@ -430,7 +432,280 @@ class ResearchCallTestCase(unittest.TestCase):
         )
         self.assertNotIn(transcript, stored)
 
+    # --- What the first real call (2026-08-11) showed -------------------------
+
+    LIVE_CONSENT_TURNS = [
+        {"offset_seconds": 0, "speaker": "bot", "text": "Guten Tag."},
+        {
+            "offset_seconds": 0,
+            "speaker": "bot",
+            "text": (
+                "Wir führen eine kurze wissenschaftliche Befragung zur Mobilität "
+                "durch. Ihre Teilnahme ist freiwillig."
+            ),
+        },
+        {"offset_seconds": 6, "speaker": "bot", "text": "Dürfen wir Ihnen drei Fragen stellen?"},
+        {"offset_seconds": 11, "speaker": "user", "text": "Hallo. Ja."},
+    ]
+
+    def test_a_sentence_split_across_turns_still_counts_as_spoken(self) -> None:
+        """Measured live: the agent says the consent sentence in three turns.
+
+        Concatenated it is character-identical to the required phrase, so this
+        is a line break, not a paraphrase. Recognition stays literal — the whole
+        sentence must appear as one contiguous piece of what the bot said — but
+        it is no longer defeated by the transcript's own timestamps sitting
+        between the parts, nor by an interjection in the middle.
+        """
+        interrupted = list(self.LIVE_CONSENT_TURNS)
+        interrupted.insert(2, {"offset_seconds": 4, "speaker": "user", "text": "Hallo?"})
+        transcript = transcript_from_turns(interrupted)
+
+        findings = audit_transcript(
+            transcript, phrases_from_questionnaire(self.questionnaire)
+        )
+
+        self.assertEqual(findings["gates_seen"], ["consent_question"])
+        self.assertEqual(findings["gates_missed"], [])
+
+    def test_a_gate_is_not_satisfied_by_the_other_side_saying_it(self) -> None:
+        """A gate is a sentence the agent owes, not one it may hear."""
+        transcript = transcript_from_turns(
+            [
+                {"offset_seconds": 0, "speaker": "bot", "text": "Guten Tag."},
+                {
+                    "offset_seconds": 3,
+                    "speaker": "user",
+                    "text": self.questionnaire["consent_text"],
+                },
+            ]
+        )
+
+        findings = audit_transcript(
+            transcript, phrases_from_questionnaire(self.questionnaire)
+        )
+
+        self.assertEqual(findings["gates_missed"], ["consent_question"])
+
+    def test_the_wording_check_also_reads_across_turns(self) -> None:
+        """The same split defeats the verbatim check one line further on.
+
+        In the live record it stayed invisible: the schema error skipped the
+        block before it could run. Once that is fixed it would open a wording
+        mismatch for a sentence that was spoken exactly.
+        """
+        structured = self.fixture_structured_result()
+        turns = list(self.LIVE_CONSENT_TURNS)
+        offset = 20
+        for question in self.questionnaire["questions"]:
+            turns.append(
+                {"offset_seconds": offset, "speaker": "bot", "text": question["wording"]}
+            )
+            turns.append(
+                {
+                    "offset_seconds": offset + 3,
+                    "speaker": "user",
+                    "text": structured["raw_answers"][question["id"]],
+                }
+            )
+            offset += 10
+        detail, _ = self.call_with_transcript(transcript_from_turns(turns).splitlines())
+
+        self.assertTrue(detail["transcript_wording_matches"])
+        self.assertEqual(detail["gates_missed"], [])
+
+    def test_a_call_level_result_is_never_read_as_a_recipient_result(self) -> None:
+        """The most likely cause of the live schema error, reproduced offline.
+
+        Two schemas travel with every call: the recipient's, which carries the
+        interview, and the call-level one, which counts completed calls. Where
+        the service puts the call-level object under `structured_result`, the
+        old lookup returned `{"completed_count": 1}` — and validation then said
+        the fields do not match the recipient schema, which is true and useless.
+        """
+        ours = self.fixture_structured_result()
+        shapes = {
+            "beside": {
+                "result": {"structured_result": {"completed_count": 1}},
+                "recipients": [{"structured_result": ours}],
+            },
+            "nested": {
+                "result": {
+                    "structuredResult": {"completed_count": 1},
+                    "recipients": [{"structured_result": ours}],
+                }
+            },
+        }
+        for name, payload in shapes.items():
+            with self.subTest(shape=name):
+                self.assertEqual(LiveCallClient._structured_result(payload), ours)
+
+        # Nothing per recipient is not "no problem": a completed call owes a result.
+        empty = {"result": {"structured_result": {"completed_count": 1}}, "recipients": [{}]}
+        self.assertIsNone(LiveCallClient._structured_result(empty))
+        self.assertEqual(
+            LiveCallClient._unrecognised_result_fields(empty), ["completed_count"]
+        )
+
+        # But the shape measured on 2026-08-01 — the interview itself arriving
+        # call-level — must keep working; it carries the recipient's fields.
+        measured = {"result": {"structuredResult": ours}}
+        self.assertEqual(LiveCallClient._structured_result(measured), ours)
+
+    def test_a_completed_call_without_a_recipient_result_is_flagged(self) -> None:
+        detail, _ = self.finish_one(
+            CallOutcome("COMPLETED", "live-1", None, {"transport": "live-api"})
+        )
+
+        self.assertIn("no recipient result", detail["structured_result_error"])
+
+    def test_a_rejected_result_is_kept_so_the_next_look_is_not_blind(self) -> None:
+        """A schema error that hides the payload cannot be diagnosed at all.
+
+        This is the one place foreign, unvalidated data enters the record. It is
+        capped, it is stripped of numbers, and its values are only kept when the
+        study keeps transcripts anyway — otherwise the error path would smuggle
+        back the spoken words that switch is there to refuse.
+        """
+        detail, _ = self.finish_one(
+            CallOutcome(
+                "COMPLETED",
+                "live-2",
+                {"completed_count": 1, "phone": "+490000000000"},
+                {"transport": "live-api"},
+            )
+        )
+
+        self.assertIn("completed_count", detail["structured_result_error"])
+        self.assertIn("consent", detail["structured_result_error"])
+        rejected = json.dumps(detail["structured_result_rejected"], ensure_ascii=False)
+        self.assertIn("completed_count", rejected)
+        self.assertNotIn("+490000000000", rejected)
+
+    def test_a_rehearsal_does_not_use_up_the_one_call_a_person_gets(self) -> None:
+        """Rehearsing the machinery must not spend the person.
+
+        Every record gets one call. A rehearsal that claims it leaves the study
+        with nobody left to actually ring — which is what the first field trial
+        ran into.
+        """
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+        client = FixtureCallClient.from_file(OUTCOMES)
+        study = get_study(self.connection, "study")
+
+        rehearsed = run_day(self.connection, study, window, 1, client, rehearsal=True)
+        real = run_day(self.connection, study, window, 1, client)
+        blocked = run_day(self.connection, study, window, 1, client)
+
+        self.assertEqual(sum(rehearsed.values()), 1)
+        self.assertEqual(sum(real.values()), 1, "the person must still be callable")
+        self.assertEqual(sum(blocked.values()), 0, "but only once for real")
+        rows = self.connection.execute(
+            "SELECT attempt_no, rehearsal FROM attempt ORDER BY attempt_no"
+        ).fetchall()
+        self.assertEqual([(r["attempt_no"], r["rehearsal"]) for r in rows], [(1, 1), (2, 0)])
+        self.assertEqual(
+            self.connection.execute("SELECT COUNT(*) AS n FROM dialed").fetchone()["n"],
+            1,
+            "only the real call belongs in the dialed register",
+        )
+
+    def test_a_database_from_before_rehearsals_gains_the_column(self) -> None:
+        """The field trial's own state file must survive the upgrade."""
+        old = sqlite3.connect(self.db_path)
+        try:
+            old.execute("ALTER TABLE attempt DROP COLUMN rehearsal")
+            old.commit()
+        finally:
+            old.close()
+
+        migrated = connect(self.db_path)
+        self.addCleanup(migrated.close)
+        applied = migrate(migrated)
+
+        self.assertIn("attempt.rehearsal", applied)
+        columns = {
+            row["name"] for row in migrated.execute("PRAGMA table_info(attempt)")
+        }
+        self.assertIn("rehearsal", columns)
+
+    def test_the_command_line_offers_the_rehearsal_and_refuses_it_live(self) -> None:
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+        self.connection.close()
+        stdout = io.StringIO()
+        arguments = [
+            "--db", str(self.db_path), "run-day", "--study", "study",
+            "--window", window, "--limit", "1",
+        ]
+        with contextlib.redirect_stdout(stdout):
+            code = cli.main([*arguments, "--rehearsal"])
+        self.assertEqual(code, 0)
+        self.assertIn("mode=rehearsal", stdout.getvalue())
+
+        # A live call is never a rehearsal, and the two flags together are a
+        # contradiction the operator should hear about, not a silent winner.
+        self.assertEqual(
+            cli.main([*arguments, "--rehearsal", "--live", "--confirm-live", "CALL 1"]),
+            2,
+        )
+
+        connection = connect(self.db_path)
+        self.addCleanup(connection.close)
+        report = build_report(connection, get_study(connection, "study"))
+        self.assertIn("Rehearsal attempts, excluded from every count: 1", report)
+        self.assertIn("- Attempts recorded: 0", report)
+
+    def test_a_rehearsed_withdrawal_does_not_destroy_the_person(self) -> None:
+        """A fixture's withdrawal is a rehearsal of one, not a person's request."""
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+        fixture = FixtureCallClient.from_file(OUTCOMES)
+        structured = fixture.call({"sample_id": 1}, self.questionnaire, "unused").structured_result
+        structured["withdrawal_requested"] = True
+        client = FixtureCallClient.from_file(OUTCOMES)
+        with patch.object(
+            client,
+            "call",
+            return_value=CallOutcome("COMPLETED", "rehearsal", structured, {}),
+        ):
+            run_day(
+                self.connection,
+                get_study(self.connection, "study"),
+                window,
+                1,
+                client,
+                rehearsal=True,
+            )
+
+        frame = self.connection.execute(
+            "SELECT phone_e164, withdrawn_at FROM frame"
+        ).fetchone()
+        self.assertIsNotNone(frame["phone_e164"])
+        self.assertIsNone(frame["withdrawn_at"])
+
     # --- Field trial: many played people, one consenting number ---------------
+
+    def finish_one(self, outcome: CallOutcome) -> tuple[dict[str, Any], str | None]:
+        """Put one prepared outcome through the runner and read its record."""
+        self.import_rows(1)
+        draw_sample(self.connection, self.study_id, 1, 3)
+        window = self.connection.execute("SELECT time_window FROM sample").fetchone()[0]
+        client = FixtureCallClient.from_file(OUTCOMES)
+        with patch.object(client, "call", return_value=outcome):
+            run_day(
+                self.connection, get_study(self.connection, "study"), window, 1, client
+            )
+        detail = json.loads(
+            self.connection.execute(
+                "SELECT detail_json FROM attempt ORDER BY id DESC LIMIT 1"
+            ).fetchone()["detail_json"]
+        )
+        return detail, outcome.transcript
 
     def dialing_client(self, transcript: str | None = None) -> Any:
         """A client that records the number it was handed, and answers COMPLETED."""

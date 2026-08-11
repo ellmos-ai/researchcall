@@ -227,6 +227,12 @@ The current runner dispatches one-recipient REST calls serially as a conservativ
 
 A voice agent speaks a quoted sentence in the language it was quoted in, whatever the locale field says (measured in a sister project, recorded in `FINDINGS.md`). Every quoted sentence here comes from the researcher's instrument and is therefore already in the study language. What ResearchCall adds around it — scale announcement, right to stop, consent question, duration, number origin — exists per language, and the task carries a directive naming the conversation language, written in that language. German and English are equal paths; a study language without its own directive gets an English one naming the language rather than none. Where a sentence mixes an app fragment with the researcher's free text, the free text is the researcher's responsibility: the tool guarantees its own parts only.
 
+### Rehearsing without spending a person
+
+Every record gets one call, and a dry run claimed that call like any other — the first field trial found this the hard way, with nobody left to ring for real. `run-day --rehearsal` records and audits the attempt as usual, but the record stays callable, no number enters the dialed register, and a fixture's withdrawal purges nobody: a played withdrawal is a rehearsal of one, not a person's request. Rehearsal attempts are excluded from every count in the report, which states how many there were. The flag is refused together with `--live`; a real call is never a rehearsal.
+
+A plain dry run still consumes the attempt. For a fixture-only study the dry run *is* the study, and silently changing that would falsify the reports it produces.
+
 ### Field trial: several played respondents, one consenting line
 
 A supervised rehearsal of the live path needs several respondents — a refusal, a completed interview, a withdrawal — while every call reaches the same briefed person. The frame cannot express that: a phone number is unique per study, in the import guard and again in the database index, because two records sharing a number would be two people sharing an identity.

@@ -279,6 +279,12 @@ Der Schlüssel wird nur aus `CALLE_API_KEY` gelesen, nie ausgegeben oder gespeic
 
 Ein Sprach-Agent spricht einen zitierten Satz in der Sprache, in der er zitiert wurde — unabhängig vom `locale`-Feld (gemessen im Schwesterprojekt, festgehalten in `FINDINGS.md`). Alle zitierten Sätze hier stammen aus dem Instrument des Forschers und sind damit in der Studiensprache. Was ResearchCall drumherum beisteuert — Skalen-Ansage, Recht zu beenden, Einwilligungsfrage, Dauer, Herkunft der Nummer — liegt je Sprache vor, und der Auftrag trägt eine Sprachdirektive, geschrieben in eben dieser Sprache. Deutsch und Englisch sind gleichwertige Wege; eine Studiensprache ohne eigene Fassung bekommt eine englische Direktive, die die Sprache benennt, statt gar keiner. Wo ein Satz App-Teil und Freitext des Forschers mischt, verantwortet der Forscher den Freitext: das Werkzeug garantiert nur seine eigenen Teile.
 
+### Proben, ohne eine Person zu verbrauchen
+
+Jeder Datensatz bekommt einen Anruf — und eine Trockenprobe beanspruchte diesen Anruf wie jeder andere; der erste Feldversuch lief genau darauf auf, am Ende war niemand mehr echt anrufbar. `run-day --rehearsal` zeichnet den Versuch auf und prüft ihn wie sonst auch, aber der Datensatz bleibt anrufbar, keine Nummer kommt ins Wählregister, und ein Fixture-Widerruf löscht niemanden: ein gespielter Widerruf ist die Probe eines Widerrufs, nicht die Bitte einer Person. Proben-Versuche zählen in keinem Wert des Berichts mit, der ihre Anzahl aber ausweist. Zusammen mit `--live` wird das Flag abgelehnt; ein echter Anruf ist nie eine Probe.
+
+Ein gewöhnlicher Trockenlauf verbraucht den Versuch weiterhin. Für eine reine Fixture-Studie *ist* der Trockenlauf die Studie; das still zu ändern würde die Berichte verfälschen, die sie erzeugt.
+
 ### Feldversuch: mehrere gespielte Befragte, eine eingeweihte Leitung
 
 Eine begleitete Probe des Live-Wegs braucht mehrere Befragte — eine Verweigerung, ein

@@ -68,7 +68,7 @@ def collect(connection: sqlite3.Connection, study: sqlite3.Row) -> dict[str, Any
                COALESCE(a.time_window, s.time_window) AS time_window,
                a.call_status, a.detail_json
         FROM attempt a JOIN sample s ON s.id = a.sample_id
-        WHERE s.study_id = ?
+        WHERE s.study_id = ? AND a.rehearsal = 0
         ORDER BY a.sample_id, a.attempt_no
         """,
         (study["id"],),
@@ -82,6 +82,19 @@ def collect(connection: sqlite3.Connection, study: sqlite3.Row) -> dict[str, Any
         """,
         (study["id"],),
     ).fetchall()
+
+    # Rehearsals are excluded from every count above — they are a test of the
+    # machinery, not a call to a person — but their number is carried so the
+    # report can say they happened instead of quietly leaving them out.
+    rehearsed = int(
+        connection.execute(
+            """
+            SELECT COUNT(*) AS n FROM attempt a JOIN sample s ON s.id = a.sample_id
+            WHERE s.study_id = ? AND a.rehearsal = 1
+            """,
+            (study["id"],),
+        ).fetchone()["n"]
+    )
 
     by_sample: dict[int, list[sqlite3.Row]] = defaultdict(list)
     for row in attempts:
@@ -100,6 +113,7 @@ def collect(connection: sqlite3.Connection, study: sqlite3.Row) -> dict[str, Any
         "by_sample": by_sample,
         "final_status": final_status,
         "responses": [row for row in responses if int(row["sample_id"]) in included_ids],
+        "rehearsed": rehearsed,
     }
 
 
@@ -155,6 +169,11 @@ def build_report(connection: sqlite3.Connection, study: sqlite3.Row) -> str:
         f"- Privacy withdrawals excluded from analysis: {excluded_count}",
         f"- Records with at least one attempt: {reached}",
         f"- Attempts recorded: {len(attempt_rows)}",
+        *(
+            [f"- Rehearsal attempts, excluded from every count: {data['rehearsed']}"]
+            if data["rehearsed"]
+            else []
+        ),
         f"- Completed interviews: {completed}",
         f"- Completion yield (completed / included drawn): {_percent(completed, len(included_ids))}",
         "",
