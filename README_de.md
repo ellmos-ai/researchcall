@@ -1,13 +1,28 @@
 ![ResearchCall](banner.png)
 
+<div align="center">
+
+[![Organization: ellmos-ai](https://img.shields.io/badge/Organisation-ellmos--ai-6366f1?style=flat&logo=github&logoColor=white)](https://github.com/ellmos-ai)
+[![Ecosystem: open-bricks](https://img.shields.io/badge/%C3%96kosystem-open--bricks-blue?style=flat)](https://github.com/open-bricks)
+[![Python: 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Architektur: Trockenlauf--Zuerst](https://img.shields.io/badge/Architektur-Trockenlauf--Zuerst-teal?style=flat)](SPEC.md)
+[![Pipeline: 8 Gated Stationen](https://img.shields.io/badge/Pipeline-8%20Gated%20Stationen-purple?style=flat)](pipeline/)
+[![Tests: 263 passed](https://img.shields.io/badge/Tests-263%20passed-success?style=flat&logo=pytest&logoColor=white)](tests/)
+[![LLM-Kontext](https://img.shields.io/badge/LLM--Kontext-llms.txt-orange?style=flat)](llms.txt)
+
+**[English](README.md) · Deutsch**
+
+</div>
+
+> [!TIP]
+> **KI-Agenten- & LLM-Kontext**: Dieses Repository stellt maschinenlesbare Architektur-, Stations- und Auffindbarkeits-Metadaten in [`llms.txt`](llms.txt) bereit.
+
 ## Demovideo
 
 [![Demovideo ansehen](youtube-play-thumb.png)](https://youtu.be/YGRLpDwrTq4)
 
 
 # ResearchCall
-
-**[English](README.md) · Deutsch**
 
 ResearchCall ist ein Python-Werkzeug für **standardisierte wissenschaftliche
 Telefonbefragungen**, das den Trockenlauf zum Normalfall macht. Es baut den Fragebogen aus den
@@ -27,6 +42,39 @@ ResearchCall ist ein **Forschungsverfahren, das zufällig Anrufe benutzt** — k
 mit angehängtem Bericht. Die Pipeline deckt acht abgesicherte Stationen ab:
 Forschungsfrage, Instrument, Gesprächs- und Ethikrahmen, Stichprobe, Pretest, Feldphase,
 Auswertung, Bericht. Der Anruf ist nur ein Umsetzungsschritt **innerhalb** dieser Methode.
+
+```mermaid
+flowchart TD
+    subgraph S1["1. Forschungsfrage"]
+        Q["Hypothesen & Zielpopulation definieren"]
+    end
+    subgraph S2["2. Instrument"]
+        I["Strukturierte Items & Filterregeln"]
+    end
+    subgraph S3["3. Ethikrahmen"]
+        F["Einwilligung, Abbruchrecht, Dauer"]
+    end
+    subgraph S4["4. Stichprobe"]
+        S["Stichprobe ziehen & Zeitfenster zufällig zuweisen"]
+    end
+    subgraph S5["5. Pretest"]
+        P["Wortlauttreue & Syntaktische Markertests"]
+    end
+    subgraph S6["6. Feldphase"]
+        D["Lokaler Fixture-Lauf (Default)"]
+        L["Gated Live-Adapter (Nur CLI)"]
+    end
+    subgraph S7["7. Auswertung"]
+        A["Differenzierte Ausfallanalyse (AAPOR)"]
+    end
+    subgraph S8["8. Bericht & Export"]
+        R["dataset.csv · codebook.md · report.md"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8
+    D -.-> A
+    L -.-> A
+```
 
 Jede menschliche Entscheidung hat genau **eine** Formulardefinition unter
 `pipeline/_shared/forms/`. Dieselbe Definition ist auf drei Arten lesbar:
