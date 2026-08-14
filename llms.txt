@@ -1,0 +1,71 @@
+# ResearchCall
+
+Canonical repository: https://github.com/ellmos-ai/researchcall
+Organization: https://github.com/ellmos-ai
+Ecosystem: https://github.com/open-bricks
+Primary language: Python (>=3.11)
+UI stack: Local-first Web Workbench (FastAPI + HTMX) & CLI
+Architecture: Dry-run-first, 8 gated stations, standard-library CLI core
+Last-checked: 2026-08-14
+
+## Summary
+
+ResearchCall is a dry-run-first Python tool and research methodology for
+standardized scientific telephone surveys. It builds the questionnaire from the
+answers given in its own stations, draws a random sample, assigns each selected
+record to a randomized time window at draw time, dials each person once by default,
+and reports nonresponse without collapsing distinct CALL-E outcomes.
+
+The default path is fully local and offline: no account, API key, external network
+connection, or real telephone call is required. Fixtures exercise the same sampling,
+attempt, response, withdrawal, and reporting logic used by the gated live adapter.
+
+## 8 Gated Stations Architecture
+
+The pipeline enforces an eight-station sequence where each station must be completed
+before the next opens:
+
+1. **Research Question** (`pipeline/01-research-question`): Defines hypotheses, target population, and study key.
+2. **Instrument** (`pipeline/02-instrument`): Defines survey items, answer categories, quoted verbatim text, and skip rules (`if q1 = no skip q4, q5`).
+3. **Conversation & Ethics Frame** (`pipeline/03-frame`): Mandatory greeting, consent, right-to-stop statement, number origin, and computed duration.
+4. **Sampling** (`pipeline/04-sampling`): Draws sample from CSV/SQLite, assigns randomized time windows (morning/afternoon/evening) at draw time.
+5. **Pretest** (`pipeline/05-pretest`): Runs dry-run interviews against fixture transport to verify verbatim wording fidelity, syntactic markers, and filter compliance.
+6. **Fieldwork** (`pipeline/06-fieldwork`): Executes single-attempt calls per time window using local fixtures (default) or gated live CLI adapter.
+7. **Analysis** (`pipeline/07-analysis`): Decomposes nonresponse into distinct outcomes (NO_ANSWER, DECLINED, BUSY, VOICEMAIL, FAILED, EXPIRED, INTERRUPTED).
+8. **Reporting & Export** (`pipeline/08-reporting`): Generates `dataset.csv`, `codebook.md`, `free-text.csv`, and comprehensive `report.md`.
+
+## Methodological Contract & Safety Invariants
+
+- **Single-Dial Invariant**: By default, each person is dialled exactly once to avoid availability bias.
+- **Randomized Time Windows**: Windows assigned at sample draw time, preventing time-of-day selection bias.
+- **Verbatim & Raw Answer Preservation**: Interpreted categories are strictly audited against raw spoken text.
+- **Nonresponse Transparency**: Refusals (`DECLINED`) are separated from technical failures and availability issues (`NO_ANSWER`, `BUSY`, `VOICEMAIL`).
+- **Privacy & EU AI Act Conformity**: Immediate withdrawal purge support, phone number masking, unauthenticated loopback default, no external tracking.
+
+## Audience & Use Cases
+
+- Empirical social scientists, sociologists, and market researchers requiring methodological rigor in automated surveys.
+- AI Agent developers and LLM crawlers seeking standardized CATI (Computer-Assisted Telephone Interviewing) pipelines.
+- Research ethics committees reviewing automated telephone survey protocols and data-flow guardrails.
+
+## Search Phrases & SEO Keywords
+
+- standardized scientific telephone survey Python
+- automated CATI survey pipeline
+- dry-run first telephone survey tooling
+- AAPOR nonresponse reporting survey tool
+- randomized time-window survey sampling
+- voice agent survey questionnaire builder
+- ethical AI telephone interviewing EU AI Act
+- CALL-E research survey adapter
+
+## Important Files
+
+- `README.md`: English public documentation & getting started
+- `README_de.md`: German public documentation
+- `SPEC.md`: Methodological specifications and design rationale
+- `DATA-FLOW.md`: Complete data-flow audit and storage boundary inventory
+- `AI-ACT-STATEMENT.md`: EU AI Act compliance analysis and transparency notes
+- `pipeline/SKILL.md`: Natural-language agent procedure and station router
+- `src/researchcall/cli.py`: Command-line interface
+- `src/researchcall/web/app.py`: FastAPI web workbench application

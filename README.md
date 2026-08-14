@@ -1,13 +1,28 @@
 ![ResearchCall](banner.png)
 
+<div align="center">
+
+[![Organization: ellmos-ai](https://img.shields.io/badge/Organization-ellmos--ai-6366f1?style=flat&logo=github&logoColor=white)](https://github.com/ellmos-ai)
+[![Ecosystem: open-bricks](https://img.shields.io/badge/Ecosystem-open--bricks-blue?style=flat)](https://github.com/open-bricks)
+[![Python: 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Architecture: Dry--Run First](https://img.shields.io/badge/Architecture-Dry--Run%20First-teal?style=flat)](SPEC.md)
+[![Pipeline: 8 Gated Stations](https://img.shields.io/badge/Pipeline-8%20Gated%20Stations-purple?style=flat)](pipeline/)
+[![Tests: 263 passed](https://img.shields.io/badge/Tests-263%20passed-success?style=flat&logo=pytest&logoColor=white)](tests/)
+[![LLM Context](https://img.shields.io/badge/LLM%20Context-llms.txt-orange?style=flat)](llms.txt)
+
+**English · [Deutsch](README_de.md)**
+
+</div>
+
+> [!TIP]
+> **AI Agent & LLM Context**: This repository provides machine-readable architecture, station definitions, and discoverability metadata in [`llms.txt`](llms.txt).
+
 ## Demo video
 
 [![Watch the demo video](youtube-play-thumb.png)](https://youtu.be/YGRLpDwrTq4)
 
 
 # ResearchCall
-
-**English · [Deutsch](README_de.md)**
 
 ResearchCall is a dry-run-first Python tool for standardized scientific telephone surveys. It builds the questionnaire from the answers given in its own stations, draws a random sample, assigns each selected record to a randomized time window at draw time, dials each person once by default, and reports nonresponse without collapsing distinct CALL-E outcomes.
 
@@ -16,6 +31,39 @@ The default path is fully local: no account, credentials, SDK, network connectio
 ## One research method, three ways in
 
 ResearchCall is a research procedure that happens to use calls, not a call script with a report attached. Its pipeline covers eight gated stations: research question, instrument, conversation and ethics frame, sampling, pretest, fieldwork, analysis, and reporting. The call transport is only one implementation step inside that method.
+
+```mermaid
+flowchart TD
+    subgraph S1["1. Research Question"]
+        Q["Define Hypotheses & Target Group"]
+    end
+    subgraph S2["2. Instrument"]
+        I["Structured Items & Skip Rules"]
+    end
+    subgraph S3["3. Frame & Ethics"]
+        F["Consent, Right-to-Stop, Duration"]
+    end
+    subgraph S4["4. Sampling"]
+        S["Draw Sample & Assign Random Windows"]
+    end
+    subgraph S5["5. Pretest"]
+        P["Verbatim Fidelity & Syntactic Marker Test"]
+    end
+    subgraph S6["6. Fieldwork"]
+        D["Local Fixture Run (Default)"]
+        L["Gated Live Adapter (CLI Only)"]
+    end
+    subgraph S7["7. Analysis"]
+        A["Nonresponse Decomposition"]
+    end
+    subgraph S8["8. Reporting & Export"]
+        R["dataset.csv · codebook.md · report.md"]
+    end
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8
+    D -.-> A
+    L -.-> A
+```
 
 Every human decision has one form definition under `pipeline/_shared/forms/`. The same definition can be read in three ways:
 
