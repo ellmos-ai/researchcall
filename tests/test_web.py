@@ -457,6 +457,58 @@ class WorkbenchTestCase(unittest.TestCase):
             (self.directory / "test-mode-artifacts" / "fieldwork.db").exists()
         )
 
+    def test_answers_survive_a_full_workbench_restart(self) -> None:
+        """RC11 (Endabnahme 2026-08-22, vom Nutzer NICHT getestet): a saved
+        project must reopen with every field intact. A unit test cannot kill
+        and restart a real process, so this simulates the closest analogue —
+        a brand-new app instance (a fresh ``create_app()`` and ``TestClient``,
+        with its own freshly-loaded field definitions and no shared Python
+        state whatsoever with ``self.client``) bound to the SAME workspace
+        directory on disk. Anything that survives this has to have come from
+        the file, not from server memory.
+        """
+        self.finish_all()
+        self.toggle_test_mode()
+        edited_example = "The tour example, hand-edited before the restart."
+        edit_body = self.payload(
+            STATIONS[0], question=edited_example, hypotheses="H1 | Edited | I1 | Also edited"
+        )
+        self.client.post(
+            f"/station/{STATIONS[0]}?lang=en", content=edit_body, headers=FORM_ENCODED
+        )
+
+        before_config = self.client.get("/config.json").json()
+        before_workspace = Workspace.load(self.directory)
+        # Something to lose in each of the two apart-kept workspaces, or this
+        # test proves nothing: the real study's answer, and the tour's edit.
+        self.assertEqual(before_workspace.values["question"], ANSWERS["question"])
+        self.assertEqual(before_workspace.test_values["question"], edited_example)
+
+        # --- the workbench restarts -----------------------------------------
+        restarted_client = TestClient(create_app(self.directory))
+
+        after_config = restarted_client.get("/config.json").json()
+        self.assertEqual(after_config, before_config)
+
+        after_workspace = Workspace.load(self.directory)
+        self.assertEqual(after_workspace.values, before_workspace.values)
+        self.assertEqual(after_workspace._completed, before_workspace._completed)
+        self.assertEqual(set(before_workspace._completed), set(STATIONS))
+        self.assertEqual(after_workspace.amendments, before_workspace.amendments)
+        self.assertEqual(after_workspace.test_mode, before_workspace.test_mode)
+        self.assertEqual(after_workspace.test_values, before_workspace.test_values)
+
+        # And the field survives through the SAME public interface a
+        # researcher actually uses — pre-filled into the reopened form, not
+        # just present somewhere in a JSON export.
+        station_one = restarted_client.get(f"/station/{STATIONS[0]}?lang=en").text
+        self.assertIn(edited_example, station_one)
+
+        # Test mode itself — an isolated workspace, not just a field — also
+        # reopens exactly as it was left.
+        overview = restarted_client.get("/?lang=en").text
+        self.assertIn("Test mode — example data, not a real study", overview)
+
     def test_a_station_will_not_close_while_a_required_answer_is_missing(self) -> None:
         body = self.payload(STATIONS[0], question="") + "&action=complete"
         response = self.client.post(
