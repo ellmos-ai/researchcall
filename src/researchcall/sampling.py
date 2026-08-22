@@ -165,14 +165,35 @@ def import_frame_rows(
     return len(normalized)
 
 
+#: The join every frame query needing the do-not-call guard shares, so the two
+#: places that decide who may still be drawn cannot silently drift apart.
+#:
+#: Measured live 2026-08-22 (Endabnahme, befund RC7): the guard checked only
+#: whether THIS frame row had been withdrawn (``frame.withdrawn_at``), never
+#: whether the NUMBER itself was already marked ``do_not_call`` in the
+#: ``dialed`` register. A number that withdrew and was later re-imported —
+#: a second field day, a corrected frame file — arrived as a fresh frame row
+#: with ``withdrawn_at IS NULL`` and was dialable again. ``dialed`` carries at
+#: most one row per ``(study_id, phone_e164)`` (``UNIQUE`` constraint,
+#: :func:`researchcall.dataphase.mark_do_not_call`), so the guard is a NUMBER
+#: check by construction — no aggregation across rows is needed, only the
+#: join.
+_DO_NOT_CALL_JOIN = """
+    LEFT JOIN dialed d ON d.study_id = f.study_id AND d.phone_e164 = f.phone_e164
+"""
+_DO_NOT_CALL_CLAUSE = "AND (d.do_not_call IS NULL OR d.do_not_call = 0)"
+
+
 def eligible_count(connection: sqlite3.Connection, study_id: int) -> int:
     """How many frame rows could still be drawn — the size of a census."""
     row = connection.execute(
-        """
+        f"""
         SELECT COUNT(*) AS n
         FROM frame f
         LEFT JOIN sample s ON s.study_id = f.study_id AND s.frame_id = f.id
+        {_DO_NOT_CALL_JOIN}
         WHERE f.study_id = ? AND f.withdrawn_at IS NULL AND s.id IS NULL
+        {_DO_NOT_CALL_CLAUSE}
         """,
         (study_id,),
     ).fetchone()
@@ -204,11 +225,13 @@ def draw_sample(
         raise ValueError("Time windows must be unique")
 
     candidates = connection.execute(
-        """
+        f"""
         SELECT f.id
         FROM frame f
         LEFT JOIN sample s ON s.study_id = f.study_id AND s.frame_id = f.id
+        {_DO_NOT_CALL_JOIN}
         WHERE f.study_id = ? AND f.withdrawn_at IS NULL AND s.id IS NULL
+        {_DO_NOT_CALL_CLAUSE}
         ORDER BY f.id
         """,
         (study_id,),

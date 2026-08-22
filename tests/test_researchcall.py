@@ -25,7 +25,7 @@ from researchcall.calls import (
     LiveCallClient,
 )
 from researchcall.calls import _transcript_from_turns as transcript_from_turns
-from researchcall.database import connect, create_study, get_study, initialize, migrate
+from researchcall.database import connect, create_study, get_study, initialize, migrate, utc_now
 from researchcall.field_trial import ENV_VAR as FIELD_TRIAL_ENV
 from researchcall.phrases import (
     audit_floor,
@@ -60,6 +60,7 @@ from researchcall.safety import mask_phone, validate_e164
 from researchcall.sampling import (
     DEFAULT_WINDOWS,
     draw_sample,
+    eligible_count,
     import_frame_rows,
     read_sqlite_frame,
 )
@@ -449,6 +450,97 @@ class ResearchCallTestCase(unittest.TestCase):
             for row in self.connection.execute("SELECT detail_json FROM attempt")
         )
         self.assertNotIn(transcript, stored)
+
+    def test_a_withdrawn_number_is_not_redialled_via_a_different_frame_row(self) -> None:
+        """RC7 (Endabnahme 2026-08-22, Pruefffrage): the ``dialed`` register
+        showed several rows for the same (override) number with a different
+        ``do_not_call`` value. Root cause: the dial guard checked only whether
+        THIS frame row had been withdrawn, never whether the NUMBER itself was
+        already marked ``do_not_call`` in the ``dialed`` register — a person
+        who withdrew, then reappeared under a different ``external_ref`` in a
+        later import batch (a second field day, a corrected frame file), was
+        dialable again. Fixed at both checkpoints: ``draw_sample``/
+        ``eligible_count`` (sampling.py) and ``_claim_next`` (runner.py, the
+        last gate before a real call), because a sample can in principle exist
+        for a number before that number's withdrawal is recorded.
+        """
+        phone = "+15550199001"
+        import_frame_rows(self.connection, self.study_id, [("person-a", phone)])
+        draw_sample(self.connection, self.study_id, 1, seed=1)
+        first_sample = self.connection.execute(
+            "SELECT id, time_window FROM sample"
+        ).fetchone()
+
+        fixture_client = FixtureCallClient.from_file(OUTCOMES)
+        withdrawal_outcome = CallOutcome(
+            status="COMPLETED",
+            run_id="rest-call-withdrawal",
+            structured_result={
+                "consent": "granted",
+                "withdrawal_requested": True,
+                "asked_verbatim": True,
+                "spoken_consent_wording": self.questionnaire["consent_text"],
+                "spoken_wording": {},
+                "answers": {},
+                "raw_answers": {},
+            },
+            detail={"transport": "live-api"},
+            transcript=(
+                f'[00:00] BOT: {self.questionnaire["consent_text"]}\n'
+                "[00:04] USER: Bitte loeschen Sie alles."
+            ),
+        )
+        with patch.object(fixture_client, "call", return_value=withdrawal_outcome):
+            run_day(
+                self.connection,
+                get_study(self.connection, "study"),
+                first_sample["time_window"],
+                1,
+                fixture_client,
+            )
+
+        dialed = self.connection.execute(
+            "SELECT do_not_call FROM dialed WHERE study_id = ? AND phone_e164 = ?",
+            (self.study_id, phone),
+        ).fetchone()
+        self.assertEqual(dialed["do_not_call"], 1)
+
+        # A second field day re-imports the same person under a new reference —
+        # a fresh frame row, unrelated to the one that was withdrawn.
+        import_frame_rows(
+            self.connection, self.study_id, [("person-a-reimport", phone)]
+        )
+        self.assertEqual(eligible_count(self.connection, self.study_id), 0)
+        with self.assertRaises(ValueError):
+            draw_sample(self.connection, self.study_id, 1, seed=2)
+
+        # And even a sample that already exists for that number — drawn before
+        # this guard ran, or inserted by any other path — is refused at the
+        # last checkpoint before a real call goes out.
+        second_frame = self.connection.execute(
+            "SELECT id FROM frame WHERE external_ref = ?", ("person-a-reimport",)
+        ).fetchone()
+        self.connection.execute(
+            "INSERT INTO sample(study_id, frame_id, time_window, drawn_at) "
+            "VALUES (?, ?, ?, ?)",
+            (self.study_id, second_frame["id"], DEFAULT_WINDOWS[0], utc_now()),
+        )
+        self.connection.commit()
+        counts = run_day(
+            self.connection,
+            get_study(self.connection, "study"),
+            DEFAULT_WINDOWS[0],
+            5,
+            fixture_client,
+        )
+        self.assertEqual(counts, {})
+        self.assertIsNone(
+            self.connection.execute(
+                "SELECT a.id FROM attempt a JOIN sample s ON s.id = a.sample_id "
+                "WHERE s.frame_id = ?",
+                (second_frame["id"],),
+            ).fetchone()
+        )
 
     # --- The floor every call stands on --------------------------------------
 
