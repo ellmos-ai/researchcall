@@ -160,6 +160,12 @@ def create_app(
     async def overview(request: Request) -> HTMLResponse:
         translator = translator_of(request)
         workspace = load_workspace()
+        # RC10: finishing the LAST station (08-reporting) has no "next
+        # station" to redirect to, so it lands here instead — with the same
+        # confirmation a station-to-station handoff would show.
+        completed_notice = ""
+        if request.query_params.get("completed") == STATIONS[-1] and STATIONS[-1] in workspace.completed:
+            completed_notice = translator.t("All eight stations are finished.")
         visible = len(forms.form(fields))
         asked = len(forms.interview(fields))
         rows = []
@@ -191,7 +197,8 @@ def create_app(
         )
         body = (
             f'<main><h2>{render.e(translator.t("A research method, not a call script"))}</h2>'
-            f'<p class="sub">{render.e(headline)}</p>'
+            + (f'<p class="note">{render.e(completed_notice)}</p>' if completed_notice else "")
+            + f'<p class="sub">{render.e(headline)}</p>'
             f'<p class="note">{render.e(order_note)}</p>'
             f'<p class="note">{render.e(translator.t("Analysis rules are fixed at the instrument, not after the results are in."))}</p>'
             '<div class="scroll"><table class="data"><thead><tr>'
@@ -207,6 +214,22 @@ def create_app(
 
     # --- stations ----------------------------------------------------------
 
+    def just_completed_message(request: Request, translator: Translator) -> str:
+        """The confirmation a wizard redirect (RC10) hands to its target page.
+
+        A completed station's own POST response no longer renders here — it
+        redirects to the next one — so this is the one place the "finished"
+        message can still be shown. Only a real, currently-completed station
+        name is accepted; anything else (a stale link, a guessed value) is
+        silently ignored rather than shown as confirmation of nothing.
+        """
+        completed = request.query_params.get("completed")
+        if completed not in STATIONS:
+            return ""
+        if completed not in load_workspace().completed:
+            return ""
+        return translator.t("Station finished. The next one is open.")
+
     @app.get("/station/{station}", response_class=HTMLResponse)
     async def station_page(request: Request, station: str) -> Any:
         translator = translator_of(request)
@@ -218,7 +241,12 @@ def create_app(
                 f"/station/{STATIONS[0]}?lang={translator.language}", status_code=303
             )
         body = render.station_view(
-            station, fields, workspace, translator, panels=panels_for(station, workspace, translator)
+            station,
+            fields,
+            workspace,
+            translator,
+            message=just_completed_message(request, translator),
+            panels=panels_for(station, workspace, translator),
         )
         return shell(request, body, translator.t(render.STATION_TITLES[station]), station)
 
@@ -255,7 +283,23 @@ def create_app(
         if action == "complete":
             missing = workspace.complete(fields, station)
             if not missing:
-                message = translator.t("Station finished. The next one is open.")
+                workspace.save()
+                # RC10 (Endabnahme 2026-08-22, Nutzervorgabe): finishing a
+                # station used to leave the researcher standing on the same
+                # page — reaching the next one meant a manual click through
+                # the rail. A wizard opens the next station on its own. The
+                # redirect itself carries no message, so the target station
+                # is told which one just closed and shows the confirmation
+                # there instead.
+                index = STATIONS.index(station)
+                if index + 1 < len(STATIONS):
+                    target = f"/station/{STATIONS[index + 1]}"
+                else:
+                    target = "/"
+                return RedirectResponse(
+                    f"{target}?lang={translator.language}&completed={station}",
+                    status_code=303,
+                )
         elif amended:
             message = translator.t("Saved. Changes to a finished station are marked as later additions.")
         else:
