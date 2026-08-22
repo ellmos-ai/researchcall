@@ -87,6 +87,11 @@ class Workspace:
     test_values: dict[str, Any] = dataclasses.field(default_factory=dict)
     test_completed: dict[str, str] = dataclasses.field(default_factory=dict)
     test_amendments: list[dict[str, str]] = dataclasses.field(default_factory=list)
+    #: The language the example content in ``test_values`` was last written
+    #: in. ``None`` before test mode has ever been enabled. See
+    #: ``enable_test_mode`` and ``sync_test_mode_language`` — RC1
+    #: (Endabnahme 2026-08-22).
+    test_example_language: str | None = None
 
     # --- persistence -------------------------------------------------------
 
@@ -115,6 +120,7 @@ class Workspace:
                 test_values=dict(stored.get("test_values", {})),
                 test_completed=dict(stored.get("test_completed", {})),
                 test_amendments=list(stored.get("test_amendments", [])),
+                test_example_language=stored.get("test_example_language"),
             )
         file = directory / WORKSPACE_FILE
         if not file.exists():
@@ -129,6 +135,7 @@ class Workspace:
             test_values=dict(stored.get("test_values", {})),
             test_completed=dict(stored.get("test_completed", {})),
             test_amendments=list(stored.get("test_amendments", [])),
+            test_example_language=stored.get("test_example_language"),
         )
 
     def save(self) -> None:
@@ -140,6 +147,7 @@ class Workspace:
             "test_values": self.test_values,
             "test_completed": self.test_completed,
             "test_amendments": self.test_amendments,
+            "test_example_language": self.test_example_language,
         }
         text = json.dumps(payload, ensure_ascii=False, indent=2)
         if current_mode().stores_in_browser:
@@ -180,15 +188,66 @@ class Workspace:
     def active_values(self) -> dict[str, Any]:
         return self.test_values if self.test_mode else self.values
 
-    def enable_test_mode(self, examples: dict[str, Any]) -> None:
-        """Open or resume the example workspace without changing study answers."""
+    def enable_test_mode(self, examples: dict[str, Any], language: str) -> None:
+        """Open or resume the example workspace without changing study answers.
+
+        ``language`` is the interface language the caller generated
+        ``examples`` in. It is recorded once, on the first enable, so a later
+        UI-language switch has something to compare against (see
+        ``sync_test_mode_language``). A later re-enable keeps whatever
+        language was recorded before, even if the visitor is now viewing a
+        different one — ``examples`` here never overwrites an existing value
+        (``setdefault``), so recording the new language would only make a
+        needed sync look already done.
+        """
         for path, value in examples.items():
             self.test_values.setdefault(path, value)
         self.test_mode = True
+        if self.test_example_language is None:
+            self.test_example_language = language
 
     def disable_test_mode(self) -> None:
         """Return to the study exactly as it was before the tour."""
         self.test_mode = False
+
+    def sync_test_mode_language(
+        self,
+        language: str,
+        examples: dict[str, Any],
+        previous_examples: dict[str, Any],
+    ) -> bool:
+        """Re-translate example content that is still untouched, after a
+        visitor switches the interface language while test mode is active.
+
+        RC1 (Endabnahme 2026-08-22): switching the workbench to German left
+        the example study's text in English — ``enable_test_mode`` writes
+        example values exactly once, and nothing ever revisited them when the
+        visitor's chosen language changed afterwards.
+
+        A field is only rewritten here when its CURRENT value still equals
+        the example text in the language it was last generated in
+        (``previous_examples``) — the same test that tells a genuine answer
+        apart from an untouched example everywhere else in this class. A
+        field the researcher has since edited never matches that value
+        exactly and is left alone; the empty-tour default for a field the
+        researcher cleared out is also left alone (it is not a key of
+        ``examples`` in the first place, since ``example_values`` only
+        returns declared, unlocked fields).
+
+        Returns whether anything changed, so the caller knows whether the
+        workspace needs saving.
+        """
+        if not self.test_mode or language == self.test_example_language:
+            return False
+        changed = False
+        for path, new_value in examples.items():
+            if path not in self.test_values:
+                continue
+            if self.test_values[path] == previous_examples.get(path):
+                self.test_values[path] = new_value
+                changed = True
+        self.test_example_language = language
+        return changed
 
     def artifact_directory(self) -> pathlib.Path:
         """Keep fixture-tour outputs separate from actual study outputs."""

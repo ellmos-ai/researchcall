@@ -102,6 +102,22 @@ def create_app(
     def shell(request: Request, body: str, title: str, active: str) -> HTMLResponse:
         translator = translator_of(request)
         workspace = load_workspace()
+        # RC1 (Endabnahme 2026-08-22): a language switch used to leave the
+        # test-mode example content in whichever language it was first
+        # generated in. `shell()` renders on every page, so it is the one
+        # place that reliably sees a language change and can persist the
+        # catch-up before the visitor's next click. Content already built
+        # into `body` by this same request still shows the old language once
+        # — the fix takes effect from the next navigation.
+        if workspace.test_mode and workspace.test_example_language != translator.language:
+            workspace.sync_test_mode_language(
+                translator.language,
+                test_mode.example_values(fields, translator.language),
+                test_mode.example_values(
+                    fields, workspace.test_example_language or translator.language
+                ),
+            )
+            workspace.save()
         mode_banner = test_mode.banner(workspace.test_mode, translator, request.url.path)
         page = render.page(
             title,
@@ -124,7 +140,9 @@ def create_app(
         if workspace.test_mode:
             workspace.disable_test_mode()
         else:
-            workspace.enable_test_mode(test_mode.example_values(fields))
+            workspace.enable_test_mode(
+                test_mode.example_values(fields, translator.language), translator.language
+            )
         workspace.save()
         target = test_mode.safe_return_path(request.query_params.get("next"))
         separator = "&" if "?" in target else "?"
