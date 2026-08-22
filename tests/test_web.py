@@ -210,6 +210,51 @@ class WorkbenchTestCase(unittest.TestCase):
             with self.subTest(language=language):
                 self.assertEqual(i18n.untranslated(keys, language), [])
 
+    # --- wizard forward navigation (RC10) -----------------------------------
+
+    def test_finishing_a_station_opens_the_next_one_automatically(self) -> None:
+        """RC10 (Endabnahme 2026-08-22, Nutzervorgabe): finishing a station
+        used to leave the researcher on the same page; the CLI/web wizard
+        should move on by itself, the way a wizard does.
+        """
+        body = self.payload(STATIONS[0]) + "&action=complete"
+        response = self.client.post(
+            f"/station/{STATIONS[0]}?lang=en", content=body, headers=FORM_ENCODED
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.url.path, f"/station/{STATIONS[1]}")
+        self.assertIn("Station finished. The next one is open.", response.text)
+        self.assertIn(STATIONS[0], Workspace.load(self.directory).completed)
+
+    def test_a_stale_completed_flag_shows_no_confirmation(self) -> None:
+        """The flag names a real, currently-completed station or nothing at
+        all — never whatever a visitor happens to put in the URL."""
+        page = self.client.get(f"/station/{STATIONS[0]}?lang=en&completed=02-instrument")
+        self.assertNotIn("Station finished. The next one is open.", page.text)
+        page = self.client.get(f"/station/{STATIONS[0]}?lang=en&completed=not-a-station")
+        self.assertNotIn("Station finished. The next one is open.", page.text)
+
+    def test_finishing_the_last_station_opens_the_overview_with_a_completion_note(
+        self,
+    ) -> None:
+        for station in STATIONS[:-1]:
+            self.finish(station)
+        body = self.payload(STATIONS[-1]) + "&action=complete"
+        response = self.client.post(
+            f"/station/{STATIONS[-1]}?lang=en", content=body, headers=FORM_ENCODED
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.url.path, "/")
+        self.assertIn("All eight stations are finished.", response.text)
+
+    def test_the_wizard_hand_off_speaks_the_visitor_s_language(self) -> None:
+        body = self.payload(STATIONS[0], language="de") + "&action=complete"
+        response = self.client.post(
+            f"/station/{STATIONS[0]}?lang=de", content=body, headers=FORM_ENCODED
+        )
+        self.assertEqual(response.url.path, f"/station/{STATIONS[1]}")
+        self.assertIn("Station abgeschlossen. Die nächste ist frei.", response.text)
+
     # --- gating ------------------------------------------------------------
 
     def test_a_station_stays_shut_until_its_predecessor_is_finished(self) -> None:
