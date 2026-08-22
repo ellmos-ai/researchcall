@@ -269,6 +269,69 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertIn("Testmodus — Beispieldaten, keine echte Studie", german)
         self.assertIn("Netzwerk deaktiviert · Fixture-Transport · keine echten Anrufe", german)
 
+    def test_test_mode_prefills_the_example_study_in_the_current_language(self) -> None:
+        """RC1 (Endabnahme 2026-08-22): enabling test mode while the UI was
+        already set to German still filled the example study with English
+        text — ``example_values`` had only ever been given one, English,
+        table to read from.
+        """
+        self.toggle_test_mode(language="de")
+
+        station_one = self.client.get("/station/01-research-question?lang=de").text
+        self.assertIn(
+            "Wie wirkt sich die Taktfrequenz des lokalen Busverkehrs", station_one
+        )
+        self.assertNotIn("How does the frequency of local bus service", station_one)
+
+        station_two = self.client.get("/station/02-instrument?lang=de").text
+        self.assertIn(
+            "Nutzen Sie den Bus normalerweise für Ihren Arbeitsweg", station_two
+        )
+        self.assertNotIn("Do you usually use the bus for your commute", station_two)
+
+    def test_switching_language_translates_untouched_examples_not_a_researchers_edit(
+        self,
+    ) -> None:
+        """RC1: the example text must follow a later language switch too, but
+        never overwrite what a researcher typed while exploring in the other
+        language.
+        """
+        self.toggle_test_mode(language="en")
+        english = self.client.get("/station/01-research-question?lang=en").text
+        self.assertIn("How does the frequency of local bus service", english)
+
+        # The researcher edits the example question while touring in English.
+        edited_question = "A hand-typed question the tour never suggested."
+        body = self.payload(
+            "01-research-question", language="en", question=edited_question
+        )
+        edit_response = self.client.post(
+            "/station/01-research-question?lang=en", content=body, headers=FORM_ENCODED
+        )
+        self.assertEqual(edit_response.status_code, 200)
+
+        # Switching the UI language settles the workspace file within this
+        # one request (`shell()` runs on every page, including this POST's
+        # own response) — no separate "apply language" action exists to wait
+        # for.
+        self.client.get("/station/02-instrument?lang=de")
+        workspace = Workspace.load(self.directory)
+        self.assertEqual(workspace.test_example_language, "de")
+        self.assertEqual(workspace.test_values["question"], edited_question)
+        self.assertIn(
+            "Nutzen Sie den Bus normalerweise für Ihren Arbeitsweg",
+            workspace.test_values["items"][0],
+        )
+
+        # …and the next page load in German shows exactly that split.
+        station_two_de = self.client.get("/station/02-instrument?lang=de").text
+        self.assertIn(
+            "Nutzen Sie den Bus normalerweise für Ihren Arbeitsweg", station_two_de
+        )
+        station_one_de = self.client.get("/station/01-research-question?lang=de").text
+        self.assertIn(edited_question, station_one_de)
+        self.assertNotIn("Wie wirkt sich die Taktfrequenz", station_one_de)
+
     def test_test_mode_never_supplies_or_reveals_a_locked_field(self) -> None:
         # The set, not the count. A bare number says that something changed;
         # the set says WHICH field became locked or lost its lock, which is the
