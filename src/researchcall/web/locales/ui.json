@@ -47,6 +47,10 @@
     "de": "Ein Testanruf bei sich selbst ist trotzdem ein echter Anruf.",
     "en": "A test call to yourself is still a real call."
   },
+  "Add row": {
+    "de": "Zeile hinzufügen",
+    "en": "Add row"
+  },
   "Added as a deliberately clumsy item; smoothing it out is the tell.": {
     "de": "Wird als absichtlich holpriges Item ergänzt; wird es geglättet, ist das der Beleg.",
     "en": "Added as a deliberately clumsy item; smoothing it out is the tell."
@@ -147,6 +151,10 @@
     "de": "Änderungsprotokoll dieses Eintrags:",
     "en": "Change log for this record:"
   },
+  "Choice": {
+    "de": "Auswahl",
+    "en": "Choice"
+  },
   "Coded": {
     "de": "Kodiert",
     "en": "Coded"
@@ -195,6 +203,10 @@
     "de": "Auszählen ist umgesetzt; Metaphern-, Framing- und Weltbildanalyse brauchen ein Modell, das dieser Trockenlauf nicht aufruft.",
     "en": "Counting is done; metaphor, framing and worldview analysis need a model this dry-run build does not call."
   },
+  "Creative": {
+    "de": "Kreativ",
+    "en": "Creative"
+  },
   "Current frame:": {
     "de": "Aktueller Rahmen:",
     "en": "Current frame:"
@@ -226,6 +238,10 @@
   "Dialed": {
     "de": "Angerufen",
     "en": "Dialed"
+  },
+  "Dichotomous (yes/no)": {
+    "de": "Dichotom (ja/nein)",
+    "en": "Dichotomous (yes/no)"
   },
   "Distinct item orders the instrument produced across the test calls.": {
     "de": "Verschiedene Item-Reihenfolgen, die das Instrument über die Testanrufe erzeugt hat.",
@@ -291,6 +307,10 @@
     "de": "Zusätzliche Versuche nach Nichtabnehmen, Besetzt oder Mailbox. Der Bericht nennt die Zahl, die so erreicht wurde.",
     "en": "Extra attempts after no answer, busy or voicemail. The report states the number reached this way."
   },
+  "Falsification criterion": {
+    "de": "Falsifikationskriterium",
+    "en": "Falsification criterion"
+  },
   "Field phase": {
     "de": "Feldphase",
     "en": "Field phase"
@@ -330,6 +350,10 @@
   "Flagging a call as a conflict requires grounds": {
     "de": "Einen Anruf als Konflikt zu markieren braucht eine Begründung",
     "en": "Flagging a call as a conflict requires grounds"
+  },
+  "Format": {
+    "de": "Format",
+    "en": "Format"
   },
   "Frame accepted:": {
     "de": "Rahmen angenommen:",
@@ -379,6 +403,10 @@
     "de": "Begründung:",
     "en": "Grounds:"
   },
+  "H1": {
+    "de": "H1",
+    "en": "H1"
+  },
   "Handing the questionnaire around is switched off in station 5.": {
     "de": "Das Weiterreichen des Fragebogens ist in Station 5 abgeschaltet.",
     "en": "Handing the questionnaire around is switched off in station 5."
@@ -394,6 +422,18 @@
   "How many records are drawn.": {
     "de": "Wie viele Datensätze gezogen werden.",
     "en": "How many records are drawn."
+  },
+  "Hypothesis": {
+    "de": "Hypothese",
+    "en": "Hypothesis"
+  },
+  "ID": {
+    "de": "ID",
+    "en": "ID"
+  },
+  "Indicator or items": {
+    "de": "Indikator oder Items",
+    "en": "Indicator or items"
   },
   "Instrument": {
     "de": "Instrument",
@@ -551,6 +591,10 @@
     "de": "Nur der Live-Transport pollt, und den erreicht diese Oberfläche nicht.",
     "en": "Only the live transport polls, and this interface cannot reach it."
   },
+  "Open": {
+    "de": "Offen",
+    "en": "Open"
+  },
   "Open conflict:": {
     "de": "Offener Konflikt:",
     "en": "Open conflict:"
@@ -558,6 +602,10 @@
   "Open review cases:": {
     "de": "Offene Prüffälle:",
     "en": "Open review cases:"
+  },
+  "Options": {
+    "de": "Zusätze",
+    "en": "Options"
   },
   "Outcome structure by assigned time window": {
     "de": "Ausfallstruktur nach zugelostem Zeitfenster",
@@ -627,6 +675,10 @@
     "de": "Datensätze, die je Fenster in einem Lauf abgearbeitet werden.",
     "en": "Records worked per window in one run."
   },
+  "Remove": {
+    "de": "Entfernen",
+    "en": "Remove"
+  },
   "Removes the phone number and the reference for one person. Their remaining data stays as one record that can no longer be linked to a number, and they leave every later denominator.": {
     "de": "Entfernt Telefonnummer und Referenz einer Person. Ihre übrigen Daten bleiben als ein Eintrag erhalten, der keiner Nummer mehr zugeordnet werden kann, und sie verlässt jeden späteren Nenner.",
     "en": "Removes the phone number and the reference for one person. Their remaining data stays as one record that can no longer be linked to a number, and they leave every later denominator."
@@ -691,6 +743,14 @@
     "de": "Gespeichert. Änderungen an einer abgeschlossenen Station werden als nachträglich gekennzeichnet.",
     "en": "Saved. Changes to a finished station are marked as later additions."
   },
+  "Scale": {
+    "de": "Skala",
+    "en": "Scale"
+  },
+  "Scale (reversed)": {
+    "de": "Skala (umgepolt)",
+    "en": "Scale (reversed)"
+  },
   "Schema:": {
     "de": "Schema:",
     "en": "Schema:"
@@ -718,6 +778,10 @@
   "Set a sample size in station 4 before the field phase.": {
     "de": "Vor der Feldphase in Station 4 einen Stichprobenumfang festlegen.",
     "en": "Set a sample size in station 4 before the field phase."
+  },
+  "Skips": {
+    "de": "Überspringt",
+    "en": "Skips"
   },
   "Some settings on this station are kept but not yet read by anything. They are marked, because a control that quietly changes nothing is worse than one that is missing.": {
     "de": "Einige Einstellungen dieser Station werden gespeichert, aber noch von nichts gelesen. Sie sind gekennzeichnet, denn ein Bedienelement, das stillschweigend nichts bewirkt, ist schlimmer als eines, das fehlt.",
@@ -806,6 +870,10 @@
   "Test mode — example data, not a real study": {
     "de": "Testmodus — Beispieldaten, keine echte Studie",
     "en": "Test mode — example data, not a real study"
+  },
+  "Testable statement": {
+    "de": "Prüfbare Aussage",
+    "en": "Testable statement"
   },
   "Text in double quotes is spoken word for word. Everything outside the quotes is rephrased by the agent — a behaviour measured in a real call.": {
     "de": "Text in doppelten Anführungszeichen wird wortgetreu gesprochen. Alles außerhalb der Anführungszeichen formuliert der Agent um — gemessen in einem echten Anruf.",
@@ -943,6 +1011,10 @@
     "de": "Diese Oberfläche kann keinen echten Anruf auslösen. Das kann nur die Kommandozeile, und auch dort erst, wenn die Absicht vollständig ausgeschrieben wird.",
     "en": "This interface cannot place a real call. Only the command line can, and only after the intent is typed out in full."
   },
+  "This line could not be split into columns; edit it as text.": {
+    "de": "Diese Zeile ließ sich nicht in Spalten aufteilen; als Text bearbeiten.",
+    "en": "This line could not be split into columns; edit it as text."
+  },
   "This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it.": {
     "de": "Gemessen wird der lokale Prüfstand, nicht der CALL-E-Agent. Ein Trockenlauf kann zeigen, dass das Instrument durchgesetzt und geprüft wird; ob der Agent es auch spricht, zeigt nur ein echter Anruf.",
     "en": "This measures the local harness, not the CALL-E agent. A dry run can show that the instrument is enforced and audited; only a live call can show whether the agent speaks it."
@@ -979,9 +1051,17 @@
     "de": "Obergrenze für Menschen, die abgelehnt, einem späteren Anruf aber zugestimmt haben.",
     "en": "Upper bound for people who refused but accepted a later call."
   },
+  "Value": {
+    "de": "Wert",
+    "en": "Value"
+  },
   "What could not be read": {
     "de": "Was nicht gelesen werden konnte",
     "en": "What could not be read"
+  },
+  "What is asked, word for word": {
+    "de": "Was wörtlich gefragt wird",
+    "en": "What is asked, word for word"
   },
   "What the pipeline reads. Defaults from the form definitions, your answers on top.": {
     "de": "Was die Pipeline liest. Vorgaben aus den Formularvorlagen, darüber deine Antworten.",
@@ -1002,6 +1082,10 @@
   "Withdrawn. The number and the reference are gone; the record stays, unlinked.": {
     "de": "Widerrufen. Nummer und Referenz sind entfernt; der Eintrag bleibt, ohne Zuordnung.",
     "en": "Withdrawn. The number and the reference are gone; the record stays, unlinked."
+  },
+  "Wording": {
+    "de": "Wortlaut",
+    "en": "Wording"
   },
   "Wording check:": {
     "de": "Wortlautprüfung:",
@@ -1143,6 +1227,10 @@
     "de": "Minuten",
     "en": "minutes"
   },
+  "no": {
+    "de": "nein",
+    "en": "no"
+  },
   "not measurable": {
     "de": "nicht messbar",
     "en": "not measurable"
@@ -1163,6 +1251,14 @@
     "de": "Projekt als ZIP",
     "en": "project as zip"
   },
+  "q1": {
+    "de": "q1",
+    "en": "q1"
+  },
+  "q4, q5": {
+    "de": "q4, q5",
+    "en": "q4, q5"
+  },
   "recorded only": {
     "de": "nur erfasst",
     "en": "recorded only"
@@ -1178,6 +1274,10 @@
   "sample size": {
     "de": "Stichprobenumfang",
     "en": "sample size"
+  },
+  "scale=5:low..high": {
+    "de": "scale=5:niedrig..hoch",
+    "en": "scale=5:low..high"
   },
   "shapes the analysis": {
     "de": "prägt die Auswertung",

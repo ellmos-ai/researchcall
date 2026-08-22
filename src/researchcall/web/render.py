@@ -16,6 +16,7 @@ Two rules run through everything here:
 from __future__ import annotations
 
 import html
+import json
 from typing import Any, Iterable
 
 from .. import effect, forms
@@ -304,6 +305,24 @@ pre.script {
   font-size: .84rem; line-height: 1.55; max-height: 28rem; overflow: auto; color: #1e293b;
 }
 .problem { color: var(--warn); font-size: .85rem; font-weight: 600; }
+
+/* RC9(a): a labelled row per line, in place of a remembered pipe syntax.
+   Hidden only once mounted (see instrument_editor.js) — a script error
+   leaves the plain textarea beneath it visible and working. */
+textarea.row-editor-source { display: none; }
+.row-editor { display: flex; flex-direction: column; gap: .4rem; margin-top: .5rem; }
+.row-editor-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)) auto;
+  gap: .4rem; align-items: center;
+}
+.row-editor-raw { grid-template-columns: 1fr auto; }
+.row-editor-cell { padding: .38rem .5rem; font-size: .84rem; }
+.row-editor-cell-wide { width: 100%; }
+.row-editor-remove, .row-editor-add {
+  padding: .3rem .6rem; font-size: .8rem; line-height: 1; min-width: 2.1rem; text-align: center;
+}
+.row-editor-add { align-self: flex-start; margin-top: .1rem; }
+
 @media (max-width: 860px) {
   .shell { grid-template-columns: 1fr; min-height: auto; }
   nav.rail { position: static; height: auto; border-right: 0; border-bottom: 1px solid #334155; padding: .55rem; overflow-x: auto; }
@@ -333,6 +352,7 @@ def page(title: str, body: str, translator: Translator, active: str = "") -> str
         f"<style>{STYLE}</style>"
         '<script src="/static/htmx.min.js" defer></script>'
         '<script src="/static/huckepack.js" defer></script>'
+        '<script src="/static/instrument_editor.js" defer></script>'
         "</head><body>"
         f'<header class="top"><h1>{BRAND_MARK}ResearchCall</h1>'
         f'<span class="tag">{e(translator.t("Survey workbench · dry run · no calls"))}</span>'
@@ -381,6 +401,109 @@ def rail(workspace: Workspace, translator: Translator, active: str) -> str:
     )
 
 
+# --- structured row editors (RC9(a)) -------------------------------------------
+#
+# Three "list"/"table" fields carry a real line syntax a researcher would
+# otherwise have to remember: items, hypotheses, questionnaire.jump_rules.
+# The rest — plain one-item-per-line lists such as a reviewer roster or an
+# ethics checklist — stay bare textareas on purpose: the finding this
+# answers is about a *multi-part* syntax, and a single value per line is not
+# one. static/instrument_editor.js reads STRUCTURED_LIST_FIELDS' column
+# labels from the JSON block below and mounts a labelled row editor that
+# writes back into the exact same textarea, so the field the server reads
+# (see coerce() in workspace.py) never changes shape.
+
+STRUCTURED_LIST_FIELDS: dict[str, tuple[str, ...]] = {
+    "items": ("id", "hypothesis", "format", "wording", "options"),
+    "hypotheses": ("id", "statement", "indicator", "falsification"),
+    "questionnaire.jump_rules": ("source", "value", "targets"),
+}
+
+#: Canonical format (as instrument.FORMATS maps to) -> (German alias, English
+#: alias) emitted into the items line, matching whichever alias the
+#: help text of the *items* field already shows in that language.
+FORMAT_ALIASES: dict[str, tuple[str, str]] = {
+    "dichotomous": ("dichotom", "dichotomous"),
+    "scale": ("skala", "scale"),
+    "scale_reversed": ("skala_umgepolt", "scale_reversed"),
+    "choice": ("auswahl", "choice"),
+    "open": ("offen", "open"),
+    "creative": ("kreativ", "creative"),
+}
+
+#: English source strings for translator.t() — one label per canonical format.
+FORMAT_LABELS: dict[str, str] = {
+    "dichotomous": "Dichotomous (yes/no)",
+    "scale": "Scale",
+    "scale_reversed": "Scale (reversed)",
+    "choice": "Choice",
+    "open": "Open",
+    "creative": "Creative",
+}
+
+#: (label, placeholder) as English source strings, per field and column.
+#: placeholder may be None.
+STRUCTURED_COLUMN_TEXT: dict[str, dict[str, tuple[str, str | None]]] = {
+    "items": {
+        "id": ("ID", "q1"),
+        "hypothesis": ("Hypothesis", "H1"),
+        "format": ("Format", None),
+        "wording": ("Wording", "What is asked, word for word"),
+        "options": ("Options", "scale=5:low..high"),
+    },
+    "hypotheses": {
+        "id": ("ID", "H1"),
+        "statement": ("Testable statement", None),
+        "indicator": ("Indicator or items", None),
+        "falsification": ("Falsification criterion", None),
+    },
+    "questionnaire.jump_rules": {
+        "source": ("Item", "q1"),
+        "value": ("Value", "no"),
+        "targets": ("Skips", "q4, q5"),
+    },
+}
+
+
+def structured_editor_schema(path: str, translator: Translator) -> dict[str, Any] | None:
+    """Column labels for one structured field, translated once, read by JS.
+
+    Every translatable string here still comes from ``translator.t()`` —
+    nothing is duplicated as a literal in instrument_editor.js — so DE/EN
+    parity is enforced the same way as everywhere else in this module.
+    """
+    columns = STRUCTURED_LIST_FIELDS.get(path)
+    if columns is None:
+        return None
+    fields: dict[str, Any] = {}
+    for key in columns:
+        label, placeholder = STRUCTURED_COLUMN_TEXT[path][key]
+        entry: dict[str, Any] = {"label": translator.t(label)}
+        if placeholder:
+            entry["placeholder"] = translator.t(placeholder)
+        if path == "items" and key == "format":
+            alias_index = 0 if translator.language == "de" else 1
+            entry["select"] = [
+                {"value": FORMAT_ALIASES[canonical][alias_index], "label": translator.t(FORMAT_LABELS[canonical])}
+                for canonical in sorted(FORMAT_ALIASES)
+            ]
+        fields[key] = entry
+    return {
+        "fields": fields,
+        "add": translator.t("Add row"),
+        "remove": translator.t("Remove"),
+        "raw_hint": translator.t("This line could not be split into columns; edit it as text."),
+    }
+
+
+def structured_editor_schema_tag(path: str, translator: Translator) -> str:
+    schema = structured_editor_schema(path, translator)
+    if schema is None:
+        return ""
+    payload = json.dumps(schema).replace("</", "<\\/")
+    return f'<script type="application/json" data-schema-for="{e(path)}">{payload}</script>'
+
+
 # --- one control per field ----------------------------------------------------
 
 def control(descriptor: dict[str, Any], value: Any) -> str:
@@ -402,7 +525,8 @@ def control(descriptor: dict[str, Any], value: Any) -> str:
         return f'<textarea id="{name}" name="{name}"{required}>{e(value or "")}</textarea>'
     if kind in {"list", "table"}:
         lines = "\n".join(str(item) for item in value) if isinstance(value, list) else e(value or "")
-        return f'<textarea id="{name}" name="{name}"{required}>{e(lines)}</textarea>'
+        structured = f' data-structured="{name}"' if descriptor["name"] in STRUCTURED_LIST_FIELDS else ""
+        return f'<textarea id="{name}" name="{name}"{required}{structured}>{e(lines)}</textarea>'
     if kind == "choice":
         options = []
         for option in descriptor.get("options", []):
@@ -470,13 +594,14 @@ def field_block(
         classes += " amended"
     if declared:
         classes += " declared"
+    schema_tag = structured_editor_schema_tag(path, translator)
     return (
         f'<div class="{classes}">'
         f'<label class="name" for="{e(path)}">'
         f'<span class="path mono">{e(path)}</span>'
         f'{e(descriptor["label"])}{required}{mark}'
         f"{effect_badge(path, translator)}</label>"
-        f"{control(descriptor, value)}{help_text}{why}</div>"
+        f"{control(descriptor, value)}{schema_tag}{help_text}{why}</div>"
     )
 
 

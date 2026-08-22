@@ -377,6 +377,139 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertIn(edited_question, station_one_de)
         self.assertNotIn("Wie wirkt sich die Taktfrequenz", station_one_de)
 
+    # --- structured row editors (RC9(a)) ------------------------------------
+    #
+    # RC9 (Endabnahme 2026-08-22): "veraltete Eingabemuster — Text nach einer
+    # Parsing-Folge/Syntax eingeben statt getrennter Formularfelder". These
+    # tests are deliberately about the *markup and schema*, not about
+    # JavaScript behaviour — the row editor's own parse/serialize logic is
+    # tested where it lives, in tests/instrument_editor_js.test.js
+    # (``node --test tests/instrument_editor_js.test.js``). What matters here
+    # is: (1) exactly the three fields with a real multi-part line syntax are
+    # marked for the structured editor and nothing else is, (2) the schema a
+    # browser reads is present and translated, and (3) the field the server
+    # actually reads is completely unchanged — a plain multi-line string,
+    # still parsed by researchcall.instrument the same way it always was.
+
+    def open_every_station(self) -> None:
+        """A fresh workspace only has station 1 open — every other GET or
+        POST redirects there. These tests are about later stations' markup,
+        so open the gate the same way test_each_station_renders_exactly_its_form_definitions does.
+        """
+        workspace = Workspace(path=self.directory)
+        workspace.completed = {station: "now" for station in STATIONS}
+        workspace.save()
+
+    def test_only_the_multi_part_syntax_fields_get_a_structured_editor(self) -> None:
+        self.open_every_station()
+        instrument_page = self.client.get("/station/02-instrument?lang=en").text
+        self.assertIn('data-structured="items"', instrument_page)
+        self.assertIn('data-structured="questionnaire.jump_rules"', instrument_page)
+
+        research_question_page = self.client.get(
+            "/station/01-research-question?lang=en"
+        ).text
+        self.assertIn('data-structured="hypotheses"', research_question_page)
+
+        # A single-value-per-line list — the finding is about a multi-part
+        # syntax, and one value per line is not one. It keeps the plain
+        # textarea it always had.
+        ethics_page = self.client.get("/station/03-ethics?lang=en").text
+        self.assertNotIn('data-structured="ethics.policies"', ethics_page)
+        self.assertIn('name="ethics.policies"', ethics_page)
+
+    def test_the_structured_editor_script_is_loaded_and_schemas_are_translated(
+        self,
+    ) -> None:
+        self.open_every_station()
+        instrument_page = self.client.get("/station/02-instrument?lang=en").text
+        self.assertIn('src="/static/instrument_editor.js"', instrument_page)
+
+        match = re.search(
+            r'<script type="application/json" data-schema-for="items">(.*?)</script>',
+            instrument_page,
+        )
+        self.assertIsNotNone(match)
+        schema = json.loads(match.group(1))
+        self.assertEqual(
+            set(schema["fields"]), {"id", "hypothesis", "format", "wording", "options"}
+        )
+        self.assertEqual(schema["fields"]["wording"]["label"], "Wording")
+        self.assertEqual(schema["add"], "Add row")
+        format_values = {option["value"] for option in schema["fields"]["format"]["select"]}
+        self.assertEqual(
+            format_values,
+            {"dichotomous", "scale", "scale_reversed", "choice", "open", "creative"},
+        )
+
+        instrument_page_de = self.client.get("/station/02-instrument?lang=de").text
+        match_de = re.search(
+            r'<script type="application/json" data-schema-for="items">(.*?)</script>',
+            instrument_page_de,
+        )
+        self.assertIsNotNone(match_de)
+        schema_de = json.loads(match_de.group(1))
+        self.assertEqual(schema_de["fields"]["wording"]["label"], "Wortlaut")
+        self.assertEqual(schema_de["add"], "Zeile hinzufügen")
+        format_values_de = {
+            option["value"] for option in schema_de["fields"]["format"]["select"]
+        }
+        self.assertEqual(
+            format_values_de,
+            {"dichotom", "skala", "skala_umgepolt", "auswahl", "offen", "kreativ"},
+        )
+
+    def test_the_structured_editor_never_changes_what_the_server_actually_reads(
+        self,
+    ) -> None:
+        """The row editor is client-side sugar over the same textarea.
+
+        A submission built exactly the way instrument_editor.js's
+        serializeItemLine/serializeJumpRuleLine would build one — quoted
+        wording, ``if <source> = <value> skip <targets>`` — is posted as the
+        plain multi-line string coerce() has always expected, and reaches the
+        workspace unchanged.
+        """
+        self.open_every_station()
+        items_value = "\n".join(
+            [
+                'q1 | H1 | dichotomous | "Do you use the bus?" | free',
+                'q2 | H1 | scale | "How satisfied are you?" | scale=5:very unsatisfied..very satisfied',
+            ]
+        )
+        jump_rules_value = "if q1 = no skip q2"
+        response = self.client.post(
+            "/station/02-instrument?lang=en",
+            content=self.payload(
+                "02-instrument",
+                items=items_value,
+                **{"questionnaire.jump_rules": jump_rules_value},
+            ),
+            headers=FORM_ENCODED,
+        )
+        self.assertEqual(response.status_code, 200)
+
+        workspace = Workspace.load(self.directory)
+        self.assertEqual(
+            workspace.values["items"],
+            [
+                'q1 | H1 | dichotomous | "Do you use the bus?" | free',
+                'q2 | H1 | scale | "How satisfied are you?" | scale=5:very unsatisfied..very satisfied',
+            ],
+        )
+        self.assertEqual(workspace.values["questionnaire.jump_rules"], ["if q1 = no skip q2"])
+
+    def test_format_alias_dropdown_never_drifts_from_the_grammar_it_feeds(self) -> None:
+        """The dropdown's canonical values are read from instrument.FORMATS,
+        not duplicated as a second literal list — a format instrument.py
+        learns to parse tomorrow could otherwise go unlisted here silently.
+        """
+        from researchcall import instrument
+        from researchcall.web import render
+
+        self.assertEqual(set(render.FORMAT_ALIASES), set(instrument.FORMATS.values()))
+        self.assertEqual(set(render.FORMAT_LABELS), set(instrument.FORMATS.values()))
+
     def test_test_mode_never_supplies_or_reveals_a_locked_field(self) -> None:
         # The set, not the count. A bare number says that something changed;
         # the set says WHICH field became locked or lost its lock, which is the
