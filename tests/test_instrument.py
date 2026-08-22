@@ -121,6 +121,28 @@ class ItemGrammarTestCase(unittest.TestCase):
         self.assertIn("exactly two categories", messages)
         self.assertIn("not coded into fixed categories", messages)
 
+    def test_a_line_the_structured_row_editor_would_serialize_parses_cleanly(self) -> None:
+        """RC9(a) (Endabnahme 2026-08-22): the workbench's structured row
+        editor (static/instrument_editor.js) never sends anything but this
+        same multi-line pipe format — this is the half of that contract kept
+        here, on the Python side: a line built the way its
+        ``serializeItemLine`` builds one is a line this grammar accepts
+        without a Problem, several options included in the tail.
+        """
+        items, problems = instrument.parse_items(
+            [
+                'q1 | H1 | dichotomous | "Do you use the bus?" | free',
+                'q2 | H1 | scale | "How satisfied are you?" | '
+                "scale=5:very unsatisfied..very satisfied | rule=mean",
+            ]
+        )
+        self.assertEqual(problems, [])
+        by_id = {item.id: item for item in items}
+        self.assertEqual(by_id["q1"].stem, "Do you use the bus?")
+        self.assertFalse(by_id["q1"].verbatim)
+        self.assertEqual(by_id["q2"].scale["low"], "very unsatisfied")
+        self.assertEqual(by_id["q2"].analysis_rule, "mean")
+
 
 class SkipRuleTestCase(unittest.TestCase):
     def test_a_skip_rule_becomes_a_filter_on_the_item_it_skips(self) -> None:
@@ -147,6 +169,17 @@ class SkipRuleTestCase(unittest.TestCase):
         self.assertIn("unknown item: i9", messages)
         self.assertIn("no category", messages)
         self.assertIn("open item", messages)
+
+    def test_a_line_the_structured_row_editor_would_serialize_parses_cleanly(self) -> None:
+        """RC9(a): the canonical form static/instrument_editor.js's
+        ``serializeJumpRuleLine`` writes — ``if <source> = <value> skip
+        <targets>``, targets joined as ``", "`` — is exactly the form
+        parse_jump_rules already reads.
+        """
+        _, problems = build(
+            **{"questionnaire.jump_rules": ["if i1 = yes skip i2, i3"]}
+        )
+        self.assertEqual(problems, [])
 
 
 class OrderTestCase(unittest.TestCase):
