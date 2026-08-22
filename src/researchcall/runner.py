@@ -160,14 +160,28 @@ def _claim_next(
     # Everyone gets a first call before anyone gets a second one. Two queries
     # rather than one keep that order cheap: the common case never looks at the
     # attempt history at all.
+    #
+    # Both queries also exclude a NUMBER marked ``do_not_call`` in the
+    # ``dialed`` register, not just a frame row marked withdrawn. Measured
+    # live 2026-08-22 (Endabnahme, befund RC7): ``draw_sample`` used to be the
+    # only gate that could ever apply this, and it runs once, when a sample is
+    # first drawn — a sample drawn *before* the withdrawal (via any frame row
+    # for that number, including one the sample itself did not come from)
+    # would already exist and pass straight through the dial-time check that
+    # used to look only at ``f.withdrawn_at``. This is the last checkpoint
+    # before a real call goes out, so it carries its own copy of the guard
+    # rather than trusting an earlier one. ``dialed`` carries at most one row
+    # per ``(study_id, phone_e164)``, so the join is already a NUMBER check.
     chosen = connection.execute(
         """
         SELECT s.id AS sample_id, s.time_window, f.id AS frame_id, f.phone_e164
         FROM sample s
         JOIN frame f ON f.id = s.frame_id
         LEFT JOIN attempt a ON a.sample_id = s.id AND a.rehearsal = 0
+        LEFT JOIN dialed d ON d.study_id = s.study_id AND d.phone_e164 = f.phone_e164
         WHERE s.study_id = ? AND s.time_window = ?
           AND s.excluded_at IS NULL AND f.withdrawn_at IS NULL AND a.id IS NULL
+          AND (d.do_not_call IS NULL OR d.do_not_call = 0)
         ORDER BY s.id
         LIMIT 1
         """,
@@ -190,8 +204,10 @@ def _claim_next(
                       AND a.rehearsal = 0 ORDER BY a.attempt_no DESC LIMIT 1) AS last_started_at
             FROM sample s
             JOIN frame f ON f.id = s.frame_id
+            LEFT JOIN dialed d ON d.study_id = s.study_id AND d.phone_e164 = f.phone_e164
             WHERE s.study_id = ? AND s.time_window = ?
               AND s.excluded_at IS NULL AND f.withdrawn_at IS NULL
+              AND (d.do_not_call IS NULL OR d.do_not_call = 0)
             ORDER BY attempts ASC, s.id ASC
             """,
             (study["id"], time_window),
