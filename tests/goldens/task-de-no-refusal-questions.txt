@@ -29,9 +29,9 @@ QUESTIONNAIRE:
   Record the answer as spoken in raw_answers; do not add an entry for this question in answers at all. Do not categorize it yourself.
   You may ask at most 2 follow-up question(s) of your own here.
 CLOSING (your own words): Vielen Dank.
-WITHDRAWAL, say exactly at the end of the interview: "Wenn Sie Ihre Antworten später zurückziehen möchten, wenden Sie sich an withdraw@example.invalid."
+WITHDRAWAL, say exactly at the end of the interview: "Wenn Sie Ihre Antworten später zurückziehen möchten, wenden Sie sich an withdraw at example Punkt invalid."
 Do not request names, addresses, background history, or any data not required by this questionnaire.
-If the person withdraws consent, stop immediately and set withdrawal_requested=true.
+If the person withdraws consent or asks to end the interview early, say exactly: "Ihre bisherigen Antworten werden jetzt gelöscht." — then end the call immediately and set withdrawal_requested=true.
 For every question you asked, return the actual words spoken in spoken_wording; omit the entry entirely for a question you did not ask.
 For every question, preserve the participant's raw words in raw_answers before interpreting them into answers; do not correct or paraphrase the raw words, and omit the entry entirely when no answer was given.
 Never send an empty value: an entry you would have nothing to put in is left out.

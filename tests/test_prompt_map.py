@@ -150,8 +150,11 @@ class OptionFlipTestCase(unittest.TestCase):
     def test_the_scope_sentence_counts_the_questions_this_person_may_get(self) -> None:
         small = study("de", items=[ITEMS[0]])
         large = study("de", items=ITEMS * 2)
-        self.assertIn(f"bis zu {len(small['questions'])} Fragen", build_task(small))
-        self.assertIn(f"bis zu {len(large['questions'])} Fragen", build_task(large))
+        # RC3: "1 Frage", singular, not "1 Fragen" — the noun is inflected.
+        small_word = "Frage" if len(small["questions"]) == 1 else "Fragen"
+        large_word = "Frage" if len(large["questions"]) == 1 else "Fragen"
+        self.assertIn(f"bis zu {len(small['questions'])} {small_word}", build_task(small))
+        self.assertIn(f"bis zu {len(large['questions'])} {large_word}", build_task(large))
 
     def test_app_side_options_leave_the_prompt_untouched(self) -> None:
         """Documented as app-side in the map: they must NOT reach the task.
