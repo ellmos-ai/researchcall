@@ -7,7 +7,7 @@
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Architecture: Dry--Run First](https://img.shields.io/badge/Architecture-Dry--Run%20First-teal?style=flat)](SPEC.md)
 [![Pipeline: 8 Gated Stations](https://img.shields.io/badge/Pipeline-8%20Gated%20Stations-purple?style=flat)](pipeline/)
-[![Tests: 263 passed](https://img.shields.io/badge/Tests-263%20passed-success?style=flat&logo=pytest&logoColor=white)](tests/)
+[![Tests: 283 passed](https://img.shields.io/badge/Tests-283%20passed-success?style=flat&logo=pytest&logoColor=white)](tests/)
 [![LLM Context](https://img.shields.io/badge/LLM%20Context-llms.txt-orange?style=flat)](llms.txt)
 
 **English · [Deutsch](README_de.md)**
