@@ -423,6 +423,90 @@ oder Notfallrat verlangen. Das ist ein enger technischer Rückhalt, **keine Rech
 Einwilligung, rechtmäßige Kontaktaufnahme, Forschungsethik und die Anforderungen der jeweiligen
 Rechtsordnung bleibt der Betreiber verantwortlich.
 
+## Wie wir getestet haben
+
+ResearchCall wurde in einer Reihe betreuter Live-Anrufe gegen den echten CALL-E-Dienst getestet,
+jeder davon auf eine einzige, ausdrücklich einwilligende Leitung geführt
+(`RESEARCHCALL_FIELD_TRIAL_PHONE`), niemals auf eine tatsächlich gezogene Nummer. Der Autor
+spielte bei jedem Anruf die befragte Person, unvorbereitet bis auf das Wissen, welcher Pfad
+gerade geprüft wurde; eine unterschriebene Einwilligungs-Attestierung ist ein Gatter, das der
+Feldversuchs-Lauf nicht überspringt. Keine Nummer außerhalb dieser einen Leitung wurde je
+gewählt.
+
+**2026-08-11 — der erste Live-Anruf, dann eine weitere Runde.** Der allererste Live-Anruf wurde
+offline gegen den Datensatz diagnostiziert, den er hinterließ (`out/feldversuch`):
+`gates_missed=['consent_question']` und ein gespeicherter `structured_result`-Fehler,
+zurückgeführt auf den Extraktionscode, der das falsche Antwort-Feld auslas — behoben, und
+genau dieser Fix wurde in den späteren Runden erneut geprüft. Eine weitere Runde von Anrufen
+am selben Tag, gegen frische Datensätze (`out/feldversuch`, `out/feld2`), bestätigte live die
+Aufklärungs-Untergrenze (die drei richtigen Gatter gesehen, keines fehlend, die Antwort mit
+passendem Wortlaut gespeichert) und den Widerrufspfad (ein Abbruch reduzierte den Datensatz
+auf `{"purged": true}` — null Antwort-Zeilen, kein Transkript, kein Gatter-Datensatz mehr
+vorhanden). Dieselbe Runde deckte auch zwei kleinere Mängel auf: Das Versprechen "die
+Teilnahme ist freiwillig" wurde in einem Anruf zweimal gesprochen, und eine Frage wurde
+dreimal wörtlich gestellt. Eine dritte geplante Prüfung (Anrufbeantworter-/Voicemail-
+Klassifikation) konnte nicht durchgeführt werden — das Guthaben des Feldversuchs-Kontos war
+an diesem Tag leer, und diese Messlücke ist bis heute offen, weil ein Anrufbeantworter auch
+gegen eine einwilligende menschliche Testleitung nicht zuverlässig erzeugbar ist.
+
+**2026-08-22 — ein vollständiger Durchlauf, dann ein Nachtest am selben Tag.** Alle vier aus
+Forschungssicht relevanten Pfade wurden in einer Sitzung live durchgespielt: ein vollständiges
+Interview Ende zu Ende, ein Widerruf mitten im Interview, ein Anruf mit verweigerter
+Einwilligung und ein Widerruf gegen einen bereits beantworteten Datensatz. Zwei Fixes, die aus
+diesem Durchlauf entstanden, wurden noch am selben Tag mit frischen Live-Anrufen nachgeprüft:
+Ein Anruf bestätigte, dass beide Fixes hielten (natürlich gesprochene Adresse, korrekte
+Grammatik, vollständige Gatter-Sequenz), während in genau diesem Anruf kein echter
+Widerruf mitten im Interview zustande kam (das Interview endete stattdessen regulär über die
+gewöhnliche Sprunglogik); ein zweiter Anruf am selben Tag, bewusst in einen
+Mitten-im-Interview-Abbruch gesteuert, lieferte den ausstehenden Beleg — die befragte Person
+hörte die Löschungsansage, und unabhängig davon zeigte der gespeicherte Datensatz einen
+Widerrufs-Status, kein persistiertes Transkript, null gespeicherte Antworten und die Nummer
+gesperrt im Sperrregister.
+
+**Was schiefging, und was daraus wurde:**
+
+1. **Eine Adresse, die buchstabiert statt gesprochen wurde.** Die Widerrufskontakt-Adresse im
+   gesprochenen Text des Live-Anrufs war so aufgebaut, dass sie buchstabiert wurde, statt als
+   Adresse gesprochen zu werden. Behoben; im Nachtest live bestätigt, natürlich gesprochen.
+2. **Ein Grammatikfehler in der Dauer-Ansage.** Der Anruf nannte die Interviewdauer mit dem
+   falschen Plural. Behoben; im Nachtest live mit korrektem Singular bestätigt.
+3. **Ein Widerruf, der Daten löschte, es aber nie aussprach.** Die Datensparsamkeit beim
+   Widerruf funktionierte bereits genau wie vorgesehen — nichts blieb über eine
+   `{"purged": true}`-Markierung hinaus erhalten. Was fehlte, war der Satz, der der Person am
+   Telefon genau in dem einen Moment mitteilt, dass dies gerade geschehen ist (ein Abbruch
+   mitten im Interview) — die allgemeine Erwähnung der Löschung an anderer Stelle im
+   Gesprächstext deckte diesen konkreten Moment nie ab. Behoben mit einem eigenen Satz, den der
+   Agent jetzt vor dem Auflegen sprechen muss, und live bestätigt: Die befragte Person hörte
+   ihn, und der gespeicherte Datensatz stimmte in jedem unabhängig prüfbaren Punkt überein
+   (Widerrufs-Status, geleertes Transkript, null Antworten, die Nummer gegen erneutes Anrufen
+   gesperrt).
+4. **Eine Sperrlücke bei Wiederimporten.** Ein Widerruf sperrte den einen importierten
+   Datensatz korrekt gegen erneutes Anrufen — aber weder das Ziehen der Stichprobe noch das
+   tatsächliche Wählen prüften je das eigene Sperrregister selbst, sondern nur, ob genau
+   dieser Datensatz widerrufen worden war. Ein erneuter Import derselben Rufnummer unter einer
+   neuen Referenz (ein zweiter Feldtag, eine korrigierte Import-Datei) rutschte an beiden
+   Prüfungen vorbei. An beiden Kontrollpunkten behoben, mit einem Regressionstest, der genau
+   diese Abfolge nachstellt: widerrufen, unter neuer Referenz erneut importieren, prüfen dass
+   die Nummer weiterhin ausgeschlossen bleibt.
+
+**Weiterhin offen, ehrlich benannt:**
+
+- Das eigene Dashboard des Anbieters behält Gesprächsaufzeichnungen und Transkripte, ohne dass
+  von hier aus eine Löschfunktion erreichbar wäre — der verifizierte lokale Widerrufs-Purge
+  erreicht nur die eigene Kopie dieser Anwendung, nicht die des Anbieters. In Prüfung, noch
+  nicht gelöst; die Aufklärungssequenz enthält bislang auch keinen expliziten Satz "dieses
+  Gespräch wird aufgezeichnet", der je nach tatsächlicher Aufzeichnungspraxis des Anbieters
+  erforderlich sein könnte.
+- Die Anrufbeantworter-/Voicemail-Klassifikation bleibt eine dokumentierte Messlücke, kein
+  behobener Mangel: Sie ließ sich gegen die eine für diesen Feldversuch verfügbare
+  einwilligende Testleitung an keinem der beiden Testtage technisch erzeugen.
+
+Ein gemessener Anwendungsfall in dieser Liste stützt sich auf eine andere Art Beleg als die
+übrigen und wird entsprechend benannt statt vermischt: Dass beantwortete Studiendaten UND die
+isolierte Testmodus-Ebene der Werkbank einen vollständigen Anwendungsneustart überleben, ist
+durch einen automatisierten Test belegt, der den Neustart simuliert (eine frische
+Anwendungsinstanz gegen denselben Workspace auf der Platte), nicht durch einen Live-Anruf.
+
 ## Datenfluss
 
 Der Offline-Fixture-Modus bleibt im lokalen Prozess und in der SQLite-Datei — keine
