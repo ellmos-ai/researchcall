@@ -510,6 +510,81 @@ class WorkbenchTestCase(unittest.TestCase):
         self.assertEqual(set(render.FORMAT_ALIASES), set(instrument.FORMATS.values()))
         self.assertEqual(set(render.FORMAT_LABELS), set(instrument.FORMATS.values()))
 
+    # --- validation errors speak the page's own language (RC9(b)) -----------
+    #
+    # RC9 (Endabnahme 2026-08-22): "durchgängige Deutsch/Englisch-Mischung
+    # (siehe RC1) bereinigen". RC1 fixed the test-mode example text; this is
+    # a second, independent source of the same symptom — every route that
+    # catches a ValueError does ``translator.t(str(error))``, translating
+    # the raised message *by its English text as the lookup key*. That
+    # pattern is invisible to manage_translations.py's scanner (the key is
+    # computed at runtime, never a literal ``t("...")`` call it can find), so
+    # a message could go missing from locales/ui.json without any tooling
+    # ever reporting it — the researcher would just see raw English on an
+    # otherwise German page the first time they triggered that specific
+    # validation. These two are representative, easily triggered examples;
+    # the fix scope, and the reasoning for what to leave out, is documented
+    # in TODO.md next to the finding.
+
+    def test_an_empty_frame_upload_is_refused_in_the_pages_own_language(self) -> None:
+        response = self.client.post(
+            "/fieldwork/frame?lang=de",
+            files={"frame": ("frame.csv", b"", "text/csv")},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Die hochgeladene Datei ist leer", response.text)
+        self.assertNotIn("The uploaded file is empty", response.text)
+
+    def test_an_unset_sample_size_is_refused_in_the_pages_own_language(self) -> None:
+        """field_phase.prepare()'s own three guards (no items, sample.size,
+        sample.time_windows — RC9(b)) sit before any frame or draw logic
+        runs — but /fieldwork/prepare itself still needs stations 1 to 6
+        completed before it will call prepare() at all, so this cannot skip
+        straight to station 4 the way the sample.size gate alone would allow.
+        """
+        for station in STATIONS[:6]:
+            if station == "04-sampling":
+                body = self.payload("04-sampling", language="de", **{"sample.size": "0"})
+            else:
+                body = self.payload(station, language="de")
+            response = self.client.post(
+                f"/station/{station}?lang=de",
+                content=body + "&action=complete",
+                headers=FORM_ENCODED,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        response = self.client.post("/fieldwork/prepare?lang=de")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "sample.size muss vor der Feldphase gesetzt sein", response.text
+        )
+        self.assertNotIn("sample.size must be set before the field phase", response.text)
+
+    def test_an_invalid_phone_number_in_an_uploaded_frame_is_reported_in_german(
+        self,
+    ) -> None:
+        """The .csv itself is well-formed — a header, one row — so the upload
+        succeeds; the phone number is only checked once /fieldwork/prepare
+        actually imports the frame (sampling.import_frame_rows ->
+        safety.validate_e164), which is why the assertion has to run after
+        completing every station, exactly like every other prepare() test in
+        this file.
+        """
+        self.finish_all(language="de")
+        upload = self.client.post(
+            "/fieldwork/frame?lang=de",
+            files={"frame": ("frame.csv", b"external_ref,phone\nA1,not-a-phone-number\n", "text/csv")},
+        )
+        self.assertEqual(upload.status_code, 200)
+
+        response = self.client.post("/fieldwork/prepare?lang=de")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(
+            "Die Telefonnummer muss ein gültiges E.164-Format haben", response.text
+        )
+        self.assertNotIn("Phone number must be valid E.164 format", response.text)
+
     def test_test_mode_never_supplies_or_reveals_a_locked_field(self) -> None:
         # The set, not the count. A bare number says that something changed;
         # the set says WHICH field became locked or lost its lock, which is the

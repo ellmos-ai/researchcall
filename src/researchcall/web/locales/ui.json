@@ -43,6 +43,10 @@
     "de": "Eine kleine Studie über das Instrument: das Interview gegen den Fixture-Transport laufen lassen und messen, wie treu es ausgeliefert wurde.",
     "en": "A small study about the instrument: run the interview against the fixture transport and measure how faithfully it was delivered."
   },
+  "A stratified draw needs stratifying attributes in the sampling frame, and the dry-run frame carries none. Choose random or census, or bring a frame that has them.": {
+    "de": "Eine geschichtete Ziehung braucht Schichtungsmerkmale im Stichprobenrahmen, und der Dry-Run-Rahmen trägt keine. Wähle zufällig oder Vollerhebung, oder bring einen Rahmen mit, der sie hat.",
+    "en": "A stratified draw needs stratifying attributes in the sampling frame, and the dry-run frame carries none. Choose random or census, or bring a frame that has them."
+  },
   "A test call to yourself is still a real call.": {
     "de": "Ein Testanruf bei sich selbst ist trotzdem ein echter Anruf.",
     "en": "A test call to yourself is still a real call."
@@ -114,6 +118,10 @@
   "Apply one conservative ruling to every open case. There is no rule that passes a gate: passing is a decision somebody takes while looking at one case.": {
     "de": "Wendet eine konservative Entscheidung auf alle offenen Fälle an. Eine Regel, die ein Gate besteht, gibt es nicht: Bestehen ist eine Entscheidung, die jemand beim Blick auf den Einzelfall trifft.",
     "en": "Apply one conservative ruling to every open case. There is no rule that passes a gate: passing is a decision somebody takes while looking at one case."
+  },
+  "At least one non-empty time window is required": {
+    "de": "Mindestens ein nicht-leeres Zeitfenster ist erforderlich",
+    "en": "At least one non-empty time window is required"
   },
   "Attempts": {
     "de": "Versuche",
@@ -267,6 +275,10 @@
     "de": "Trockenlauf gegen Fixtures. Kein Netz, kein Konto, kein Anruf.",
     "en": "Dry run against fixtures. No network, no account, no call."
   },
+  "Duplicate phone number in frame input": {
+    "de": "Doppelte Telefonnummer in den Rahmendaten",
+    "en": "Duplicate phone number in frame input"
+  },
   "Each item names the hypothesis it serves; the codebook groups by it.": {
     "de": "Jedes Item nennt die Hypothese, auf die es einzahlt; das Codebuch gruppiert danach.",
     "en": "Each item names the hypothesis it serves; the codebook groups by it."
@@ -294,6 +306,10 @@
   "Every drawn person, their latest attempt, and the state of the paperwork about it. Click a row for the full record.": {
     "de": "Jede gezogene Person, ihr letzter Versuch und der Stand der Akte dazu. Klick auf eine Zeile öffnet den vollständigen Eintrag.",
     "en": "Every drawn person, their latest attempt, and the state of the paperwork about it. Click a row for the full record."
+  },
+  "Every frame row needs an external reference": {
+    "de": "Jede Rahmenzeile braucht eine externe Referenz",
+    "en": "Every frame row needs an external reference"
   },
   "Every number on this page is counted from the form definitions at request time.": {
     "de": "Jede Zahl auf dieser Seite wird beim Aufruf aus den Formularvorlagen gezählt.",
@@ -355,6 +371,14 @@
     "de": "Format",
     "en": "Format"
   },
+  "Frame .xlsx needs a header row": {
+    "de": "Der Rahmen (.xlsx) braucht eine Kopfzeile",
+    "en": "Frame .xlsx needs a header row"
+  },
+  "Frame CSV needs a header row": {
+    "de": "Die Rahmen-CSV braucht eine Kopfzeile",
+    "en": "Frame CSV needs a header row"
+  },
   "Frame accepted:": {
     "de": "Rahmen angenommen:",
     "en": "Frame accepted:"
@@ -362,6 +386,10 @@
   "Frame rows created:": {
     "de": "Erzeugte Zeilen der Auswahlgrundlage:",
     "en": "Frame rows created:"
+  },
+  "Frame source contains no rows": {
+    "de": "Die Rahmenquelle enthält keine Zeilen",
+    "en": "Frame source contains no rows"
   },
   "Frame total": {
     "de": "Rahmen gesamt",
@@ -627,6 +655,10 @@
     "de": "Person",
     "en": "Person"
   },
+  "Phone number must be valid E.164 format": {
+    "de": "Die Telefonnummer muss ein gültiges E.164-Format haben",
+    "en": "Phone number must be valid E.164 format"
+  },
   "Policy files are named but not read; there is no policy reader yet.": {
     "de": "Policy-Dateien werden benannt, aber nicht gelesen; einen Policy-Leser gibt es noch nicht.",
     "en": "Policy files are named but not read; there is no policy reader yet."
@@ -718,6 +750,10 @@
   "Same catalogue as the conversation frame, and equally absent here.": {
     "de": "Derselbe Katalog wie im Gesprächsrahmen — und hier ebenso wenig vorhanden.",
     "en": "Same catalogue as the conversation frame, and equally absent here."
+  },
+  "Sample count must be positive": {
+    "de": "Die Stichprobengröße muss positiv sein",
+    "en": "Sample count must be positive"
   },
   "Sampling": {
     "de": "Stichprobe",
@@ -823,6 +859,10 @@
     "de": "Station 2 trägt noch keine Items, also gibt es nichts zu fragen.",
     "en": "Station 2 carries no items yet, so there is nothing to ask."
   },
+  "Station 2 carries no items, so there is nothing to ask": {
+    "de": "Station 2 enthält keine Items, es gibt also nichts zu fragen",
+    "en": "Station 2 carries no items, so there is nothing to ask"
+  },
   "Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself.": {
     "de": "Station N+1 wird frei, sobald N abgeschlossen ist. Spätere Änderungen bleiben möglich und werden als nachträglich gekennzeichnet — der Zweck ist Transparenz gegenüber sich selbst.",
     "en": "Station N+1 opens once N is finished. Later changes stay possible and are marked as later additions — the point is transparency towards yourself."
@@ -878,6 +918,10 @@
   "Text in double quotes is spoken word for word. Everything outside the quotes is rephrased by the agent — a behaviour measured in a real call.": {
     "de": "Text in doppelten Anführungszeichen wird wortgetreu gesprochen. Alles außerhalb der Anführungszeichen formuliert der Agent um — gemessen in einem echten Anruf.",
     "en": "Text in double quotes is spoken word for word. Everything outside the quotes is rephrased by the agent — a behaviour measured in a real call."
+  },
+  "The .xlsx file contains no worksheet": {
+    "de": "Die .xlsx-Datei enthält kein Arbeitsblatt",
+    "en": "The .xlsx file contains no worksheet"
   },
   "The agent's own report. It is a claim, not evidence.": {
     "de": "Die Selbstauskunft des Agenten. Eine Behauptung, kein Beleg.",
@@ -1026,6 +1070,10 @@
   "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them.": {
     "de": "Diese Station trägt außerdem Einstellungen, die zum Gerüst gehören und nicht abschaltbar sind. Sie erscheinen deshalb nicht als Bedienelement; die Konfiguration nennt sie.",
     "en": "This station also carries settings that are part of the frame and cannot be switched off. They are therefore not shown as controls; the configuration states them."
+  },
+  "Time windows must be unique": {
+    "de": "Zeitfenster müssen eindeutig sein",
+    "en": "Time windows must be unique"
   },
   "Transcript": {
     "de": "Transkript",
@@ -1274,6 +1322,14 @@
   "sample size": {
     "de": "Stichprobenumfang",
     "en": "sample size"
+  },
+  "sample.size must be set before the field phase": {
+    "de": "sample.size muss vor der Feldphase gesetzt sein",
+    "en": "sample.size must be set before the field phase"
+  },
+  "sample.time_windows must name at least one window": {
+    "de": "sample.time_windows muss mindestens ein Zeitfenster nennen",
+    "en": "sample.time_windows must name at least one window"
   },
   "scale=5:low..high": {
     "de": "scale=5:niedrig..hoch",
