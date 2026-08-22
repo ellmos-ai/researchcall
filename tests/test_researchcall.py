@@ -473,13 +473,16 @@ class ResearchCallTestCase(unittest.TestCase):
         self.assertIn("künstliche Intelligenz", task)
         self.assertIn("Universität Beispielstadt", task)
         self.assertIn("jederzeit", task)
-        self.assertIn("widerruf@example.invalid", task)
+        # RC2: an e-mail address is quoted in its spoken form, not written form
+        # — the raw "@" never reaches a sentence the agent must say verbatim.
+        self.assertIn("widerruf at example Punkt invalid", task)
+        self.assertNotIn("widerruf@example.invalid", task)
         # Order: the machine is named before consent is asked, and consent is
         # asked before any question. The withdrawal route comes at the end.
         disclosure = task.index("künstliche Intelligenz")
         consent = task.index("CONSENT (say exactly)")
         first_question = task.index(self.questionnaire["questions"][0]["wording"])
-        withdrawal = task.index("widerruf@example.invalid")
+        withdrawal = task.index("widerruf at example Punkt invalid")
         self.assertLess(disclosure, consent)
         self.assertLess(consent, first_question)
         self.assertLess(first_question, withdrawal)
@@ -581,6 +584,80 @@ class ResearchCallTestCase(unittest.TestCase):
 
         self.assertEqual(task.count(stop_right_sentence("de")), 1)
         self.assertIn("künstliche Intelligenz", task)
+
+    def test_the_withdrawal_contact_is_spoken_not_spelt_out(self) -> None:
+        """RC2 (Endabnahme 2026-08-22): a configured e-mail contact came back on
+        the phone read letter by letter ("w, i, d, e, r, r, u, f, at, e, x,
+        ... dot invalid") — technically correct and unintelligible. An e-mail
+        address must reach the agent already in its ordinary spoken form, so
+        the sentence it has to say verbatim reads naturally; the literal "@"
+        must never appear in it, in either study language.
+        """
+        german = build_task(
+            dict(
+                self.questionnaire,
+                commissioner="Universität Beispielstadt",
+                withdrawal_contact="widerruf@example.invalid",
+            )
+        )
+        english = build_task(
+            dict(
+                self.questionnaire,
+                language="en",
+                consent_text="May we ask you three questions?",
+                commissioner="Example University",
+                withdrawal_contact="withdraw@example.invalid",
+            )
+        )
+        self.assertIn("widerruf at example Punkt invalid", german)
+        self.assertNotIn("@", german)
+        self.assertIn("withdraw at example dot invalid", english)
+        self.assertNotIn("@", english)
+
+        # A contact not shaped like an e-mail address is left exactly as
+        # configured — there is no single spoken form to guess for a phone
+        # number or a postal address.
+        untouched = build_task(
+            dict(
+                self.questionnaire,
+                commissioner="Universität Beispielstadt",
+                withdrawal_contact="Büro für Datenschutz, Hauptstraße 1",
+            )
+        )
+        self.assertIn("Büro für Datenschutz, Hauptstraße 1", untouched)
+
+    def test_a_mid_interview_withdrawal_is_announced_before_the_call_ends(self) -> None:
+        """RC5 (Endabnahme 2026-08-22, live befund): a person aborted mid-
+        interview, the purge ran (``runner._purge_frame``: 0 rows left in
+        ``response``), but the agent never said the answers would be deleted
+        before ending the call — the task text told it only to "stop
+        immediately". This is a string assertion on the LIVE goal-generation
+        path (``build_task``, the same function ``LiveCallClient.call`` sends
+        as ``payload["task"]``), not on a fixture.
+        """
+        task = build_task(self.full_study())
+        self.assertIn(
+            "If the person withdraws consent or asks to end the interview early, "
+            'say exactly: "Ihre bisherigen Antworten werden jetzt gelöscht." '
+            "— then end the call immediately and set withdrawal_requested=true.",
+            task,
+        )
+
+        english = build_task(
+            self.full_study(
+                language="en",
+                consent_text="May we ask you three questions?",
+                privacy_short=(
+                    "Your answers are stored pseudonymously and deleted after two years."
+                ),
+            )
+        )
+        self.assertIn(
+            "If the person withdraws consent or asks to end the interview early, "
+            'say exactly: "The answers you have given so far will now be deleted." '
+            "— then end the call immediately and set withdrawal_requested=true.",
+            english,
+        )
 
     # --- Floor sentences that are not gates, but still owed ------------------
 
@@ -842,14 +919,15 @@ class ResearchCallTestCase(unittest.TestCase):
         stop = task.index("jederzeit ohne Angabe von Gründen beenden")
         consent = task.index("CONSENT (say exactly)")
         first_question = task.index(self.questionnaire["questions"][0]["wording"])
-        withdrawal = task.index("widerruf@example.invalid")
+        # RC2: the spoken form, not the written e-mail address.
+        withdrawal = task.index("widerruf at example Punkt invalid")
         self.assertLess(disclosure, scope)
         self.assertLess(scope, privacy)
         self.assertLess(privacy, stop)
         self.assertLess(stop, consent)
         self.assertLess(consent, first_question)
         self.assertLess(first_question, withdrawal)
-        self.assertIn("Minuten", task)
+        self.assertIn("dauert etwa", task)
 
     def test_the_floor_speaks_english_too(self) -> None:
         english = build_task(
@@ -895,8 +973,23 @@ class ResearchCallTestCase(unittest.TestCase):
     def test_the_duration_is_said_in_every_call(self) -> None:
         """Locked by user decision of 2026-08-11, like consent and the stop right."""
         task = build_task(self.full_study())
-        self.assertIn("Minuten", task)
+        self.assertIn("dauert etwa", task)
         self.assertIn("umfasst bis zu", task)
+
+    def test_the_duration_is_grammatically_correct_for_one_minute(self) -> None:
+        """RC3 (Endabnahme 2026-08-22): "dauert etwa 1 Minuten" was spoken aloud.
+
+        A study whose instrument estimates exactly one minute must say "1
+        Minute", not "1 Minuten" — the same rule that keeps "1 Frage" out of
+        the plural.
+        """
+        task = build_task(self.full_study(estimated_minutes=1))
+        self.assertIn("dauert etwa 1 Minute ", task)
+        self.assertNotIn("1 Minuten", task)
+
+        multiple = build_task(self.full_study(estimated_minutes=5))
+        self.assertIn("dauert etwa 5 Minuten ", multiple)
+        self.assertNotIn("5 Minute ", multiple)
 
         # Even a study that still carries the old off-switch says it: the field
         # is locked now, so an old value cannot silence the promise.

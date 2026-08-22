@@ -195,9 +195,12 @@ class ConversationFrameTestCase(unittest.TestCase):
         long, _ = build(items=ITEMS * 4)
         self.assertLess(short["estimated_minutes"], long["estimated_minutes"])
         spoken = build_task(dict(short, commissioner="X", privacy_short="Y", withdrawal_contact="Z"))
+        # RC3: the noun after the number is inflected — "1 Frage", not "1 Fragen".
+        minutes_word = "Minute" if short["estimated_minutes"] == 1 else "Minuten"
+        questions_word = "Frage" if len(short["questions"]) == 1 else "Fragen"
         self.assertIn(
-            f"Die Befragung dauert etwa {short['estimated_minutes']} Minuten und "
-            f"umfasst bis zu {len(short['questions'])} Fragen.",
+            f"Die Befragung dauert etwa {short['estimated_minutes']} {minutes_word} und "
+            f"umfasst bis zu {len(short['questions'])} {questions_word}.",
             spoken,
         )
 

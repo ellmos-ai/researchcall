@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -97,12 +98,19 @@ STOP_RIGHT_SENTENCE = {
 #: "up to" is deliberate: with filters, any exact count can become a lie, and
 #: asking fewer questions than announced breaks nothing while asking more breaks
 #: the basis of the consent.
+#:
+#: The noun forms ({minutes_word}, {count_word}) are supplied by
+#: :func:`scope_sentence`, already inflected for the number in front of them —
+#: measured live 2026-08-22 (Endabnahme, befund RC3): a one-question or
+#: one-minute study said "1 Minuten"/"1 questions", grammatically wrong in a
+#: sentence spoken aloud to a real person.
 SCOPE_DURATION = {
     "de": (
-        "Die Befragung dauert etwa {minutes} Minuten und umfasst bis zu {count} Fragen."
+        "Die Befragung dauert etwa {minutes} {minutes_word} und umfasst bis zu "
+        "{count} {count_word}."
     ),
     "en": (
-        "The survey takes about {minutes} minutes and has up to {count} questions."
+        "The survey takes about {minutes} {minutes_word} and has up to {count} {count_word}."
     ),
 }
 
@@ -137,6 +145,39 @@ WITHDRAWAL_ROUTE = {
         "{withdrawal_contact}."
     ),
 }
+
+#: An e-mail address, loosely: local part, an "@", a domain with at least one dot.
+#: Loose on purpose — this only decides whether the spoken-form rewrite below
+#: applies, never whether the address is valid mail syntax.
+_EMAIL_LIKE_RE = re.compile(r"^\S+@\S+\.\S+$")
+
+#: How "@" and "." are read aloud, by language. Measured live 2026-08-22
+#: (Endabnahme, befund RC2): a configured e-mail address was read back letter
+#: by letter ("w, i, d, e, r, r, u, f, at, e, x, ... dot invalid") — technically
+#: correct and useless over a phone line. "at" is the ordinary spoken form in
+#: both languages here; "Punkt"/"dot" is the respective word for the full stop.
+_AT_WORD = {"de": "at", "en": "at"}
+_DOT_WORD = {"de": "Punkt", "en": "dot"}
+
+
+def _spoken_contact_form(value: str, language: str) -> str:
+    """How a contact address is said aloud, not how it is written.
+
+    Only a value shaped like an e-mail address is rewritten; a phone number or
+    a postal address has no single spoken form to guess here and is passed
+    through unchanged. The rewrite happens on the value itself, before it is
+    quoted into the sentence the agent must say verbatim — an instruction
+    telling the agent "pronounce this naturally" would depend on the model
+    actually following it, where a sentence that already reads naturally does
+    not.
+    """
+    if not _EMAIL_LIKE_RE.match(value):
+        return value
+    base = _language_base(language)
+    at_word = _AT_WORD.get(base, _AT_WORD["en"])
+    dot_word = _DOT_WORD.get(base, _DOT_WORD["en"])
+    spoken = value.replace("@", f" {at_word} ").replace(".", f" {dot_word} ")
+    return re.sub(r"\s+", " ", spoken).strip()
 
 #: What a study must name before it may call anybody. Both are spoken aloud, so
 #: neither can be guessed from free text: whether a privacy paragraph "contains"
@@ -206,12 +247,30 @@ def stop_right_sentence(language: str) -> str:
 
 
 def withdrawal_route_sentence(questionnaire: dict[str, Any]) -> str:
-    """Where a person turns to pull their answers back afterwards."""
-    return _sentence(
-        WITHDRAWAL_ROUTE,
-        questionnaire,
-        withdrawal_contact=_setting(questionnaire, "withdrawal_contact"),
+    """Where a person turns to pull their answers back afterwards.
+
+    The contact is quoted in its spoken form (see ``_spoken_contact_form``):
+    the sentence itself is what the agent must say verbatim, so the rewrite
+    has to happen here, before quoting, and not as a separate instruction the
+    agent might or might not follow.
+    """
+    contact = _spoken_contact_form(
+        _setting(questionnaire, "withdrawal_contact"),
+        questionnaire.get("language", ""),
     )
+    return _sentence(WITHDRAWAL_ROUTE, questionnaire, withdrawal_contact=contact)
+
+
+#: Singular/plural nouns for the scope sentence, by language. A count of
+#: exactly one gets the first form, anything else (including zero) the second —
+#: the ordinary rule in both languages.
+_MINUTE_WORDS = {"de": ("Minute", "Minuten"), "en": ("minute", "minutes")}
+_QUESTION_WORDS = {"de": ("Frage", "Fragen"), "en": ("question", "questions")}
+
+
+def _inflected(count: int, words: dict[str, tuple[str, str]], base: str) -> str:
+    singular, plural = words.get(base, words["en"])
+    return singular if count == 1 else plural
 
 
 def scope_sentence(questionnaire: dict[str, Any]) -> str:
@@ -229,7 +288,16 @@ def scope_sentence(questionnaire: dict[str, Any]) -> str:
         from .instrument import estimate_minutes_for_questions
 
         minutes = estimate_minutes_for_questions(questions)
-    return _sentence(SCOPE_DURATION, questionnaire, minutes=minutes, count=len(questions))
+    count = len(questions)
+    base = _language_base(questionnaire.get("language", ""))
+    return _sentence(
+        SCOPE_DURATION,
+        questionnaire,
+        minutes=minutes,
+        count=count,
+        minutes_word=_inflected(minutes, _MINUTE_WORDS, base),
+        count_word=_inflected(count, _QUESTION_WORDS, base),
+    )
 
 
 def privacy_sentence(questionnaire: dict[str, Any]) -> str:
@@ -241,6 +309,26 @@ def privacy_sentence(questionnaire: dict[str, Any]) -> str:
 
 def deletion_sentence(questionnaire: dict[str, Any]) -> str:
     return _sentence(DELETION_ON_REQUEST, questionnaire)
+
+
+#: Said the moment a withdrawal actually happens — not the general promise
+#: above (spoken once, near the start, as a standing offer), but the
+#: confirmation at the point the person acts on it. Measured live 2026-08-22
+#: (Endabnahme, befund RC5): a person broke off mid-interview, the purge ran
+#: (``runner._purge_frame``: 0 rows left in ``response``, the answers gone),
+#: but the agent never said so before ending the call — the task text told it
+#: only to "stop immediately", never what to say. The August-11 fix
+#: (``DELETION_ON_REQUEST``) closed the *promise*; this closes the
+#: *confirmation*, which is a different sentence at a different moment.
+WITHDRAWAL_ACKNOWLEDGEMENT = {
+    "de": "Ihre bisherigen Antworten werden jetzt gelöscht.",
+    "en": "The answers you have given so far will now be deleted.",
+}
+
+
+def withdrawal_acknowledgement_sentence(questionnaire: dict[str, Any]) -> str:
+    """What the agent must say, at the moment of withdrawal, before hanging up."""
+    return _sentence(WITHDRAWAL_ACKNOWLEDGEMENT, questionnaire)
 
 
 def missing_disclosure_settings(questionnaire: dict[str, Any]) -> list[str]:
@@ -526,7 +614,9 @@ def build_task(questionnaire: dict[str, Any]) -> str:
     lines.extend(
         [
             "Do not request names, addresses, background history, or any data not required by this questionnaire.",
-            "If the person withdraws consent, stop immediately and set withdrawal_requested=true.",
+            "If the person withdraws consent or asks to end the interview early, say "
+            'exactly: "' + withdrawal_acknowledgement_sentence(questionnaire) + '" '
+            "— then end the call immediately and set withdrawal_requested=true.",
             "For every question you asked, return the actual words spoken in spoken_wording; omit the entry entirely for a question you did not ask.",
             "For every question, preserve the participant's raw words in raw_answers before interpreting them into answers; do not correct or paraphrase the raw words, and omit the entry entirely when no answer was given.",
             "Never send an empty value: an entry you would have nothing to put in is left out.",
