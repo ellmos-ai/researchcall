@@ -14,6 +14,14 @@ dependencies = []
 # nothing installed. The workbench is the one part that needs a server.
 [project.optional-dependencies]
 web = ["fastapi>=0.110", "uvicorn>=0.27"]
+# Only for the AWS Lambda dry-run demo (demo/lambda_entry.py). Mangum adapts
+# the same FastAPI app to a Function URL event. python-multipart is a runtime
+# requirement of Starlette's request.form() (several web/app.py routes use
+# it) even though the `web` extra above omits it. pyyaml matches the parser
+# researchcall.forms._read_entries prefers when it is available, so the
+# demo reads the same *.forms.yaml files the same way local dev does; without
+# it the module falls back to a smaller reader instead of failing.
+lambda = ["fastapi>=0.110", "python-multipart>=0.0.9", "mangum>=0.17", "pyyaml>=6.0"]
 
 [project.scripts]
 researchcall = "researchcall.cli:main"

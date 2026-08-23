@@ -75,6 +75,14 @@ WEAK_VOICEMAIL_MARKERS = (
 REFUSED_BEFORE_DIALLING = {401, 402, 403, 429}
 
 
+class LiveCallBlocked(RuntimeError):
+    """Refused to build a client that could place a real call.
+
+    Raised by :class:`LiveCallClient` when ``DEMO_MODE=1`` is set in the
+    process environment -- see the check at the top of ``__init__``.
+    """
+
+
 class CalleAPIError(RuntimeError):
     """What the service said, in the words it used.
 
@@ -421,6 +429,18 @@ class LiveCallClient:
         poll_timeout_seconds: float = 900.0,
         progress_callback: ProgressCallback | None = None,
     ) -> None:
+        if os.environ.get("DEMO_MODE") == "1":
+            # Checked before the api_key check below and before anything else:
+            # this is the public dry-run demo deployment (demo/lambda_entry.py),
+            # and it must refuse a live call no matter what a caller supplies —
+            # even a real key, if one were ever mistakenly configured. The web
+            # app has no route that reaches this class today; this guard exists
+            # so that stays true even after a future change forgets that.
+            raise LiveCallBlocked(
+                "This is the public dry-run demo (DEMO_MODE=1) -- it never places "
+                "a real call, regardless of what is configured. This is not a "
+                "bug: it is the one thing this deployment must never do."
+            )
         if not api_key:
             raise ValueError("CALLE_API_KEY is required for live mode")
         self.api_key = api_key

@@ -252,6 +252,10 @@ python -m unittest discover -s tests -v
 python -m researchcall --help
 ```
 
+**Live-Demo (Dry-Run, keine echten Anrufe möglich):** https://byk6fuming5zf5e3u3z774qty40nwlas.lambda-url.eu-central-1.on.aws/
+
+Dieselbe Web-Werkbank, hinter einer AWS-Lambda-Function-URL bereitgestellt. Ein Kaltstart schaltet die in der Werkbank eingebaute eigene Fixture-Führung ("Testmodus") ein — dieselbe, die auch ein Besucher mit einem Klick auf den Banner-Button erreicht (`researchcall/web/test_mode.py`) —, mit einer fiktiven Busverkehrs-Studie, die bereits über alle acht Stationen hinweg ausgefüllt ist, sodass sofort etwas zu sehen ist. Zwei voneinander unabhängige Dinge machen es strukturell unmöglich, einen echten Anruf zu tätigen: In der Umgebung der Lambda-Funktion ist `DEMO_MODE=1` gesetzt, und es ist dort niemals ein `CALLE_API_KEY` konfiguriert — `LiveCallClient.__init__` prüft `DEMO_MODE` vor der eigenen Prüfung des API-Schlüssels und verweigert unbedingt, unabhängig davon, was konfiguriert ist (`tests/test_live_guard.py`, Abschnitt "demo mode"). Die Werkbank selbst besitzt ohnehin keine Route, die `LiveCallClient` überhaupt erreicht; die Sperre existiert trotzdem, damit das auch nach einer künftigen Änderung so bleibt. Klar gesagt statt mühsam entdeckt: Dies ist eine **flüchtige Demo** — der Zustand wird zurückgesetzt, sobald AWS die zugrunde liegende Sandbox erneuert, eine dort angelegte Studie ist also morgen nicht mehr zu erwarten.
+
 ## Normaler Arbeitsablauf
 
 ```powershell

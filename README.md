@@ -165,6 +165,10 @@ researchcall demo --workspace out/demo --seed 42
 
 The demo is intentionally unable to select the live adapter. Its fixture phone values are fictitious, and no phone value is printed to the console or report.
 
+**Live demo (dry-run, no calls possible):** https://byk6fuming5zf5e3u3z774qty40nwlas.lambda-url.eu-central-1.on.aws/
+
+The same web workbench described above, deployed behind an AWS Lambda Function URL. A cold start turns on the workbench's own built-in "Test mode" fixture tour -- the same one a visitor reaches with one click of the on-page banner button (`researchcall/web/test_mode.py`) -- with a fictional local-bus-service study already filled in across all eight stations, so there is something to look at immediately. Two independent things make it structurally unable to place a real call: `DEMO_MODE=1` is set in the Lambda's own environment, and no `CALLE_API_KEY` is ever configured there -- `LiveCallClient.__init__` checks `DEMO_MODE` before its own api-key check and refuses unconditionally regardless of what is configured (`tests/test_live_guard.py`, "demo mode"). The workbench itself has no route that reaches `LiveCallClient` at all; the guard exists so that stays true even after a future change. Stated plainly rather than discovered the hard way: this is an **ephemeral demo** -- state resets whenever AWS recycles the underlying sandbox, so a study built there is not expected to still be there tomorrow.
+
 ## Normal workflow
 
 Initialize state and register a questionnaire:
