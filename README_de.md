@@ -7,7 +7,7 @@
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Architektur: Trockenlauf--Zuerst](https://img.shields.io/badge/Architektur-Trockenlauf--Zuerst-teal?style=flat)](SPEC.md)
 [![Pipeline: 8 Gated Stationen](https://img.shields.io/badge/Pipeline-8%20Gated%20Stationen-purple?style=flat)](pipeline/)
-[![Tests: 283 passed](https://img.shields.io/badge/Tests-283%20passed-success?style=flat&logo=pytest&logoColor=white)](tests/)
+[![Tests: 293 bestanden](https://img.shields.io/badge/Tests-293%20bestanden-success?style=flat&logo=pytest&logoColor=white)](tests/)
 [![LLM-Kontext](https://img.shields.io/badge/LLM--Kontext-llms.txt-orange?style=flat)](llms.txt)
 
 **[English](README.md) · Deutsch**
@@ -428,6 +428,11 @@ Einwilligung, rechtmäßige Kontaktaufnahme, Forschungsethik und die Anforderung
 Rechtsordnung bleibt der Betreiber verantwortlich.
 
 ## Wie wir getestet haben
+
+Die Datumsangaben und zusammengefassten Befunde sind sachlich belegt. Öffentliche
+Beispiele, Kennungen, Antworten und Transkriptausschnitte sind synthetische
+Rekonstruktionen; rohe Anrufartefakte und die einwilligende Testnummer befinden sich
+weder in diesem Repository noch in seiner erreichbaren Historie.
 
 ResearchCall wurde in einer Reihe betreuter Live-Anrufe gegen den echten CALL-E-Dienst getestet,
 jeder davon auf eine einzige, ausdrücklich einwilligende Leitung geführt

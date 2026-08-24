@@ -7,7 +7,7 @@
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![Architecture: Dry--Run First](https://img.shields.io/badge/Architecture-Dry--Run%20First-teal?style=flat)](SPEC.md)
 [![Pipeline: 8 Gated Stations](https://img.shields.io/badge/Pipeline-8%20Gated%20Stations-purple?style=flat)](pipeline/)
-[![Tests: 283 passed](https://img.shields.io/badge/Tests-283%20passed-success?style=flat&logo=pytest&logoColor=white)](tests/)
+[![Tests: 293 passed](https://img.shields.io/badge/Tests-293%20passed-success?style=flat&logo=pytest&logoColor=white)](tests/)
 [![LLM Context](https://img.shields.io/badge/LLM%20Context-llms.txt-orange?style=flat)](llms.txt)
 
 **English · [Deutsch](README_de.md)**
@@ -345,6 +345,10 @@ Two outcomes are corrected before they are counted, because the service reports 
 The content guard rejects questionnaires that explicitly request medical, legal, financial, or emergency advice. It is a narrow technical backstop, not legal review. The operator remains responsible for consent, lawful contact, research ethics, and jurisdiction-specific requirements. For German private persons, use informed participants; business respondents are the safer demonstration setting described in the project specification.
 
 ## How We Tested
+
+The dates and aggregate findings below are factual. Public examples, identifiers,
+answers, and transcript fragments are synthetic reconstructions; raw call artifacts and
+the consenting test line are not present in this repository or its reachable history.
 
 ResearchCall was tested against the real CALL-E service in a series of supervised live calls, every one of them routed to one explicitly consenting phone line (`RESEARCHCALL_FIELD_TRIAL_PHONE`) rather than to any actually-drawn number. The author played the subject on every call, unscripted beyond knowing which path was under test; a signed consent attestation is a gate the field-trial run refuses to skip. No number outside that one line was ever dialled.
 
